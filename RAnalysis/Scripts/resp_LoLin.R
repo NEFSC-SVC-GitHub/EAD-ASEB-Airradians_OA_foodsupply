@@ -21,6 +21,7 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis")
 path.p    <- "Data/Respiration" #the location of all your respirometry files 
 a         <- 0.4
 ouputNAME <- "Output/Respiration/Cumulative_resp_alpha0.4.csv" 
+#ouputNAME <- "Output/Respiration/Cumulative_resp_alpha0.4_trunc40mins.csv" # do you want to truncate at 40 mins???
 
 # ANALYSIS  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # Objective: use LoLinr to run all respiration rates in a non-bias and autonomous fashion
@@ -67,7 +68,9 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
       # Truncate! EVERY 30 SECONDS (note: these txt files are long with measurements every second,trancating reduces the analysis time dramatically)
       # the loligo recoreded values every second, this slows the model dramatically with >2000 values for each Channel, call every 30 seconds to speed this up
       # discuss with collaborators on this truncated approach 
+      
       Resp.Data_30sec = Resp.Data[seq(1, nrow(Resp.Data), 30), ]
+     # Resp.Data_30sec = Resp.Data[seq(1, nrow(Resp.Data), 30), ] %>% dplyr::filter(!minutes > 40) # do you want to truncate 40 mins??
   
   
               # inside 'j' loop - for each 'raw' txt file 'm', call each O2 sensor/resp chamber 'j' for analysis
@@ -114,6 +117,7 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                         
                             # save plots every inside loop and name by date_run_vialposition
                             pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                           # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                             plot(model)
                             dev.off()
             } # end of  else statement (if column 'j' is NA write NA in the cumulative sheet, else run LoLinR for x=mins and y = mg/l O2)

@@ -10,14 +10,14 @@ library(ggplot2)
 library(forcats)
 library(lmer4)
 library(lmerTest)
-
+library(car)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer 
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-resp.data    <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4.csv", header=T) %>% dplyr::filter(!Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
+resp.data    <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4_trunc40mins.csv", header=T) %>% dplyr::filter(!Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
 
 exp_metadata <- read.csv(file="Data/ExperimentMetadata.csv", header=T) # treatment assignments to 'Chamber_Tank'
 lengths      <- read.csv(file="Data/Lengths_resp.csv", header=T) %>% 
@@ -90,8 +90,8 @@ Resp.Master_OM$resp_ng_L_umlLength_hr <- (
 
 # model effect of treatment on resp rate 20210507
 Resp_0914 <- Resp.Master_OM %>% 
-              dplyr::filter(Date %in% '9/14/2021') %>% # call only 9/14
-              dplyr::filter(!resp_ng_L_umlLength_hr >5) # ommit outliers
+              dplyr::filter(Date %in% '9/14/2021')  # call only 9/14
+
 
 Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% summarise(n()) # tank replication
 
@@ -109,8 +109,8 @@ leveneTest(MEmod_0914) # good
 
 
 DF   <- paste( (summary(LMmod_0914)[[1]][["Df"]])[1], (summary(LMmod_0914)[[1]][["Df"]])[2], sep = '/')
-Fval <- (summary(mod)[[1]][["F value"]])[1]
-pval <- (summary(mod)[[1]][["Pr(>F)"]])[1]
+Fval <- (summary(LMmod_0914)[[1]][["F value"]])[1]
+pval <- (summary(LMmod_0914)[[1]][["Pr(>F)"]])[1]
 
 pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
 ggplot(Resp_0914, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
