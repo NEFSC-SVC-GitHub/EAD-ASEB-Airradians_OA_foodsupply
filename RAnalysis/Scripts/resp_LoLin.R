@@ -20,7 +20,7 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis")
 
 path.p    <- "Data/Respiration" #the location of all your respirometry files 
 a         <- 0.4
-ouputNAME <- "Output/Respiration/Cumulative_resp_alpha0.4.csv" 
+ouputNAME <- "Output/Respiration/Cumulative_resp_alpha0.4_15sectrunc40min.csv" 
 #ouputNAME <- "Output/Respiration/Cumulative_resp_alpha0.4_trunc40mins.csv" # do you want to truncate at 40 mins???
 
 # ANALYSIS  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -32,7 +32,7 @@ ouputNAME <- "Output/Respiration/Cumulative_resp_alpha0.4.csv"
 # I. call subfolders as dataframe and create a dataframe for the output
 
 # call the subfolder names for the outside loop 'i' (i.e. 20210914)
-folder.names           <- basename(list.files(path = path.p, pattern = "", recursive = FALSE)) #list all csv file names in the folder and subfolders
+folder.names           <- basename(list.files(path = path.p, pattern = "202", recursive = FALSE)) #list all csv file names in the folder and subfolders
 folder.names.table     <- data.frame(folder.names)
 
 # Call the cumulative dataframe that we will write to in the for loop below
@@ -44,49 +44,75 @@ colnames(resp.table) <- c('Date', 'Channel', 'Lpc', 'Leq' , 'Lz', 'alpha','Filen
 
 # outside 'i' loop - call each subfolder one at a time for analysis
 for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  # call all txt files labelled 'raw' in each subfolder (i.e. 20210914) and create a table 
-  file.names.table    <- data.frame(txt.files = (basename(list.files(path = paste(path.p,'/',folder.names.table[i,1],sep=''), pattern = "txt$", recursive = TRUE)))) %>%  dplyr::filter(grepl('raw', txt.files))#list all csv file names in the folder and subfolders
-  
-      # inside 'm' loop - call each 'raw' .txt file wihtin the subfolder 'i'
-      for(m in 1:nrow(file.names.table)) { # for every 'raw' .txt file 'm' in the subfolder 'i' :::::::::::::::::::::::::::::::::::::
+  # NOTE: when calling the raw files we need to accommodate the different formats
+  # 20210914 used the 8-channel loligo system with raw output as .txt files with 'raw' in the title - call these using dplyr in the if/else below
+  # 20210930 used the 24-channel SDR sensor dish with raw output as .csv files - call these in the if/else statement below 
+  # call all txt files labeled 'raw' in each subfolder (i.e. 20210914) and create a table 
+  if (folder.names.table[i,] == '20210914') { # our single run (thus far!) using the 8-channel loligo system
+     file.names.table    <- data.frame(txt.files = (basename(list.files(path = paste(path.p,'/',folder.names.table[1,i],sep=''), pattern = "txt$", recursive = TRUE)))) %>%  dplyr::filter(grepl('raw', txt.files))#list all csv file names in the folder and subfolders
+    } else { # call 24-channel SDR dish data
+       file.names.table    <- data.frame(txt.files = (basename(list.files(path = paste(path.p,'/',folder.names.table[2,i],sep=''), pattern = "csv$", recursive = TRUE))))  %>%  dplyr::filter(grepl('RR_', txt.files))
+       }  
+
+        # inside 'm' loop - call each  raw .txt or raw .csv file file witin the subfolder 'i'
+      for(m in 1:nrow(file.names.table)) { # for every raw .txt or csv file 'm' in the subfolder 'i' :::::::::::::::::::::::::::::::::::::
       
-      Resp.Data           <- read.delim2(file = paste(path.p,'/',folder.names.table[i,1], '/', file.names.table[m,1], sep=''), header = TRUE,skip = 37) #reads in the data files
-      Resp.Data$date      <- paste((sub("2021.*", "", Resp.Data$Date..Time..DD.MM.YYYY.HH.MM.SS.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
-      Resp.Data$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", Resp.Data$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
-      Resp.Data$seconds   <- (Resp.Data$time_Sec - Resp.Data$time_Sec[1])    # secs - calc the sec time series
-      Resp.Data$minutes   <- (Resp.Data$time_Sec - Resp.Data$time_Sec[1])/60 # mins - calc the minute time series
-      
-      temperature_C       <- as.numeric(Resp.Data$CH1.temp...C.[1])
-      barromP_kPa         <- as.numeric(Resp.Data$Barometric.pressure..hPa.[1]) / 10
-      salinity.pp.thou    <- as.numeric(Resp.Data$Salinity....[1])
-      
-      Resp.Data           <- Resp.Data %>% # use 'dplyr' 
-                              #dplyr::filter(!Phase %in% 'Flush') %>% # remove the initial rows labeled flush
-                              dplyr::select(c(date, seconds, minutes, contains(".O2...air.sat"))) # call unique column names for the 8 Channels
-      colnames(Resp.Data)[c(4:(ncol(Resp.Data)))] <- substr( ( colnames(Resp.Data)[c(4:(ncol(Resp.Data)))] ), 1,3) # clean these column names to make things easier - first 3 characters
-      
-      # Truncate! EVERY 30 SECONDS (note: these txt files are long with measurements every second,trancating reduces the analysis time dramatically)
-      # the loligo recoreded values every second, this slows the model dramatically with >2000 values for each Channel, call every 30 seconds to speed this up
-      # discuss with collaborators on this truncated approach 
-      
-      Resp.Data_30sec = Resp.Data[seq(1, nrow(Resp.Data), 30), ]
-     # Resp.Data_30sec = Resp.Data[seq(1, nrow(Resp.Data), 30), ] %>% dplyr::filter(!minutes > 40) # do you want to truncate 40 mins??
-  
+        if (gsub(".*_raw.","", file.names.table[m,]) == "txt") {
+        Resp.Data           <- read.delim2(file = paste(path.p,'/',folder.names.table[i,1], '/', file.names.table[m,1], sep=''), header = TRUE,skip = 37) #reads in the data files
+        Resp.Data$date      <- paste((sub("2021.*", "", Resp.Data$Date..Time..DD.MM.YYYY.HH.MM.SS.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+        Resp.Data$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", Resp.Data$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+        Resp.Data$seconds   <- (Resp.Data$time_Sec - Resp.Data$time_Sec[1])    # secs - calc the sec time series
+        Resp.Data$minutes   <- (Resp.Data$time_Sec - Resp.Data$time_Sec[1])/60 # mins - calc the minute time series
+        temperature_C       <- as.numeric(Resp.Data$CH1.temp...C.[1])
+        barromP_kPa         <- as.numeric(Resp.Data$Barometric.pressure..hPa.[1]) / 10
+        salinity.pp.thou    <- as.numeric(Resp.Data$Salinity....[1])
+        Resp.Data           <- Resp.Data %>% # use 'dplyr' 
+                                #dplyr::filter(!Phase %in% 'Flush') %>% # remove the initial rows labeled flush
+                                dplyr::select(c(date, seconds, minutes, contains(".O2...air.sat"))) %>%  # call unique column names for the 8 Channels
+                                dplyr::filter(minutes < 40)
+        colnames(Resp.Data)[c(4:(ncol(Resp.Data)))] <- substr( ( colnames(Resp.Data)[c(4:(ncol(Resp.Data)))] ), 1,3) # clean these column names to make things easier - first 3 characters
+        
+        # Truncate! EVERY 30 SECONDS (note: these txt files are long with measurements every second,trancating reduces the analysis time dramatically)
+        # the loligo recoreded values every second, this slows the model dramatically with >2000 values for each Channel, call every 30 seconds to speed this up
+        # discuss with collaborators on this truncated approach 
+        Resp.Data_15sec = Resp.Data[seq(1, nrow(Resp.Data), 15), ] # truncate the loligo system to every 15 seconds (taken every second!) 
+        Resp.Data_15sec = Resp.Data_15sec  %>%  dplyr::filter(minutes < 40)
+        
+          } else { 
+            Resp.Data           <- read.csv(file = paste(path.p,'/',folder.names.table[i,1], '/', file.names.table[m,1], sep=''), header = TRUE,skip = 51) #reads in the data files
+            Resp.Data$date      <- paste((sub("2021.*", "", Resp.Data$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+            Resp.Data$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", Resp.Data$Time..HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+            Resp.Data$seconds   <- (Resp.Data$time_Sec - Resp.Data$time_Sec[1])    # secs - calc the sec time series
+            Resp.Data$minutes   <- (Resp.Data$time_Sec - Resp.Data$time_Sec[1])/60 # mins - calc the minute time series
+            temperature_C       <- as.numeric(Resp.Data$CH1.temp...C.[1])
+            barromP_kPa         <- as.numeric(Resp.Data$Barometric.pressure..hPa.[1]) / 10
+            salinity.pp.thou    <- as.numeric(Resp.Data$Salinity....[1])
+            Resp.Data           <- Resp.Data %>% # use 'dplyr' 
+              dplyr::select(c(date, seconds, minutes, contains("..Oxygen."))) # call unique column names for the 8 Channels
+            colnames(Resp.Data)[c(4:(ncol(Resp.Data)))] <- substr( ( colnames(Resp.Data)[c(4:(ncol(Resp.Data)))] ), 1,2) 
+            Resp.Data_15sec = Resp.Data  %>%  dplyr::filter(minutes < 40) # SDR data is already taken every 15 seconds, truncate for < 40 minutes in runs
+            }# clean these column names to make things easier - first 3 characters
+            
+
   
               # inside 'j' loop - for each 'raw' txt file 'm', call each O2 sensor/resp chamber 'j' for analysis
-              for(j in 4:(ncol(Resp.Data_30sec))){ # for each sensor column 'j' (..starting at column 4) :::::::::::::::::::::::::::::::
+              for(j in 4:(ncol(Resp.Data_15sec))){ # for each sensor column 'j' (..starting at column 4) :::::::::::::::::::::::::::::::
               
-              Resp_loop         <- na.omit(Resp.Data_30sec[,c(3,j)]) # noticed some random rows have 'NaN' - so I will loop the min and Channels to ommit Nas before proceeding
-              Resp_loop$mgL     <- DO.unit.convert(as.numeric(Resp_loop[,2]),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
-                                                   DO.units.in = "pct", DO.units.out ="mg/L", 
-                                                   bar.units.in = "kPa", bar.press = barromP_kPa, bar.units.out = "kpa",
-                                                   temp.C = temperature_C, 
-                                                   salinity.units = "pp.thou", salinity = salinity.pp.thou)
-              
-          
-                      
+              Resp_loop         <- na.omit(Resp.Data_15sec[,c(3,j)]) # noticed some random rows have 'NaN' - so I will loop the min and Channels to ommit Nas before proceeding
+
+                # Loligo system needs to cnvert %air sat to mg / L whereas SDR dish does not 
+                if ( (substr(colnames(Resp.Data_15sec)[j],1,2) == 'CH') ) { # loligo measurements need to be converted to mg/L from %air sat - these columns are written as "CH#" 
+                  Resp_loop <- Resp_loop %>%  dplyr::filter(!colnames(Resp_loop)[2] %in% 'NaN') # Lolin recorede NAs are written as 'Nan' - wonts run unless removed!
+                  Resp_loop$mgL     <- DO.unit.convert(as.numeric(Resp_loop[,2]),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                                     DO.units.in = "pct", DO.units.out ="mg/L", 
+                                                     bar.units.in = "kPa", bar.press = barromP_kPa, bar.units.out = "kpa",
+                                                     temp.C = temperature_C, 
+                                                     salinity.units = "pp.thou", salinity = salinity.pp.thou)
+                } else {Resp_loop$mgL <- Resp.Data_15sec[j]} # for the SDR dish values that are already in mg/L simply call the column in the loop
+                    
+                    # now run data!
                      if (nrow(Resp_loop) < 1) { # if column 'j' is NA write NA in the cumulative sheet...
-                        resp.table$Date                <- Resp.Data_30sec[1,1]
+                        resp.table$Date                <- Resp.Data_15sec[1,1]
                         resp.table$Channel             <- colnames(Resp_loop)[2] 
                         resp.table[3:ncol(resp.table)] <- 'NA'
                         df       <- data.frame(resp.table) # name dataframe for this single row
@@ -96,14 +122,14 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                         } else { # else run LoLinR for x=mins and y=mg/l O2
                             model <- rankLocReg(
                             xall    = as.numeric(Resp_loop[, 1]), 
-                            yall    = as.numeric(Resp_loop[, 3]), # call x as the minute timeseries and y as the % air saturation of the particular Channel
+                            yall    = as.numeric(Resp_loop[, 2]), # call x as the minute timeseries and y as the % air saturation of the particular Channel
                             alpha   = a,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
                             method  = "pc", 
                             verbose = TRUE) 
                         
                             sum.table <- summary(model)
                             
-                            resp.table$Date       <- Resp.Data_30sec[1,1]
+                            resp.table$Date       <- Resp.Data_15sec[1,1]
                             resp.table$Channel    <- colnames(Resp_loop)[2] 
                             resp.table$Lpc        <- sum.table$Lcompare[3,6] # Lpc slope - call the column 'b1'
                             resp.table$Leq        <- sum.table$Lcompare[2,6] # Leq slope - call the column 'b1'
@@ -114,13 +140,18 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                             df       <- data.frame(resp.table) # name dataframe for this single row
                             df_total <- rbind(df_total,df) #bind to a cumulative list dataframe
                             print(df_total) # print to monitor progress
-                        
+                            }  # end of  else statement (if column 'j' is NA write NA in the cumulative sheet, else run LoLinR for x=mins and y = mg/l O2)
                             # save plots every inside loop and name by date_run_vialposition
-                            pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                            if (gsub(".*_raw.","", file.names.table[i,]) == "txt") {
+                            pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                            # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                             plot(model)
                             dev.off()
-            } # end of  else statement (if column 'j' is NA write NA in the cumulative sheet, else run LoLinR for x=mins and y = mg/l O2)
+                            } else { 
+                              pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", substr( (sub(".*M_","",file.names.table[1,1])), 1,13),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                              # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                              plot(model)
+                              dev.off() }
          } # end of inside for loop 'j' (for each sensor column 'j' [a] isolate mins and CH_ for analysis [b] convert CH_ data to mg/L using 'DO.unit.convert' [c] calc respi rates with LoLin R)
      } # end of inside  for loop 'm' (for every 'raw' .txt file 'm' in the subfolder 'i')
 } # end of outside for loop 'i' (for every subfolder 'i')
@@ -134,3 +165,4 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
 cumulative_resp_table <- read.csv(file=ouputNAME, header=TRUE) #call the pre existing cumulative table
 new_table             <- rbind(cumulative_resp_table, df_total) # bind the new table from the for loop to the pre exisiting table
 write.table(new_table,ouputNAME,sep=",", row.names=FALSE)  # write out to the path names outputNAME
+

@@ -17,11 +17,10 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # 
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-resp.data    <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4_trunc40mins.csv", header=T) %>% dplyr::filter(!Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
+resp.data    <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4_15sectrunc40min.csv", header=T) %>% dplyr::filter(!Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
 
 exp_metadata <- read.csv(file="Data/ExperimentMetadata.csv", header=T) # treatment assignments to 'Chamber_Tank'
-lengths      <- read.csv(file="Data/Lengths_resp.csv", header=T) %>% 
-  dplyr::select(c('Run','Chamber_tank', 'Length.um.'))
+lengths      <- read.csv(file="Data/Respiration/Lengths_resp.csv", header=T)
 resp.ref     <- read.csv(file="Data/Respiration/Reference_master.csv", header=T) %>% 
   dplyr::filter(!Filename %in% 'Run_1_raw.txt') %>% # reference for the respirometry data - contains the 'Chamber_Tank' for each sensor channel (whether an animal or a blank)
   dplyr::mutate(Run = gsub("[- .)_(+]|[a-zA-Z]*:?","", Filename))
@@ -29,7 +28,7 @@ resp.ref     <- read.csv(file="Data/Respiration/Reference_master.csv", header=T)
 # merge the exp_metadata with the resp.data
 resp.ref_merged_1                 <- merge(exp_metadata, resp.ref, by = 'Chamber_tank', all=TRUE) # all TRUE allows us to keep the blanks
 resp.ref_merged_2                 <- merge(resp.ref_merged_1, lengths, by = c('Run', 'Chamber_tank'), all=TRUE) # all TRUE allows us to keep the blanks
-resp.data_merged                   <- merge(resp.data, resp.ref_merged_2, by = c('Date', 'Channel','Filename')) # out master file moving forward....
+resp.data_merged                  <- merge(resp.data, resp.ref_merged_2, by = c('Date', 'Channel','Filename')) # out master file moving forward....
 
 # CALCULATE RESPIRATION RATES :::::::::::::::::::::::::::::::::::::::::::::::
 
