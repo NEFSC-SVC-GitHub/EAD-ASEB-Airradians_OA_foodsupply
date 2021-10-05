@@ -10,11 +10,12 @@ library(devtools) # devtools::install_github # use devtools to instlal github li
 library(LoLinR) # install_github('colin-olito/LoLinR') # install LoLinR from github
 library(dplyr)
 library(lubridate)
-library(rMR)
+library(rMR) 
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis")
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # CHANGE THE FOLLOWING ..THEN CONTROL A + ENTER ::::::::::::::::::::::
 
@@ -143,12 +144,12 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                             }  # end of  else statement (if column 'j' is NA write NA in the cumulative sheet, else run LoLinR for x=mins and y = mg/l O2)
                             # save plots every inside loop and name by date_run_vialposition
                             if (gsub(".*_raw.","", file.names.table[i,]) == "txt") {
-                            pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                            pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                            # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                             plot(model)
                             dev.off()
                             } else { 
-                              pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", substr( (sub(".*M_","",file.names.table[1,1])), 1,13),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                              pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", substr( (sub(".*M_","",file.names.table[m,1])), 1,13),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                               # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                               plot(model)
                               dev.off() }
