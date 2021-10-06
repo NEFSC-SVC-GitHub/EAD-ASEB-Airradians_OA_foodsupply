@@ -18,6 +18,7 @@ library(car)
 
 #setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer 
 setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 resp.data    <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4_15sectrunc40min.csv", header=T) %>% dplyr::filter(!Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
@@ -130,7 +131,7 @@ ggplot(Resp_0914, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
   labs(title = "F1 Scallops: respiration rates on 20210914", 
        y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-  annotate("text", x=1.2, y=2, size = 4, label = "aov(Resp~Treatment + (1|Tank))") +
+  annotate("text", x=1.2, y=2, size = 4, label = "aov(Resp~pCO2)") +
   annotate("text", x=1.2, y=1, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
 dev.off()
 
@@ -145,7 +146,7 @@ Resp_0930 <- Resp.Master_OM %>%
   na.omit()
 
 Resp_0930 %>% dplyr::group_by(Chamber_tank, Food ) %>% summarise(n()) # tank replication
-View(Resp_0930)
+
 LMmod_0930 <- aov(lm(resp_ng_L_umlLength_hr~pCO2*Fed_Unfed ,data=Resp_0930))
 summary(LMmod_0930)
 check_model(LMmod_0930) # observe the diagnostics of the model
@@ -159,11 +160,15 @@ check_model(MEmod_0930)
 shapiro.test(residuals(MEmod_0930)) # non normal
 leveneTest(MEmod_0930) # good
 
-DF   <- paste( (summary(LMmod_0930)[[1]][["Df"]])[1], (summary(LMmod_0930)[[1]][["Df"]])[2], sep = '/')
-Fval <- (summary(LMmod_0930)[[1]][["F value"]])[1]
-pval <- (summary(LMmod_0930)[[1]][["Pr(>F)"]])[1]
+DF_pCO2   <- paste( (summary(LMmod_0930)[[1]][["Df"]])[1], (summary(LMmod_0930)[[1]][["Df"]])[4], sep = '/')
+Fval_pCO2 <- (summary(LMmod_0930)[[1]][["F value"]])[1]
+pval_pCO2 <- (summary(LMmod_0930)[[1]][["Pr(>F)"]])[1]
 
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
+DF_Fed    <- paste( (summary(LMmod_0930)[[1]][["Df"]])[2], (summary(LMmod_0930)[[1]][["Df"]])[4], sep = '/')
+Fval_Fed  <- (summary(LMmod_0930)[[1]][["F value"]])[2]
+pval_Fed  <- (summary(LMmod_0930)[[1]][["Pr(>F)"]])[2]
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 ggplot(Resp_0930, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
@@ -176,7 +181,8 @@ ggplot(Resp_0930, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
   labs(title = "F1 Scallops: respiration rates on 20210930", 
        y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-  facet_wrap(~Fed_Unfed)
-  #annotate("text", x=1.5, y=0.2, size = 4, label = "aov(Resp~Treatment + (1|Tank))") +
-  #annotate("text", x=1.5, y=0.16, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
+  facet_wrap(~Fed_Unfed) # +                    
+  #annotate("text", x=1.5, y=2.5, size = 4, label = "aov(Resp~pCO2*Feed)") +
+  #annotate("text", x=1.5, y=2.2, size = 4, label= paste('pCO2: ','DF =',DF_pCO2,'F =', signif(Fval_pCO2, digits=3), 'p value =', signif(pval_pCO2, digits=3), sep=" ")) +
+  #annotate("text", x=1.5, y=1.8, size = 4, label= paste('Feeding: ','DF =',DF_Fed,'F =', signif(Fval_Fed, digits=3), 'p value =', signif(pval_Fed, digits=3), sep=" ")) 
 dev.off()
