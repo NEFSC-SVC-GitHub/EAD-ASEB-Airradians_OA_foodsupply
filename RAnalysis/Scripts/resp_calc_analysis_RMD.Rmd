@@ -131,7 +131,7 @@ print(Resp.outliers)
 - loligo 8-channel on 9/14/21 = 2.2 ml vessels 
 - SDR 24-channel on 9/3-/21 = 1.7 ml wells 
 
-```{r Calculate Resp Rates , echo=FALSE}
+```{r Calculate Resp Rates , echo=TRUE}
 
 
 for (i in 1:nrow(Resp.Master_OM)) {
@@ -178,7 +178,7 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% summarise(n()) # tank replicatio
 
 #### linear model, diagnostics, and plots
 
-```{r 9/14 lm diag and figs, echo=FALSE}
+```{r 9/14 lm diag and figs, echo=TRUE}
 LMmod_0914 <- aov(lm(resp_ng_L_umlLength_hr~pCO2,data=Resp_0914))
 pander(summary(LMmod_0914), style='rmarkdown')
 check_model(LMmod_0914) # observe the diagnostics of the model
@@ -212,8 +212,10 @@ ggplot(Resp_0914, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
 ## 9/14/2021 F1 juvenile scallops
 
 **About**
+
 - two pCO2 treatments 
-- **before** we culled and started the food limitation trials
+
+- *before* we culled and started the food limitation trials
 
 
 #### number of replicates for analysis...
@@ -234,7 +236,7 @@ Resp_0930 %>% dplyr::group_by(Chamber_tank, Food ) %>% summarise(n()) # tank rep
 
 #### linear model, diagnostics, and plots
 
-```{r 9/30 lm diag and figs, echo=FALSE}
+```{r 9/30 lm diag and figs, echo=TRUE}
 
 LMmod_0930 <- aov(lm(resp_ng_L_umlLength_hr~pCO2*Fed_Unfed ,data=Resp_0930))
 pander(summary(LMmod_0930), style='rmarkdown')
