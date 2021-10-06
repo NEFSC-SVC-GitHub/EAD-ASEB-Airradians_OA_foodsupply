@@ -109,7 +109,10 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                                                      bar.units.in = "kPa", bar.press = barromP_kPa, bar.units.out = "kpa",
                                                      temp.C = temperature_C, 
                                                      salinity.units = "pp.thou", salinity = salinity.pp.thou)
-                } else {Resp_loop$mgL <- Resp.Data_15sec[j]} # for the SDR dish values that are already in mg/L simply call the column in the loop
+                } else {Resp_loop$mgL <- Resp.Data_15sec[j]
+                        Resp_loop$mgL <- as.numeric(unlist(Resp_loop$mgL)) # need to unlist and call as numeric to run LoLinR
+                        Resp_loop$minutes <- as.numeric(unlist(Resp_loop$minutes)) # need to unlist and call as numeric to run LoLinR
+                        } # for the SDR dish values that are already in mg/L simply call the column in the loop
                     
                     # now run data!
                      if (nrow(Resp_loop) < 1) { # if column 'j' is NA write NA in the cumulative sheet...
@@ -121,9 +124,10 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                         print(df_total) # print to monitor progress
                         
                         } else { # else run LoLinR for x=mins and y=mg/l O2
+                          
                             model <- rankLocReg(
                             xall    = as.numeric(Resp_loop[, 1]), 
-                            yall    = as.numeric(Resp_loop[, 2]), # call x as the minute timeseries and y as the % air saturation of the particular Channel
+                            yall    = as.numeric(Resp_loop[, 3]), # call x as the minute timeseries and y as the mg L-1 O2 
                             alpha   = a,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
                             method  = "pc", 
                             verbose = TRUE) 
@@ -144,12 +148,12 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                             }  # end of  else statement (if column 'j' is NA write NA in the cumulative sheet, else run LoLinR for x=mins and y = mg/l O2)
                             # save plots every inside loop and name by date_run_vialposition
                             if (gsub(".*_raw.","", file.names.table[i,]) == "txt") {
-                            pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                            pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                            # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                             plot(model)
                             dev.off()
                             } else { 
-                              pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", substr( (sub(".*M_","",file.names.table[m,1])), 1,13),"_",colnames(Resp_loop)[2],"_regression.pdf"))
+                              pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/",folder.names.table[i,1],"_", substr( (sub(".*M_","",file.names.table[m,1])), 1,13),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                               # pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm30sec/trunc40minutes/",folder.names.table[i,1],"_", sub("_raw.*","",file.names.table[m,1]),"_",colnames(Resp_loop)[2],"_regression.pdf"))
                               plot(model)
                               dev.off() }
