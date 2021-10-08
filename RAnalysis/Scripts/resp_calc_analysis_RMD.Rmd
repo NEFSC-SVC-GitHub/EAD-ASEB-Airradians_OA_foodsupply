@@ -261,7 +261,6 @@ Resp_0930$Fed_Unfed <- as.factor(Resp_0930$Fed_Unfed)
 
 levels(Resp_0930$Fed_Unfed) <- c("High food", "Low food")
 
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 ggplot(Resp_0930, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
@@ -276,5 +275,4 @@ ggplot(Resp_0930, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
        y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
   facet_wrap(~Fed_Unfed) # + 
-dev.off()
 ```
