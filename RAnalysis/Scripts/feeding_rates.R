@@ -43,7 +43,7 @@ length.resp.clear <- length.resp.clear[!is.na(length.resp.clear$Length.um.),]
 # call the 914 data and remove blanks
 clear.rate_914_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
   (clear.rate_914 %>% dplyr::filter(!Chamber_tank %in% 'Blank')),
-  (length_914_Scallops %>% 
+  (length.resp.clear %>% 
      dplyr::filter(Date %in% 20210914) %>% 
      dplyr::mutate(Chamber_tank = sub("_", "", Chamber_tank))) ) %>% 
   dplyr::select(!c('Food'))
@@ -65,7 +65,7 @@ clear.rate_930_Scallops <- merge( (data.frame(melt(clear.rate_930, id.vars = c('
 
 
 
-ClearRate_Master          <- rbind.fill(clear.rate_914_Scallops, clear.rate_930_Scallops)
+ClearRate_Master          <- rbind(clear.rate_914_Scallops, clear.rate_930_Scallops)
 
 # calculate the clearace rate normalized for shell length 
 ClearRate_Master$Cells_ml <- (ClearRate_Master$Count)*(1000/33)
@@ -136,7 +136,8 @@ for (i in 1:nrow(loop_914_BLANKS)) {
          # ( (4/1000)* (lag(dat$Time._min, n = 1, default = first(Time._min))) ) ln(Cells_ml - (lag(Cells_ml, n = 1, default = first(Cells_ml))))
       dat2 <- dat %>% 
         dplyr::mutate(diff = Time._min - lag(Time._min, default = first(Time._min))) %>% 
-        dplyr::mutate(ClearRate = (Cells_ml - lag(Cells_ml, default = first(Cells_ml)))  ) %>% 
+        dplyr::mutate(ClearRate          = (Cells_ml - lag(Cells_ml, default = first(Cells_ml)))  ) %>% 
+        dplyr::mutate(ClearRate_minus_T0 = (Cells_ml - dat$Cells_ml[1] )) %>% 
         dplyr::mutate(Time_period = paste((as.numeric(substr(Time._min,1,1)) -1), "0-", Time._min, sep =''))
       dat2OM <- dat2[-1,]
     }
@@ -149,12 +150,15 @@ for (i in 1:nrow(loop_914_BLANKS)) {
   
 }
 
-data.frame( meanBLANKS.914[!is.na(meanBLANKS.914$ClearRate),] %>% 
-             dplyr::group_by(pH) %>% 
+min(meanBLANKS.914$ClearRate_minus_T0)
+max(meanBLANKS.914$ClearRate_minus_T0)
+data.frame( meanBLANKS.914[!is.na(meanBLANKS.914$ClearRate_minus_T0),] %>% 
+             dplyr::filter(ClearRate_minus_T0 < 0) %>% 
+             dplyr::group_by(pH, substr(Time._min,1,1)) %>% 
              dplyr::summarise(
-               meanCR = mean(ClearRate),
-               sdCR   = sd(ClearRate),
-               seCR   = sd(ClearRate) / sqrt(length(ClearRate)), 
+               meanCR = mean(ClearRate_minus_T0),
+               sdCR   = sd(ClearRate_minus_T0),
+               seCR   = sd(ClearRate_minus_T0) / sqrt(length(ClearRate_minus_T0)), 
                n= n()))
 
 
@@ -191,6 +195,7 @@ for (i in 1:nrow(loop_930_BLANKS)) {
     dat2 <- dat %>% 
       dplyr::mutate(diff = as.numeric(Time._min) - lag(as.numeric(Time._min), default = first(as.numeric(Time._min)))) %>% 
       dplyr::mutate(ClearRate = (Cells_ml - lag(Cells_ml, default = first(Cells_ml)))  ) %>% 
+      dplyr::mutate(ClearRate_minus_T0 = (Cells_ml - dat$Cells_ml[1] )) %>% 
       dplyr::mutate(Time_period = paste((as.numeric(substr(Time._min,1,1)) -1), "0-", Time._min, sep =''))
     dat2OM <- dat2[-1,]
   }
@@ -201,12 +206,13 @@ for (i in 1:nrow(loop_930_BLANKS)) {
   } else {}
 }
 
-data.frame( meanBLANKS.930[!is.na(meanBLANKS.930$ClearRate),] %>% 
-              dplyr::group_by(pH, Time_period) %>% 
+data.frame( meanBLANKS.930[!is.na(meanBLANKS.930$ClearRate_minus_T0),] %>% 
+              dplyr::filter(ClearRate_minus_T0 < 0) %>% 
+              dplyr::group_by(pH) %>% 
               dplyr::summarise(
-                meanCR = mean(ClearRate),
-                sdCR   = sd(ClearRate),
-                seCR   = sd(ClearRate) / sqrt(length(ClearRate)), 
+                meanCR = mean(ClearRate_minus_T0),
+                sdCR   = sd(ClearRate_minus_T0),
+                seCR   = sd(ClearRate_minus_T0) / sqrt(length(ClearRate_minus_T0)), 
                 n= n()))
 
 
@@ -293,10 +299,14 @@ for (i in 1:nrow(loop_914)) {
     dplyr::arrange(Time._min)
   dat2 <- dat %>% 
     dplyr::mutate(diff = as.numeric(Time._min) - lag(as.numeric(Time._min), default = first(as.numeric(Time._min)))) %>% 
-    dplyr::mutate(AlgaeLossRatio = as.numeric(Cells_ml) / lag(as.numeric(Cells_ml), default = first(as.numeric(Cells_ml)))) %>% 
-    dplyr::filter(AlgaeLossRatio < 1) %>% 
-    dplyr::mutate(ClearanceRate =  ( (25/1000) / (diff/60)  * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-                                       ( ln(AlgaeLossRatio) ) / Length.um. ) ) %>% 
+    
+    dplyr::mutate(AlgaeLossRatio = lag(as.numeric(Cells_ml), default = first(as.numeric(Cells_ml))) / as.numeric(Cells_ml) ) %>% 
+    dplyr::filter(!AlgaeLossRatio < 1) %>% 
+    dplyr::mutate(ln_AlgaeLossRatio = ln(AlgaeLossRatio)) %>% 
+   # dplyr::mutate(ClearanceRate =  ( (25/1000) / (diff/60)  * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
+   #                                   ( ln_AlgaeLossRatio ) / Length.um. ) ) %>% 
+    dplyr::mutate(ClearanceRate = ( (25/1000) * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
+                                       ( ln_AlgaeLossRatio *  (diff/60) - 0) ) / (Length.um./1000) ) %>% 
     dplyr::mutate(Time_period = paste((as.numeric(substr(Time._min,1,1)) -1), "0-", Time._min, sep =''))
   
   if (nrow(dat2) > 0) {
@@ -336,13 +346,15 @@ summary(aov(lm(meanCR~pH, data=ClearRates_914_Means)))
 
 ClearRates_914_Means %>% 
   #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
-  ggplot(aes(x=Time_period , y=meanCR, fill = pH)) +
+  ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
-  scale_fill_manual("Treatment", values = c("8" = "skyblue", "7.5" = "tomato")) +
-  geom_errorbar(position=position_dodge(width=0.9), aes(ymin=meanCR-0, ymax=meanCR+seCR), width=0.2, colour="black", alpha=0.9, size=0.2) +
+  scale_fill_manual("Treatment", values = c("8" = "grey50", "7.5" = "black")) +
+  geom_errorbar(position=position_dodge(width=0.9), aes(ymin=meanCR+seCR, ymax=meanCR+seCR), width=0.2, colour="black", alpha=0.9, size=0.2) +
+  geom_linerange(aes(ymin = meanCR, ymax = meanCR+seCR)) + 
   geom_point(position=position_dodge(width=0.9), aes(y=meanCR)) +
   theme_classic() +
-  ggtitle("Clearance Rate F1 Scallops 20210914")
+  ggtitle("Clearance Rate F1 Scallops 20210914") + 
+  facet_wrap(~Time_period)
 
 
 
@@ -480,13 +492,15 @@ summary(aov(lm(meanCR~pH*Fed_Unfed, data=ClearRates_930_Means)))
 ClearRates_930_Means$pH_feed <- paste(ClearRates_930_Means$pH, ClearRates_930_Means$Fed_Unfed, sep='_')
 ClearRates_930_Means %>% 
 dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
-ggplot(aes(x=Time_period , y=meanCR, fill = pH_feed)) +
+ggplot(aes(x=pH_feed , y=meanCR, fill = pH_feed)) +
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
-  scale_fill_manual("Treatment", values = c("8_fed" = "skyblue", "7.5_fed" = "tomato", "8_unfed" = "skyblue4", "7.5_unfed" = "tomato4")) +
-  geom_errorbar(position=position_dodge(width=0.9), aes(ymin=meanCR-0, ymax=meanCR+seCR), width=0.2, colour="black", alpha=0.9, size=0.2) +
+  scale_fill_manual("Treatment", values = c("8_fed" = "grey70", "7.5_fed" = "grey 10", "8_unfed" = "grey 70", "7.5_unfed" = "black")) +
+  geom_errorbar(position=position_dodge(width=0.9), aes(ymin=meanCR+seCR, ymax=meanCR+seCR), width=0.2, colour="black", alpha=0.9, size=0.2) +
+  geom_linerange(aes(ymin = meanCR, ymax = meanCR+seCR)) + 
   geom_point(position=position_dodge(width=0.9), aes(y=meanCR)) +
   theme_classic() +
-  ggtitle("Clearance Rate F1 Scallops 20210930")
+  ggtitle("Clearance Rate F1 Scallops 20210930") + 
+  facet_wrap(~ Time_period)
 
 
 df_total.930 %>% 
