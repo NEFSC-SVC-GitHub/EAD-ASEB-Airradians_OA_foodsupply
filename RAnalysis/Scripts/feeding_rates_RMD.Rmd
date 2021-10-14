@@ -34,6 +34,7 @@ library(kableExtra)
 library(latex2exp)
 library(pander)
 library(performance)
+library(ggpubr)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -104,7 +105,8 @@ print(head(ClearRate_Master))
 
 
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>% 
+
+SlopePlots_914 <- ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>% 
   dplyr::filter(Date %in% 20210914) %>% 
   dplyr::mutate(Time._min = as.numeric(as.character(Time._min))) %>% 
   ggplot(aes(Time._min, Cells_ml, color=Replicate)) + 
@@ -118,6 +120,8 @@ ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>%
   theme_bw() +
   scale_shape_identity() + 
   facet_wrap( ~ pH, scales = "free_x" )
+
+SlopePlots_914
 
 # Clearance rate anlaysis for 9/30 data
 ClearRate_Master.914 <- ClearRate_Master %>% 
@@ -156,7 +160,7 @@ DF   <- paste( (summary(SLOPE_mod_914)[[1]][["Df"]])[1], (summary(SLOPE_mod_914)
 Fval <- (summary(SLOPE_mod_914)[[1]][["F value"]])[1]
 pval <- (summary(SLOPE_mod_914)[[1]][["Pr(>F)"]])[1]
 
-ggplot(SlopeTable_914, aes(pH , abs(slope) , fill = pH)) +
+SlopeFig914_geombox <- ggplot(SlopeTable_914, aes(pH , abs(slope) , fill = pH)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
   scale_fill_manual(values=c("grey50","white")) +
@@ -171,11 +175,11 @@ ggplot(SlopeTable_914, aes(pH , abs(slope) , fill = pH)) +
   annotate("text", x=2, y= 25000, size = 4, label = "aov(slope~pH Treatment)") +
   annotate("text", x=2, y= 24300, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
 
-
+SlopeFig914_geombox
 
 
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>% 
+SlopePlots_930 <- ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>% 
   dplyr::filter(Date %in% 20210930) %>% 
   dplyr::mutate(pH_feed = paste(pH, Fed_Unfed, sep='_')) %>% 
   dplyr::mutate(Time._min = as.numeric(as.character(Time._min))) %>% 
@@ -191,8 +195,7 @@ ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>%
   scale_shape_identity() + 
   facet_wrap( ~ pH_feed, scales = "free_x" )
 
-
-
+SlopePlots_930
 
 # Clearance rate anlaysis for 9/30 data
 ClearRate_Master.930       <- ClearRate_Master %>% 
@@ -233,20 +236,37 @@ DF.930   <- paste( (summary(SLOPE_mod_930)[[1]][["Df"]])[1], (summary(SLOPE_mod_
 Fval.930 <- (summary(SLOPE_mod_930)[[1]][["F value"]])[1]
 pval.930 <- (summary(SLOPE_mod_930)[[1]][["Pr(>F)"]])[1]
 
-SlopeTable_930 %>%  mutate(pH_feed = paste(pH, Fed_Unfed, sep = '_')) %>% 
-ggplot(aes(pH , abs(slope) , fill = pH)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
-  scale_fill_manual(values=c("grey50","white")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  scale_x_discrete(labels= c('Elevated (H)', 'Ambient (L)')) +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14,face="bold")) +
-  labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20210930", 
-       y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
-       x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-  facet_wrap(~ Fed_Unfed)
+SlopeFig930_geombox <- SlopeTable_930 %>%  
+  mutate(pH_feed = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  ggplot(aes(pH , abs(slope) , fill = pH)) +
+    theme(panel.grid=element_blank()) +
+    geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
+    scale_fill_manual(values=c("grey50","white")) +
+    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+    theme_classic() +
+    scale_x_discrete(labels= c('Elevated (H)', 'Ambient (L)')) +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14,face="bold")) +
+    labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20210930", 
+         y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
+         x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
+    facet_wrap(~ Fed_Unfed)
+
+SlopeFig930_geombox
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/FlowCytometry_rawdata_2010914.pdf"))
+ggarrange(SlopePlots_914, SlopeFig914_geombox,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/FlowCytometry_rawdata_2010930.pdf"))
+ggarrange(SlopePlots_930, SlopeFig930_geombox,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
 
 ```
 
@@ -462,7 +482,7 @@ leveneTest(mod914CR) # good
 
 
 
-ClearRates_914_Means %>% 
+CR_914_barplot <- ClearRates_914_Means %>% 
   #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
   ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
@@ -471,11 +491,11 @@ ClearRates_914_Means %>%
   geom_linerange(aes(ymin = meanCR, ymax = meanCR+seCR)) + 
   geom_point(position=position_dodge(width=0.9), aes(y=meanCR)) +
   theme_classic() +
-  ggtitle("Clearance Rate, F1 Scallops 20210930 (0-60 minutes)") # + 
+  ggtitle("Clearance Rate, F1 Scallops 20210914 (0-90 minutes)") # + 
   # facet_wrap(~Time_period)
+CR_914_barplot
 
-
-df_total.914 %>% 
+CR_914_boxplot <- df_total.914 %>% 
   #dplyr::filter(!ClearanceRate_L_hour_mm %in% '-Inf') %>% 
   #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
   ggplot(aes(pH , ClearanceRate_L_hour_mm , fill = pH)) +
@@ -489,7 +509,18 @@ df_total.914 %>%
   # labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20210930", 
   #      y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
   #      x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) +
-  ggtitle("Clearance Rate, F1 Scallops 20210930 (0-60 minutes)")
+  ggtitle("Clearance Rate, F1 Scallops 20210914 (0-90 minutes)")
+CR_914_boxplot
+
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_2010914.pdf"))
+ggarrange(CR_914_barplot, CR_914_boxplot,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
+
 
 ```
 
@@ -565,7 +596,7 @@ leveneTest(mod930CR) # good
 
 
 ClearRates_930_Means$pH_feed <- paste(ClearRates_930_Means$pH, ClearRates_930_Means$Fed_Unfed, sep='_')
-ClearRates_930_Means %>% 
+CR_930_boxplot <- ClearRates_930_Means %>% 
 #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
 ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
@@ -574,10 +605,11 @@ ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   geom_linerange(aes(ymin = meanCR, ymax = meanCR+seCR)) + 
   geom_point(position=position_dodge(width=0.9), aes(y=meanCR)) +
   theme_classic() +
-  ggtitle("Clearance Rate F1 Scallops 20210930") +
+  ggtitle("Clearance Rate, F1 Scallops 20210930 (0-60 minutes)") +
   facet_wrap(~ Fed_Unfed)
+CR_930_boxplot
 
-df_total.930 %>% 
+CR_930_barplot <- df_total.930 %>% 
   dplyr::filter(!ClearanceRate_L_hour_mm  < 0) %>% 
   #dplyr::filter(!ClearanceRate_L_hour_mm %in% '-Inf') %>% 
   #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
@@ -592,8 +624,17 @@ df_total.930 %>%
   # labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20210930", 
   #      y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
   #      x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) +
-  ggtitle("Clearance Rate F1 Scallops 20210930") +
+  ggtitle("Clearance Rate, F1 Scallops 20210930 (0-60 minutes)") +
   facet_wrap(~ Fed_Unfed)
+CR_930_barplot
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_2010930.pdf"))
+ggarrange(CR_930_barplot, CR_930_boxplot,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
 
 
 ```
