@@ -38,8 +38,8 @@ library(ggpubr)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-#setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
 
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -486,7 +486,9 @@ CR_914_barplot <- ClearRates_914_Means %>%
   #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
   ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
-  scale_fill_manual("Treatment", values = c("8" = "grey50", "7.5" = "black")) +
+  #scale_fill_manual("Treatment", values = c("8" = "grey50", "7.5" = "black")) +
+  scale_fill_manual(values=c("grey85","grey50")) +
+  scale_x_discrete(labels=c('600 μatm', '800 μatm')) +
   geom_errorbar(position=position_dodge(width=0.9), aes(ymin=meanCR+seCR, ymax=meanCR+seCR), width=0.2, colour="black", alpha=0.9, size=0.2) +
   geom_linerange(aes(ymin = meanCR, ymax = meanCR+seCR)) + 
   geom_point(position=position_dodge(width=0.9), aes(y=meanCR)) +
@@ -501,7 +503,8 @@ CR_914_boxplot <- df_total.914 %>%
   ggplot(aes(pH , ClearanceRate_L_hour_mm , fill = pH)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
-  scale_fill_manual(values=c("black", "grey50")) +
+  scale_fill_manual(values=c("white","grey50")) +
+  scale_x_discrete(labels=c('600 μatm', '800 μatm')) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   theme(axis.text=element_text(size=12),
@@ -596,7 +599,7 @@ leveneTest(mod930CR) # good
 
 
 ClearRates_930_Means$pH_feed <- paste(ClearRates_930_Means$pH, ClearRates_930_Means$Fed_Unfed, sep='_')
-CR_930_boxplot <- ClearRates_930_Means %>% 
+CR_930_barplot <- ClearRates_930_Means %>% 
 #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
 ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
@@ -607,34 +610,47 @@ ggplot(aes(x=pH , y=meanCR, fill = pH)) +
   theme_classic() +
   ggtitle("Clearance Rate, F1 Scallops 20210930 (0-60 minutes)") +
   facet_wrap(~ Fed_Unfed)
-CR_930_boxplot
+CR_930_barplot
 
-CR_930_barplot <- df_total.930 %>% 
+df_total.930$Fed_Unfed <- as.factor(df_total.930$Fed_Unfed)
+levels(df_total.930$Fed_Unfed) <- c("High food", "Low food")
+
+df_total.930$pCO2 <- as.factor(df_total.930$pH)
+levels(df_total.930$pCO2) <- c("Low", "High")
+
+CR_930_boxplot <- df_total.930 %>% 
   dplyr::filter(!ClearanceRate_L_hour_mm  < 0) %>% 
   #dplyr::filter(!ClearanceRate_L_hour_mm %in% '-Inf') %>% 
   #dplyr::filter(!Time_period %in% c('40-50', '50-60')) %>% 
-  ggplot(aes(pH , ClearanceRate_L_hour_mm , fill = pH)) +
+  ggplot(aes(pCO2 , ClearanceRate_L_hour_mm , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
-  scale_fill_manual(values=c("black", "grey50")) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
+  scale_fill_manual(values=c("white","grey50")) +
+  scale_x_discrete(labels=c('600 μatm', '800 μatm')) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) +
-  # labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20210930", 
-  #      y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
-  #      x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) +
-  ggtitle("Clearance Rate, F1 Scallops 20210930 (0-60 minutes)") +
-  facet_wrap(~ Fed_Unfed)
-CR_930_barplot
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  labs(title = "Clearance rate; F1 Scallops (juveniles) 66 days post-fertilization", 
+       y = expression(Clearance~rate~"("~L^{-1}~live~algae%.%mm^{-1}%.%hr^{-1}~")"), 
+       x = expression(italic(p)*CO[2]~Treatment~"("~μatm~")")) + 
+  ggtitle("Clearance rate; F1 Scallops (juveniles) 66 days post-fertilization") +
+  facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) # + 
+CR_930_boxplot
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_2010930.pdf"))
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_2010930.pdf"))
+
 ggarrange(CR_930_barplot, CR_930_boxplot,
           labels = c("A", "B"),
           ncol = 1, nrow = 2)
 dev.off()
 
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_2010930_boxplot.pdf"))
+CR_930_barplot
+dev.off()
 
 ```
