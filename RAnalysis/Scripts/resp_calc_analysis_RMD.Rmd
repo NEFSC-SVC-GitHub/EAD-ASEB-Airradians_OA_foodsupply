@@ -24,12 +24,11 @@ library(data.table)
 library(stringr)
 library(latex2exp)
 
-
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 #setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer 
-#setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+#setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -191,22 +190,23 @@ DF   <- paste( (summary(LMmod_0914)[[1]][["Df"]])[1], (summary(LMmod_0914)[[1]][
 Fval <- (summary(LMmod_0914)[[1]][["F value"]])[1]
 pval <- (summary(LMmod_0914)[[1]][["Pr(>F)"]])[1]
 
-ggplot(Resp_0914, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
+ggplot(Resp_0914, aes(x = factor(pCO2, level = c('Low', 'High')), resp_ng_L_umlLength_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
-  scale_x_discrete(labels= c('Elevated (H)', 'Ambient (L)')) +
+  scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
   ylim(0, 3) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) +
   labs(title = "F1 Scallops: respiration rates on 20210914", 
-       y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"), 
-       x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-  annotate("text", x=1.2, y=2.8, size = 4, label = "aov(Resp~pCO2)") +
-  annotate("text", x=1.2, y=2.6, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
-
+       y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%μ*m^{-1}%.% hr^{-1}~")"), 
+       x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) # + 
+  # annotate("text", x=1.2, y=2.8, size = 4, label = "aov(Resp~pCO2)") +
+  # annotate("text", x=1.2, y=2.6, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
+dev.off()
 ```
 
 
@@ -256,25 +256,25 @@ DF_Fed    <- paste( (summary(LMmod_0930)[[1]][["Df"]])[2], (summary(LMmod_0930)[
 Fval_Fed  <- (summary(LMmod_0930)[[1]][["F value"]])[2]
 pval_Fed  <- (summary(LMmod_0930)[[1]][["Pr(>F)"]])[2]
 
-arr <- list('High food'=TeX("x_1"), "Low food"=TeX("x_2"))
-mylabel <- function(val) { return(lapply(val, function(x) arr[x])) }
-
 Resp_0930$Fed_Unfed <- as.factor(Resp_0930$Fed_Unfed)
 
 levels(Resp_0930$Fed_Unfed) <- c("High food", "Low food")
 
-ggplot(Resp_0930, aes(pCO2 , resp_ng_L_umlLength_hr , fill = pCO2)) +
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+ggplot(Resp_0930, aes(x = factor(pCO2, level = c('Low', 'High')), resp_ng_L_umlLength_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   ylim(0, 3) +
-  scale_x_discrete(labels= c('Elevated (H)', 'Ambient (L)')) +
+  scale_x_discrete(labels=c('~500 μatm', '~800 μatm')) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) +
-  labs(title = "F1 Scallops: respiration rates on 20210930", 
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  labs(title = "Respiration rate; F1 Scallops (juveniles) 66 days post-fertilization", 
        y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-  facet_wrap(~Fed_Unfed) # + 
+  facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) # + 
+dev.off()
 ```
