@@ -291,7 +291,7 @@ dev.off()
 ## 'A' Calculate the blank values for each trial
 
 
-```{r Calculate BLANKS, echo = FALSE}
+```{r Calculate BLANKS and write csv, echo = FALSE}
 
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 clear.rate.914.Blanks <- clear.rate_914 %>% 
@@ -330,22 +330,18 @@ A_914_BlankMeans <- data.frame( meanBLANKS.914[!is.na(meanBLANKS.914$ln_AlgaeLos
                      dplyr::filter(!ln_AlgaeLossRatio < 0) %>% 
                      dplyr::group_by(pH, Time._min) %>% 
                      dplyr::summarise(
+                       Date                   = '20210914',
                        meanBlank_ln_AlgaeLoss = mean(ln_AlgaeLossRatio),
                        sdBlank_ln_AlgaeLoss   = sd(ln_AlgaeLossRatio),
                        seBlank_ln_AlgaeLoss   = sd(ln_AlgaeLossRatio) / sqrt(length(ln_AlgaeLossRatio)), 
                        n= n())) 
-print(A_914_BlankMeans)   
-
-
-
-
-
-
-
 
 
 
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
 clear.rate_930.BLANKS <- (data.frame(melt(clear.rate_930, id.vars = c('Date', 'Chamber_tank','Run', 'Plate', 'Sample.ID', 'Replicate', 'Number',  'pH', 'Fed_Unfed', 'Notes'))) %>% 
                             dplyr::filter(Fed_Unfed %in% 'blank')  %>% 
                             dplyr::select(!'Chamber_tank') %>% 
@@ -384,11 +380,13 @@ A_930_BlankMeans <- data.frame( meanBLANKS.930[!is.na(meanBLANKS.930$ln_AlgaeLos
                       dplyr::group_by(pH, 
                                       Time._min) %>% 
                       dplyr::summarise(
+                        Date                   = '20210930',
                         meanBlank_ln_AlgaeLoss = mean(ln_AlgaeLossRatio),
                         sdBlank_ln_AlgaeLoss   = sd(ln_AlgaeLossRatio),
                         seBlank_ln_AlgaeLoss   = sd(ln_AlgaeLossRatio) / sqrt(length(ln_AlgaeLossRatio)), 
-                        n= n()))
-A_930_BlankMeans
+                        n= n()) )
+
+write.csv(rbind(A_914_BlankMeans, A_930_BlankMeans), "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/Blanks_Master.csv")
 
 ```
 
@@ -437,16 +435,17 @@ for (i in 1:nrow(loop_914)) {
     dat2OM <- dat2 %>% dplyr::filter(!Time._min == 0)
     
   if (nrow(dat2OM) > 0) {
-    ClearRate.table           <- data.frame(matrix(nrow = nrow(dat2OM), ncol = 9)) # create dataframe to save cumunalitively during for loop
-    colnames(ClearRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Num','Run','Time_period', 'AlgaeLossRatio', 'ClearanceRate_L_hour_mm') # names for comuns in the for loop
+    ClearRate.table           <- data.frame(matrix(nrow = nrow(dat2OM), ncol = 10)) # create dataframe to save cumunalitively during for loop
+    colnames(ClearRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Num','Run', 'Fed_Unfed', 'Time_period', 'AlgaeLossRatio', 'ClearanceRate_L_hour_mm') # names for comuns in the for loop
     
     ClearRate.table$Date                       <- dat2OM$Date
     ClearRate.table$ID                         <- loop_914[i,]
     ClearRate.table$pH                         <- gsub("_.*", "\\1", ClearRate.table$ID)
+    ClearRate.table$Fed_Unfed                  <- NA
     ClearRate.table$Replicate                  <- gsub("^(?:[^_]+_){4}([^_]+).*", "\\1", ClearRate.table$ID)
     ClearRate.table$Num                        <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", ClearRate.table$ID)
     ClearRate.table$Run                        <- gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", ClearRate.table$ID)
-    ClearRate.table$Time_period                <- paste((as.numeric(substr(dat2OM$Time._min,1,1)) -1), "0-", dat2OM$Time._min, sep ='')
+    ClearRate.table$Time_period                <- paste( "0-", dat2OM$Time._min, sep ='')
     ClearRate.table$AlgaeLossRatio             <- dat2OM$AlgaeLossRatio
     ClearRate.table$ClearanceRate_L_hour_mm <- dat2OM$ClearanceRate_L_hour_mm
     
@@ -560,7 +559,7 @@ for (i in 1:nrow(loop_930)) {
     ClearRate.table$Replicate                  <- gsub("^(?:[^_]+_){5}([^_]+).*", "\\1", ClearRate.table$ID)
     ClearRate.table$Num                        <- gsub("^(?:[^_]+_){7}([^_]+).*", "\\1", ClearRate.table$ID)
     ClearRate.table$Run                        <- gsub("^(?:[^_]+_){3}([^_]+).*", "\\1", ClearRate.table$ID)
-    ClearRate.table$Time_period                <- paste((as.numeric(substr(dat2$Time._min,1,1)) -1), "0-", dat2$Time._min, sep ='')
+    ClearRate.table$Time_period                <- paste( "0-", dat2$Time._min, sep ='')
     ClearRate.table$AlgaeLossRatio             <- dat2$AlgaeLossRatio
     ClearRate.table$ClearanceRate_L_hour_mm    <- dat2$ClearanceRate_L_hour_mm
     
@@ -636,5 +635,13 @@ ggarrange(CR_930_barplot, CR_930_boxplot,
           ncol = 1, nrow = 2)
 dev.off()
 
+
+```
+
+``` {r CR master file write csv, echo = FALSE}
+
+# write csv ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+write.csv(rbind(df_total.914,df_total.930), "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_Master.csv")
 
 ```

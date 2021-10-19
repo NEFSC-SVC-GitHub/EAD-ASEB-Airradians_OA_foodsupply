@@ -1,0 +1,192 @@
+---
+title: "Physiology Regressions"
+author: "Samuel Gurr"
+date: "10/15/2021"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+
+# LOAD PACKAGES :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(reshape2)
+library(reshape2)
+library(SciViews)
+library(kableExtra)
+library(latex2exp)
+library(ggpubr)
+
+# SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
+
+#setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
+
+
+# LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+ClearanceRate    <- read.csv(file="Output/FeedingRates/ClearanceRate_Master.csv", header=T) %>% 
+    dplyr::select(c('Date','pH', 'Fed_Unfed', 'Run','Replicate','Num','ClearanceRate_L_hour_mm')) %>% 
+    dplyr::rename(Number = Num)
+
+RespirationRate    <- read.csv(file="Output/Respiration/Calculated_Resp_Master.csv", header=T) %>% # contains the length data too!
+  dplyr::mutate(Fed_Unfed = if_else(Fed_Unfed == 'F', 'fed', 'unfed', missing = 'NA')) %>% # change the F and U to fed and unfed to compliment the ClearRate Master file for merging
+  dplyr::mutate(Date = paste("20",(format(as.Date(Date, "%m/%d/%Y"), "%y%m%d")), sep ='')) %>% # change format of the date to compliment to ClearanceRate MAster file for merging
+  dplyr::select(c('Date','pH', 'Fed_Unfed', 'Run','Replicate','Number','Length.um.','resp_ng_L_umlLength_hr'))
+
+```
+
+# View the first few lines of the data
+```{r merge master datasets, echo=TRUE}
+
+MasterDatset <- merge(ClearanceRate, RespirationRate)
+
+
+kable(print(head(MasterDatset)))
+```
+
+# plots 
+```{r regressions, echo=TRUE}
+
+colnames(MasterDatset)
+
+# Clearance rate vs. Length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# 20210914
+Clearance_Length_20210914 <- MasterDatset %>%   
+  dplyr::filter(Date == '20210914') %>% 
+  ggplot(aes((Length.um./1000), ClearanceRate_L_hour_mm , group =pH, fill = factor(pH))) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.05))+
+  geom_smooth(method = "lm", alpha = .15, aes(group=pH,colour = factor(pH))) +
+  scale_fill_manual(values=c("#D55E00","#56B4E9")) +
+  labs(title = "202010914 Phys Regression: Clearance rate v. shell length",
+  y = expression(~Clearance~rate~"("~L^{-1}%.% hr^{-1}%.% mm^{-1}~")"),
+  x = "shell Length (mm)") +
+  # annotate("text", x=0.3, y=0.2, label = "Low Salinity") +
+  # annotate("rect", xmin = 0, xmax = 0.62, ymin = 0, ymax = 0.25, alpha = .1) +
+  theme_classic() + 
+  facet_wrap(~ pH)
+
+Clearance_Length_20210914
+
+# 202109130
+Clearance_Length_20210930 <- MasterDatset %>%   
+  dplyr::filter(Date == '20210930') %>% 
+  ggplot(aes((Length.um./1000), ClearanceRate_L_hour_mm , group =pH, fill = factor(pH))) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.05))+
+  geom_smooth(method = "lm", alpha = .15, aes(group=pH,colour = factor(pH))) +
+  scale_fill_manual(values=c("#D55E00","#56B4E9")) +
+  labs(title = "202010930 Phys Regression: Clearance rate v. shell length",
+  y = expression(~Clearance~rate~"("~L^{-1}%.% hr^{-1}%.% mm^{-1}~")"),
+  x = "shell Length (mm)") +
+  # annotate("text", x=0.3, y=0.2, label = "Low Salinity") +
+  # annotate("rect", xmin = 0, xmax = 0.62, ymin = 0, ymax = 0.25, alpha = .1) +
+  theme_classic() + 
+  facet_wrap(~ Fed_Unfed*pH)
+
+
+Clearance_Length_20210930
+
+
+# Respiration rate vs. Length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# 20210914
+Resp_Length_20210914 <- MasterDatset %>%   
+  dplyr::filter(Date == '20210914') %>% 
+  ggplot(aes((Length.um./1000), resp_ng_L_umlLength_hr , group =pH, fill = factor(pH))) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.05))+
+  geom_smooth(method = "lm", alpha = .15, aes(group=pH,colour = factor(pH))) +
+  scale_fill_manual(values=c("#D55E00","#56B4E9")) +
+  labs(title = "202010914 Phys Regression: Respiration rate v. shell length",
+  y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"),
+  x = "shell Length (mm)") +
+  # annotate("text", x=0.3, y=0.2, label = "Low Salinity") +
+  # annotate("rect", xmin = 0, xmax = 0.62, ymin = 0, ymax = 0.25, alpha = .1) +
+  theme_classic() + 
+  facet_wrap(~ pH)
+
+Resp_Length_20210914
+
+# 202109130
+Resp_Length_20210930 <- MasterDatset %>%   
+  dplyr::filter(Date == '20210930') %>% 
+  ggplot(aes((Length.um./1000), resp_ng_L_umlLength_hr , group =pH, fill = factor(pH))) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.05))+
+  geom_smooth(method = "lm", alpha = .15, aes(group=pH,colour = factor(pH))) +
+  scale_fill_manual(values=c("#D55E00","#56B4E9")) +
+  labs(title = "202010930 Phys Regression: Respiration rate v. shell length",
+  y = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")"),
+  x = "shell Length (mm)") +
+  # annotate("text", x=0.3, y=0.2, label = "Low Salinity") +
+  # annotate("rect", xmin = 0, xmax = 0.62, ymin = 0, ymax = 0.25, alpha = .1) +
+  theme_classic() + 
+  facet_wrap(~ Fed_Unfed*pH)
+
+Resp_Length_20210930
+
+# Respiration rate vs. Clearance Rate  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# 20210914
+Resp_CR_20210914 <- MasterDatset %>% 
+  dplyr::filter(Date == '20210914') %>% 
+  ggplot(aes(resp_ng_L_umlLength_hr, ClearanceRate_L_hour_mm, group =pH, fill = factor(pH))) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.05))+
+  geom_smooth(method = "lm", alpha = .15, aes(group=pH,colour = factor(pH))) +
+  scale_fill_manual(values=c("#D55E00","#56B4E9")) +
+  labs(title = "202010914 Phys Regression: Respiration v. Clearance rates",
+  y = expression(~Clearance~rate~"("~L^{-1}%.% hr^{-1}%.% mm^{-1}~")"),
+  x = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")")) +
+  # annotate("text", x=0.3, y=0.2, label = "Low Salinity") +
+  # annotate("rect", xmin = 0, xmax = 0.62, ymin = 0, ymax = 0.25, alpha = .1) +
+  theme_classic() + 
+  facet_wrap(~ pH)
+
+Resp_CR_20210914
+
+# 202109130
+Resp_CR_20210930 <- MasterDatset %>% 
+  dplyr::filter(Date == '20210930') %>% 
+  ggplot(aes(resp_ng_L_umlLength_hr, ClearanceRate_L_hour_mm, group =pH, fill = factor(pH))) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.05))+
+  geom_smooth(method = "lm", alpha = .15, aes(group=pH,colour = factor(pH))) +
+  scale_fill_manual(values=c("#D55E00","#56B4E9")) +
+  labs(title = "202010914 Phys Regression: Respiration v. Clearance rates",
+  y = expression(~Clearance~rate~"("~L^{-1}%.% hr^{-1}%.% mm^{-1}~")"),
+  x = expression(Respiration~rate~"("~ng~L^{-1}~O[2]%.%mu*m^{-1}%.% hr^{-1}~")")) +
+  # annotate("text", x=0.3, y=0.2, label = "Low Salinity") +
+  # annotate("rect", xmin = 0, xmax = 0.62, ymin = 0, ymax = 0.25, alpha = .1) +
+  theme_classic() + 
+  facet_wrap(~ pH*Fed_Unfed)
+
+Resp_CR_20210930
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/other/PhysRegressions/Clearance_Length.pdf"))
+ggarrange(Clearance_Length_20210914, Clearance_Length_20210930,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
+
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/other/PhysRegressions/Respiration_Length.pdf"))
+ggarrange(Resp_Length_20210914, Resp_Length_20210930,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
+
+
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/other/PhysRegressions/Respiration_Clearance.pdf"))
+ggarrange(Resp_CR_20210914, Resp_CR_20210930,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+dev.off()
+
+
+
+
+```

@@ -118,11 +118,13 @@ Resp.Master <- merge(resp.data_merged, blanks_means, by=c("Date", "pH")) %>% # N
 ```
 
 
-```{r merge data to master file , echo=FALSE}
+```{r merge data to master file and write csv, echo=FALSE}
 
 Resp.Master_OM <- Resp.Master %>% dplyr::filter(!resp_norm > 0) # ommit respiration values that are positive
 Resp.outliers <- Resp.Master %>% dplyr::filter(resp_norm > 0) # call the values with positive resp rates, measing they were slower than the blank!
 print(Resp.outliers)
+
+write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 
 ```
 ## Calculate rates as ng L-1 O2 um shell length-1 hr-1
