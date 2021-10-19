@@ -488,7 +488,7 @@ CR_914_barplot <- ClearRates_914_Means %>%
   geom_bar(position=position_dodge(), aes(y=meanCR), stat="identity", alpha=0.5) +
   #scale_fill_manual("Treatment", values = c("8" = "grey50", "7.5" = "black")) +
   scale_fill_manual(values=c("grey85","grey50")) +
-  scale_x_discrete(labels=c('600 μatm', '800 μatm')) +
+  scale_x_discrete(labels=c('~500 μatm', '~800 μatm')) +
   geom_errorbar(position=position_dodge(width=0.9), aes(ymin=meanCR+seCR, ymax=meanCR+seCR), width=0.2, colour="black", alpha=0.9, size=0.2) +
   geom_linerange(aes(ymin = meanCR, ymax = meanCR+seCR)) + 
   geom_point(position=position_dodge(width=0.9), aes(y=meanCR)) +
@@ -504,7 +504,7 @@ CR_914_boxplot <- df_total.914 %>%
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
   scale_fill_manual(values=c("white","grey50")) +
-  scale_x_discrete(labels=c('600 μatm', '800 μatm')) +
+  scale_x_discrete(labels=c('~500 μatm', '~800 μatm')) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   theme(axis.text=element_text(size=12),
@@ -626,7 +626,7 @@ CR_930_boxplot <- df_total.930 %>%
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("white","grey50")) +
-  scale_x_discrete(labels=c('600 μatm', '800 μatm')) +
+  scale_x_discrete(labels=c('~500 μatm', '~800 μatm')) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   theme(axis.text=element_text(size=12),
@@ -650,7 +650,7 @@ ggarrange(CR_930_barplot, CR_930_boxplot,
 dev.off()
 
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/FeedingRates/ClearanceRate_2010930_boxplot.pdf"))
-CR_930_barplot
+CR_930_boxplot
 dev.off()
 
 ```

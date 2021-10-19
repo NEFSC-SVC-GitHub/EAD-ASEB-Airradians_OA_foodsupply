@@ -1,0 +1,207 @@
+---
+title: "F1 Bay Scallops: High vs. Low food availability under OA conditions"
+author: "Samuel Gurr"
+date: "10/12/2021"
+output: pdf_document
+---
+
+Last updates: october 6, 2021
+
+
+## Load libraries
+
+```{r, include=FALSE}
+library("ggplot2")
+library("tidyverse")
+library("car")
+library("nlme")
+library(multcompView)
+library("agricolae")
+library(Rmisc)
+```
+
+## Set Path
+```{r setup, include=FALSE}
+#Set Path
+#For Katie
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+
+df<-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/50_66_dpf_means.csv", header = TRUE)
+
+#to look at headers
+head(df)
+tail(df)
+
+#Sturcture of the data - to check that variables are properly assigned to facotr or variable
+str(df)
+
+#larvaldata[,8] <-as.numeric(larvaldata[,8])
+
+na.omit(df)
+
+```
+
+# Time Series Analysis for Length Data
+
+#Line plot for looking at meas shell length overtime (Growth)
+Color codes for ggPlot2:  http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+```{r}
+#First make calculations for means and standard error
+stL <- summarySE(df, measurevar="Length", groupvars=c("Day", "trt"))
+stL
+
+#stL$Treatment <- factor(stL$trt,                 # Relevel group factor
+#                         levels = c("Low OA", "Moderate OA", "High OA"))
+
+## Use geom_line and geom_point to plot over time
+pPlot1<-ggplot(data=stL, aes(x=Day, y=Length, color=trt)) +
+  geom_line( stat = "identity", size=1.0)+
+  geom_point()+ 
+  scale_color_manual(values=c( "orange1","darkorange2","springgreen2","forestgreen"))+
+   geom_errorbar(aes(ymin=Length-se, ymax=Length+se), width=.2,
+                position=position_dodge(.1))+
+  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_x_continuous(name ="Age (days)") +
+  scale_y_continuous(name ="Length (µm)")
+pPlot1
+```
+
+```{r}
+data_64<- df%>%
+  filter(Day=="64")
+
+pBoxPlot<-ggplot(data=data_64, aes(x=trt, y=Length, fill=trt)) +
+   geom_boxplot()+scale_fill_manual(values=c("orange1","darkorange2","springgreen2","forestgreen"))+ 
+  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank())+ 
+  #ggtitle("Age = 8 days")+
+  scale_y_continuous(name ="Length (µm)")+
+   scale_x_discrete(name ="Treatment")
+pBoxPlot
+
+```
+```{r}
+library(lmerTest)
+library(lme4)
+library(pander)
+library(performance)
+
+data_64<- df%>%
+  filter(Day=="64")
+
+
+
+data_64$Fed_Unfed <- as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", data_64$trt))
+levels(data_64$Fed_Unfed) <- c("High food", "Low food")
+
+data_64$pCO2 <-  as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", data_64$trt))
+levels(data_64$pCO2) <- c("High", "Low")
+
+
+
+SizeMod_D64 <- aov(lm(Length~pCO2*Fed_Unfed, data = data_64) ) 
+pander(summary(SizeMod_D64), style='rmarkdown')
+check_model(SizeMod_D64) # observe the diagnostics of the model
+shapiro.test(residuals(SizeMod_D64)) # non normal
+leveneTest(SizeMod_D64) # good
+TukeyHSD(SizeMod_D64)
+
+data_64 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Length))
+
+
+SurvivaleMod_D64 <- aov(lm(Survival~pCO2*Fed_Unfed, data = data_64) ) 
+pander(summary(SurvivaleMod_D64), style='rmarkdown')
+check_model(SurvivaleMod_D64) # observe the diagnostics of the model
+shapiro.test(residuals(SurvivaleMod_D64)) # non normal
+leveneTest(SurvivaleMod_D64) # good
+
+data_64 %>% dplyr::group_by(pCO2) %>% dplyr::summarise(mean = mean(Survival))
+data_64 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Survival), sd = sd(Survival))
+data_64 %>% dplyr::group_by(trt) %>% dplyr::summarise(mean = mean(Survival))
+
+
+# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
+ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), Length , fill = pCO2)) +
+  theme(panel.grid=element_blank()) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
+  scale_fill_manual(values=c("grey50","white")) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+  theme_classic() +
+  ylim(2000, 4000) +
+  scale_x_discrete(labels=c('~500 μatm', '~800 μatm')) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14,face="bold")) +
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  labs(title = "Shell Length; F1 Scallops (juveniles) 66 days post-fertilization", 
+       y = expression(Shell~length~"("~μm~")"), 
+       x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+  facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+dev.off()
+
+
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
+ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), (Survival*100) , fill = pCO2)) +
+  theme(panel.grid=element_blank()) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
+  scale_fill_manual(values=c("grey50","white")) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+  theme_classic() +
+  #ylim(2, 4.5) +
+  scale_x_discrete(labels=c('~500 μatm', '~800 μatm')) +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14,face="bold")) +
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  labs(title = "Perent survival; F1 Scallops (juveniles) 66 days post-fertilization", 
+       y = expression(Survival~"(%)"), 
+       x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+  facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+dev.off()
+
+```
+
+
+```{r}
+#First make calculations for means and standard error
+stL <- summarySE(df, measurevar="Survival", groupvars=c("Day", "trt"))
+stL
+#na.omit(stL)
+
+#stL$Treatment <- factor(stL$trt,                 # Relevel group factor
+#                         levels = c("Low OA", "Moderate OA", "High OA"))
+
+## Use geom_line and geom_point to plot over time
+pPlot1<-ggplot(data=stL, aes(x=Day, y=Survival, color=trt)) +
+  geom_line( stat = "identity", size=1.0)+
+  geom_point()+ 
+ scale_color_manual(values=c( "orange1","darkorange2","springgreen2","forestgreen"))+
+   geom_errorbar(aes(ymin=Survival-se, ymax=Survival+se), width=.2,
+                position=position_dodge(.1))+
+  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_x_continuous(name ="Age (days)") +
+  scale_y_continuous(name ="Survivial (%)")
+pPlot1
+```
+
+```{r}
+data_64<- df%>%
+  filter(Day=="64")
+
+pBoxPlot<-ggplot(data=data_64, aes(x=trt, y=Survival, fill=trt)) +
+   geom_boxplot()+scale_fill_manual(values=c("orange1","darkorange2","springgreen2","forestgreen"))+ 
+  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank())+ 
+  #ggtitle("Age = 8 days")+
+  scale_y_continuous(name ="Length (µm)")+
+   scale_x_discrete(name ="Treatment")
+pBoxPlot
+
+```
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+
+```{r}
+sessionInfo()
+```
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
