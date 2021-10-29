@@ -2,7 +2,9 @@
 title: "Respiration Analysis F1 Scallops 2021"
 author: "Samuel Gurr"
 date: "10/6/2021"
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 
@@ -26,8 +28,8 @@ library(latex2exp)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-#setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer 
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer 
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 #setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -190,7 +192,8 @@ DF   <- paste( (summary(LMmod_0914)[[1]][["Df"]])[1], (summary(LMmod_0914)[[1]][
 Fval <- (summary(LMmod_0914)[[1]][["F value"]])[1]
 pval <- (summary(LMmod_0914)[[1]][["Pr(>F)"]])[1]
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
+# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
 ggplot(Resp_0914, aes(x = factor(pCO2, level = c('Low', 'High')), resp_ng_L_umlLength_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
@@ -260,7 +263,8 @@ Resp_0930$Fed_Unfed <- as.factor(Resp_0930$Fed_Unfed)
 
 levels(Resp_0930$Fed_Unfed) <- c("High food", "Low food")
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 ggplot(Resp_0930, aes(x = factor(pCO2, level = c('Low', 'High')), resp_ng_L_umlLength_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +

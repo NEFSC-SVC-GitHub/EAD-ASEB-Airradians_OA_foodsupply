@@ -2,7 +2,9 @@
 title: "F1 Bay Scallops: High vs. Low food availability under OA conditions"
 author: "Samuel Gurr"
 date: "10/12/2021"
-output: pdf_document
+output:
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 Last updates: october 6, 2021
@@ -24,9 +26,12 @@ library(Rmisc)
 ```{r setup, include=FALSE}
 #Set Path
 #For Katie
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
-df<-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/50_66_dpf_means.csv", header = TRUE)
+
+
+df<-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/50_66_dpf_means.csv", header = TRUE)
 
 #to look at headers
 head(df)
@@ -119,9 +124,7 @@ data_64 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Survival
 data_64 %>% dplyr::group_by(trt) %>% dplyr::summarise(mean = mean(Survival))
 
 
-# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
-ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), Length , fill = pCO2)) +
+Length_64dpf <- ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), Length , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
@@ -136,11 +139,9 @@ ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), Length , fill = 
        y = expression(Shell~length~"("~μm~")"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
   facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-dev.off()
+Length_64dpf
 
-
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
-ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), (Survival*100) , fill = pCO2)) +
+Survival_64DPF <- ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), (Survival*100) , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
@@ -155,6 +156,17 @@ ggplot(data_64, aes(x = factor(pCO2, level = c('Low', 'High')), (Survival*100) ,
        y = expression(Survival~"(%)"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
   facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+Survival_64DPF
+# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
+Length_64dpf
+dev.off()
+
+
+# pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
+Survival_64DPF
 dev.off()
 
 ```
