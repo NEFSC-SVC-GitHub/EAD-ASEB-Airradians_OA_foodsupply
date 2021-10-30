@@ -194,3 +194,26 @@ cumulative_resp_table <- read.csv(file=ouputNAME, header=TRUE) #call the pre exi
 new_table             <- rbind(cumulative_resp_table, df_total) # bind the new table from the for loop to the pre exisiting table
 write.table(new_table,ouputNAME,sep=",", row.names=FALSE)  # write out to the path names outputNAME
 
+
+# AFTER VISUAL INSECTIN OF PLOTS....
+# we have one positive Lpc alue from C1 RR_9.30.21_PM_Plate_1_Run_2.csv (check the plot to see! )
+# looks to have a great linear decline of O2 before the 15 minute mark before a jump in the data, the A1 - D1 were closest to the pump inflow to the waterbath so it is a possibility that water mayhave leaked in here.. 
+
+# load the data to run it 
+resp_rerun          <- read.csv(file = "Data/Respiration/20210930/RR_9.30.21_PM_Plate_1_Run_2.csv", header = TRUE,skip = 51)# %>% 
+                        dplyr::select(c("Relative.time..HH.MM.SS.", "C1..Oxygen.")) %>%  #reads in the data files
+                        dplyr::mutate(mgL =  C1..Oxygen.) 
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Time..HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series                        
+
+resp_rerun_LoLin <- resp_rerun %>% dplyr::select(c("minutes", "C1..Oxygen.")) %>% dplyr::filter(minutes < 20)
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+plot(model) # Lpc == -0.0296
