@@ -68,7 +68,7 @@ kable(head(resp.data_merged))
 - solution = call 'Lz' instead of the default Leq
 
 (3) https://github.com/SamGurr/Airradians_OA/blob/master/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/20210930_Plate_1_Run_2_C1_regression.pdf
-- solution = omit 
+- solution = we reran this at the end of the LoLin script  for 0-20 minutes and got an Lpc  -0.0296, insert this 
 
 ```{r IMPORTANT correct poor data, echo=TRUE}
 resp.data_merged[94,c(1:6)]  # 	C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq call better regression than Lpc
@@ -77,14 +77,14 @@ resp.data_merged[95,c(1:6)]  # 	C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0
 
 resp.data_merged[94,4] <- resp.data_merged[94,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq call better regression than Lpc
 resp.data_merged[110,4] <- resp.data_merged[110,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq call better regression than Lpc
-resp.data_merged[95,4] <- -0.0296 # 20210930_Plate_1_Run_2_C1_regression - plot shows noice after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
+resp.data_merged[95,4] <- -0.0296 # 20210930_Plate_1_Run_2_C1_regression - plot shows noise after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
 
 resp.data_merged[94,c(1:6)]
 resp.data_merged[110,c(1:6)]
 resp.data_merged[95,c(1:6)]
 ```
 
-## call blanks
+# Calculate blanks, print all and means
 
 ```{r call blanks, echo=FALSE}
 
@@ -115,6 +115,9 @@ kable(blanks_means)
 
 ```
 
+# Merge blanks with the master file by DAte, pCO2 treatment, and filetype
+
+* 'filteype' is only important here on 20211026 when both Loligo and SDR were used due to difference in size for fed (larger) and unfed animals 
 
 ```{r merge blanks_means for a master file, echo=FALSE}
 
@@ -123,6 +126,15 @@ Resp.Master <- merge(resp.data_merged, blanks_means, by=c("Date", "pH",  "filety
 
 ```
 
+
+# Master REsp file 
+
+## dplyr::mutate for the following:
+
+* 'volume' of the different vessels throughout the fed*OA challenge
+* 'Age'
+8 'Fed_unfed'
+* 'pCO2'
 
 ```{r merge data to master file and write csv, echo=FALSE}
 
@@ -134,11 +146,13 @@ Resp.Master_OM <- Resp.Master %>% dplyr::filter(!resp_norm > 0) %>% # ommit resp
 Resp.outliers <- Resp.Master %>% dplyr::filter(resp_norm > 0) # call the values with positive resp rates, measing they were slower than the blank!
 print(Resp.outliers)
 
-write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
+#write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 write.csv(Resp.Master_OM, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 
 ```
-## Calculate rates as ng L-1 O2 um shell length-1 hr-1
+
+
+# Calculate rates as ng L-1 O2 um shell length-1 hr-1
 
 #### note: this chunk calls the data that used the 8-channel loligo system and the SDR system to correct for total respiration chamber (vial/vessel, well, etc.) volume separately 
 - loligo 8-channel on 9/14/21 = 2.2 ml vessels 
@@ -155,6 +169,7 @@ Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
 
 ```
 
+# Mean standard error plot of all data 
 
 ```{r Line plot , echo=TRUE}
 
@@ -176,12 +191,13 @@ Resp_geomline<-ggplot(data=RespSumTab, aes(x=Age, y=resp_ng_L_umlLength_hr, colo
   # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
   facet_wrap(~pCO2)
 
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
+#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
 
 Resp_geomline
 dev.off()
 
+Resp_geomline
 ```
 
 
@@ -207,7 +223,7 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 
 ```
 
-#### linear model, diagnostics, and plots
+## 20210914 linear model, diagnostics, and plots
 
 ```{r 9/14 lm diag and figs, echo=TRUE}
 LMmod_0914 <- aov(lm(resp_ng_L_umlLength_hr~pCO2,data=Resp_0914))
@@ -221,7 +237,7 @@ Fval <- (summary(LMmod_0914)[[1]][["F value"]])[1]
 pval <- (summary(LMmod_0914)[[1]][["Pr(>F)"]])[1]
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
+#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
 
 ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_ng_L_umlLength_hr , fill = pCO2)) +
@@ -265,7 +281,7 @@ Resp_0930 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # t
 
 ```
 
-#### linear model, diagnostics, and plots
+## 20210930 linear model, diagnostics, and plots
 
 ```{r 9/30 lm diag and figs, echo=TRUE}
 
@@ -290,7 +306,7 @@ Resp_0930$Fed_Unfed <- as.factor(Resp_0930$Fed_Unfed)
 levels(Resp_0930$Fed_Unfed) <- c("High food", "Low food")
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 
 ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_ng_L_umlLength_hr , fill = pCO2)) +
@@ -336,7 +352,7 @@ Resp_01026 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # 
 ```
 
 
-#### linear model, diagnostics, and plots
+## 20211026 linear model, diagnostics, and plots
 
 ```{r 10/26 lm diag and figs, echo=TRUE}
 
@@ -367,7 +383,7 @@ Resp_01026$Fed_Unfed <- as.factor(Resp_01026$Fed_Unfed)
 levels(Resp_01026$Fed_Unfed) <- c("High food", "Low food")
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
+#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
 
 ggplot(Resp_01026, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_ng_L_umlLength_hr , fill = pCO2)) +
