@@ -41,17 +41,21 @@ library(ggpubr)
 setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
 
-
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+Master_data       <- read.csv(file="Data/Feeding_rates/Feeding_MasterData.csv", header=T) # master data file
 
-clear.rate_914    <- read.csv(file="Data/Feeding_rates/Feeding_9.14.21_formatted.csv", header=T)  %>% dplyr::rename(Date = ï..Date)# 9/14 data - need to merge the 9.30 data
-clear.rate_930    <- read.csv(file="Data/Feeding_rates/Feeding_9.30.21_worksheet_R.csv", header=T) %>% 
-  dplyr::mutate(Date = '20210930') %>% # 9/14 data - need to merge the 9.30 data
-  dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep=''))
-length.resp.clear <- read.csv(file="Data/Respiration/Lengths_resp.csv", header=T) %>% 
-  dplyr::select(!c('Instrument','Center')) %>% 
+clear.rate_914    <- Master_data  %>% dplyr::filter(Date %in% "20210914")  %>% 
+  dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
+
+clear.rate_930    <- Master_data  %>% dplyr::filter(Date %in%"20210930")  %>% 
+  dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
+
+clear.rate_1026    <- Master_data  %>% dplyr::filter(Date %in%"20211026")  %>% 
+  dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
+
+length.resp.clear <- read.csv(file="Data/Respiration/Lengths_Condition_resp_clearance.csv", header=T) %>% 
   dplyr::mutate(Date = paste("20",(format(as.Date(Date, "%m/%d/%Y"), "%y%m%d")), sep =''))
-length.resp.clear <- length.resp.clear[!is.na(length.resp.clear$Length.um.),]
+length.resp.clear <- length.resp.clear[!is.na(length.resp.clear$Length_um),]
 
 ```
 ## Merge to master file 'ClearRate_Master'
@@ -64,34 +68,37 @@ Date from:
 
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # formatting for merge
-# call the 914 data and remove blanks
+# call the 20210914 data and remove blanks
 clear.rate_914_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
-  (clear.rate_914 %>% dplyr::filter(!Chamber_tank %in% 'Blank')),
+  (clear.rate_914 %>% dplyr::filter(!Replicate %in% 'blank')),
   (length.resp.clear %>% 
-     dplyr::filter(Date %in% 20210914) %>% 
-     dplyr::mutate(Chamber_tank = sub("_", "", Chamber_tank))) ) %>% 
+     dplyr::filter(Date %in% 20210914)) ) %>% 
   dplyr::select(!c('Food'))
 
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# a bit more work with the 930 data to merge with the 914
-clear.rate_930_Scallops <- merge( (data.frame(melt(clear.rate_930, id.vars = c('Date', 'Chamber_tank','Run', 'Plate', 'Sample.ID', 'Replicate', 'Number',  'pH', 'Fed_Unfed', 'Notes'))) %>% 
-  dplyr::filter(!Fed_Unfed %in% 'blank') %>% 
-  dplyr::mutate(Time._min = (gsub(".*_","", variable))) %>% 
-  dplyr::rename(Count = value) %>% 
-  dplyr::arrange(Run,Plate,pH,Replicate,Number,Fed_Unfed,Time._min) ), #merge with...
-    (length.resp.clear %>% 
-       dplyr::filter(Date %in% 20210930) %>% 
-       dplyr::mutate(Chamber_tank = sub("_", "", Chamber_tank)) %>% 
-       dplyr::mutate(Fed_Unfed = ifelse(Food == 1, 'fed', 'unfed')))
-  ) %>% 
-  dplyr::select(!c('variable', 'Food', 'Sample.ID'))
+# formatting for merge
+# call the 20210930 data and remove blanks
+clear.rate_930_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
+  (clear.rate_930 %>% dplyr::filter(!Replicate %in% 'blank')),
+  (length.resp.clear %>% 
+     dplyr::filter(Date %in% 20210930)) ) %>% 
+  dplyr::select(!c('Food'))
+
+# 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# formatting for merge
+# call the 20210930 data and remove blanks
+clear.rate_1026_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
+  (clear.rate_1026 %>% dplyr::filter(!Replicate %in% 'blank')),
+  (length.resp.clear %>% 
+     dplyr::filter(Date %in% 20211026)) ) %>% 
+  dplyr::select(!c('Food'))
 
 
-
-ClearRate_Master          <- rbind(clear.rate_914_Scallops, clear.rate_930_Scallops)
-
-# calculate the clearace rate normalized for shell length 
-ClearRate_Master$Cells_ml <- (ClearRate_Master$Count)*(1000/33)
+ClearRate_Master             <- rbind(clear.rate_914_Scallops, clear.rate_930_Scallops, clear.rate_1026_Scallops)
+ClearRate_Master$tet.ply     <- (as.numeric(gsub(",", "", ClearRate_Master$tet.ply )))*(1000/33)
+ClearRate_Master$chaet       <- (as.numeric(gsub(",", "", ClearRate_Master$chaet )))*(1000/33)
+ClearRate_Master$total_algae <- (as.numeric(gsub(",", "", ClearRate_Master$total_algae )))*(1000/33)
+ClearRate_Master$seston      <- (as.numeric(gsub(",", "", ClearRate_Master$seston )))*(1000/33)
 
 print(head(ClearRate_Master))
 ```
@@ -106,10 +113,10 @@ print(head(ClearRate_Master))
 
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-SlopePlots_914 <- ClearRate_Master[!is.na(ClearRate_Master$Cells_ml),] %>% 
-  dplyr::filter(Date %in% 20210914) %>% 
-  dplyr::mutate(Time._min = as.numeric(as.character(Time._min))) %>% 
-  ggplot(aes(Time._min, Cells_ml, color=Replicate)) + 
+SlopePlots_914 <- ClearRate_Master[!is.na(ClearRate_Master$total_algae),] %>% 
+  dplyr::filter(Date %in% "20210914") %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(minutes))) %>% 
+  ggplot(aes(minutes, total_algae, color=Replicate)) + 
   geom_point(shape=1, color = "black")+ 
   ggtitle("RAW DATA: F1 Scallops, Clearance Rate 20210914")+
   labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
@@ -133,10 +140,10 @@ loop_914 <- as.data.frame(unique(ClearRate_Master.914$uniq_Identifier)) %>% dply
 SlopeTable_914 <- data.frame() # run this before the loop
 for(i in 1:nrow(loop_914)){
   dat <- ClearRate_Master.914 %>%  filter(uniq_Identifier %in% loop_914[i,])
-    slope<- summary(lm((dat$Cells_ml) ~ as.numeric(dat$Time._min)))$coef[2,"Estimate"]
-    SLOPE  <- summary(lm((dat$Cells_ml) ~ as.numeric(dat$Time._min)))$r.squared
-    pval <- summary(lm((dat$Cells_ml) ~ as.numeric(dat$Time._min)))$coef[2,"Pr(>|t|)"]
-    mod  <- lm(as.numeric(dat$Time._min) ~ dat$Cells_ml)
+    slope<- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Estimate"]
+    SLOPE  <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$r.squared
+    pval <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Pr(>|t|)"]
+    mod  <- lm(as.numeric(dat$minutes) ~ dat$total_algae)
     norm_assum <- shapiro.test(resid(mod))
     shapiro_pval <- norm_assum$p.value
     # assign the data table 
@@ -207,10 +214,10 @@ loop_930 <- as.data.frame(unique(ClearRate_Master.930$uniq_Identifier)) %>% dply
 SlopeTable_930 <- data.frame() # run this before the loop
 for(i in 1:nrow(loop_930)){
   dat <- ClearRate_Master.930 %>%  filter(uniq_Identifier %in% loop_930[i,])
-  slope<- summary(lm((dat$Cells_ml) ~ as.numeric(dat$Time._min)))$coef[2,"Estimate"]
-  SLOPE  <- summary(lm((dat$Cells_ml) ~ as.numeric(dat$Time._min)))$r.squared
-  pval <- summary(lm((dat$Cells_ml) ~ as.numeric(dat$Time._min)))$coef[2,"Pr(>|t|)"]
-  mod  <- lm(as.numeric(dat$Time._min) ~ dat$Cells_ml)
+  slope<- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Estimate"]
+  SLOPE  <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$r.squared
+  pval <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Pr(>|t|)"]
+  mod  <- lm(as.numeric(dat$minutes) ~ dat$total_algae)
   norm_assum <- shapiro.test(resid(mod))
   shapiro_pval <- norm_assum$p.value
   # assign the data table 
@@ -295,7 +302,7 @@ dev.off()
 
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 clear.rate.914.Blanks <- clear.rate_914 %>% 
-                                dplyr::filter(Chamber_tank %in% 'Blank') %>% 
+                                dplyr::filter(Replicate %in% 'blank') %>% 
                                 dplyr::mutate(unique_identifier = paste(pH, "Run", Run, sep ='_')) %>% 
                                 dplyr::mutate(Cells_ml = ((Count)*(1000/33)))
 
