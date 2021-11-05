@@ -182,7 +182,6 @@ Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
 # Mean standard error plot of all data 
 
 ```{r Line plot , echo=TRUE}
-
 RespSumTab <- summarySE(Resp.Master_OM, measurevar="resp_ng_L_μm_Length_hr", groupvars=c("Age", "pCO2", "Fed_Unfed"))
 RespSumTab$pCO2 <- factor(RespSumTab$pCO2, c("500 μatm","800 μatm"))
 ## Use geom_line and geom_point to plot over time
@@ -202,7 +201,7 @@ Resp_geomline<-ggplot(data=RespSumTab, aes(x=Age, y=resp_ng_L_μm_Length_hr, col
   facet_wrap(~pCO2)
 
 #pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
 
 Resp_geomline
 dev.off()
@@ -248,7 +247,7 @@ pval <- (summary(LMmod_0914)[[1]][["Pr(>F)"]])[1]
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
 #pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_respiration.pdf"))
 
 ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_ng_L_μm_Length_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
@@ -317,7 +316,7 @@ levels(Resp_0930$Fed_Unfed) <- c("High food", "Low food")
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 #pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 
 ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_ng_L_μm_Length_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
@@ -394,7 +393,7 @@ levels(Resp_01026$Fed_Unfed) <- c("High food", "Low food")
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
 #pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/202101026_respiration.pdf"))
 
 ggplot(Resp_01026, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_ng_L_μm_Length_hr , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
