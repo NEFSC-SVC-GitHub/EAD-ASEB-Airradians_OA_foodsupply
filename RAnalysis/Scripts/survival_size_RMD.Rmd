@@ -25,16 +25,19 @@ library(lme4)
 library(pander)
 library(performance)
 library(Rmisc)
+library(maditr)
+library(reshape2)
 ```
 
 ## Set Path
 ```{r setup, include=FALSE}
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-#setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length            <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Length_master.csv", header = TRUE)
-survival_juvenile <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/JuvenileSurvival_LengthMeans.csv", header = TRUE)
-survival_larvae   <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Survival_2d_18d.csv", header = TRUE)
+#setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+length            <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Length_master.csv", header = TRUE)
+dryweight_CI      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/20211026_length_CI.csv", header = TRUE)
+survival_juvenile <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/JuvenileSurvival_LengthMeans.csv", header = TRUE)
+survival_larvae   <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Survival_2d_18d.csv", header = TRUE)
 # Structure of the data - to check that variables are properly assigned to factor or variable
 str(length)
 ```
@@ -45,26 +48,38 @@ str(length)
 Color codes for ggPlot2:  http://sape.inf.usi.ch/quick-reference/ggplot2/colour
 ```{r, Length plot Mean SE}
 #First make calculations for means and standard error
-Length_summ <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed"))
-Length_summ
-
-#stL$Treatment <- factor(stL$trt,                 # Relevel group factor
-#                         levels = c("Low OA", "Moderate OA", "High OA"))
-
-## Use geom_line and geom_point to plot over time
-pPlot1<-ggplot(data=Length_summ, aes(x=Age_DPF, y=Length_um, color=pH)) +
-  geom_line( stat = "identity", size=1.0)+
-  geom_point()+ 
-#  scale_color_manual(values=c( "orange1","darkorange2","springgreen2","forestgreen", "grey"))+
-   geom_errorbar(aes(ymin=Length_um-se, ymax=Length_um+se), width=.2,
-                position=position_dodge(.1))+
-  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
-  scale_x_continuous(name ="Age (days)") +
-  scale_y_continuous(name ="Length (µm)")
-pPlot1
+REGRESSION_Length.Drytissue<- dryweight_CI %>% 
+  dplyr::filter(shell.or.tissue %in% "tissue") %>%
+    ggplot(aes(x=Shell.Length, y=weight, color=pH)) +
+    geom_point()+ 
+    theme_classic() +  
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+    scale_x_continuous(name ="Length (µm)") +
+    scale_y_continuous(name ="Tissue weight (g)")
+REGRESSION_Length.Drytissue
 
 
 
+Tissue <- dryweight_CI %>% 
+  dplyr::select(c("shell.or.tissue", "weight")) %>%
+  filter(shell.or.tissue %in% "tissue") %>%
+  dplyr::rename(c(tissue = shell.or.tissue, tissue_weight = weight))
+Shell <- dryweight_CI %>% 
+  dplyr::select(c("shell.or.tissue", "weight")) %>%
+  filter(shell.or.tissue %in% "shell") %>%
+  dplyr::rename(c(tissue = shell.or.tissue, shell_weight = weight))
+Tissue.Shell.Dryweights <- cbind(Tissue, Shell)
+  tidyr::spread(weight,shell.or.tissue)
+
+REGRESSION_DryShell.Drytissue <- Tissue.Shell.Dryweights %>%
+                                   dplyr::select(!c("tissue", "tissue")) %>%
+                                    ggplot(aes(x=tissue_weight, y=shell_weight)) +
+                                      geom_point()+ 
+                                      theme_classic() +  
+                                      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+                                      scale_x_continuous(name ="Dry shell weight (g)") +
+                                      scale_y_continuous(name ="Dry tissue weight (g)")
+REGRESSION_DryShell.Drytissue
 ```
 
 ```{r, Survival plot Mean SE}

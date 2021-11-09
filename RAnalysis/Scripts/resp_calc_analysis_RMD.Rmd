@@ -30,8 +30,8 @@ library(Rmisc)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 #setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
-#setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -115,19 +115,21 @@ kable(blanks_means)
 
 ```
 
-# Merge blanks with the master file by DAte, pCO2 treatment, and filetype
+# Blank-standardized rates as 'resp_blankStand'
+
+## Merge blanks with the master file by Date, pCO2 treatment, and filetype
 
 * 'filteype' is only important here on 20211026 when both Loligo and SDR were used due to difference in size for fed (larger) and unfed animals 
 
 ```{r merge blanks_means for a master file, echo=FALSE}
 
 Resp.Master <- merge(resp.data_merged, blanks_means, by=c("Date", "pH",  "filetype")) %>% # NOTE: this repeats for every distinct length value
-  dplyr::mutate(resp_norm = Lpc - BLANK.mean_Lpc) # ommits respiration rate values showing an increase in O2 over time 
+  dplyr::mutate(resp_blankStand = Lpc - BLANK.mean_Lpc) # ommits respiration rate values showing an increase in O2 over time 
 
 ```
 
 
-# Master REsp file 
+# Master Resp file, with volumes and file types, etc. as 'Calculated_Resp_Master.csv'
 
 ## dplyr::mutate for the following:
 
@@ -138,18 +140,125 @@ Resp.Master <- merge(resp.data_merged, blanks_means, by=c("Date", "pH",  "filety
 
 ```{r merge data to master file and write csv, echo=FALSE}
 
-Resp.Master_OM <- Resp.Master %>% dplyr::filter(!resp_norm > 0) %>% # ommit respiration values that are positive  
-  dplyr::mutate(volume = case_when(filetype == "LoLigo_data" & Date == '9/14/2021' ~ 1.7, filetype == "LoLigo_data" & Date == '10/26/2021' ~ 40, filetype == "SDR_data" ~ 2.2)) %>% # chamber volumes on different dates with
+Resp.Master_OM <- Resp.Master %>% dplyr::filter(!resp_blankStand > 0) %>% # ommit respiration values that are positive  
+  dplyr::mutate(volume = case_when(filetype == "LoLigo_data" & Date == '9/14/2021' ~ 1.7, # small vessels for loligo system
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH1' ~ 68.55323, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH2' ~ 68.85583, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH3' ~ 68.87473, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH4' ~ 68.95481, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH5' ~ 68.57288, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH6' ~ 68.01878, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH7' ~ 68.54551, # larger custom vessels measured individually...
+                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH8' ~ 68.53297, # larger custom vessels measured individually...
+                                   filetype == "SDR_data" ~ 2.2)) %>% # 24-well plate 
+  
   dplyr::mutate(Age = case_when(Date == '9/14/2021' ~ 50, Date == '9/30/2021' ~ 66, Date == '10/26/2021' ~ 92)) %>% 
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == 'F' ~ "High food", is.na(Fed_Unfed) ~ "High food", Fed_Unfed == 'U' ~ "Low food")) %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
-Resp.outliers <- Resp.Master %>% dplyr::filter(resp_norm > 0) # call the values with positive resp rates, measing they were slower than the blank!
+Resp.outliers <- Resp.Master %>% dplyr::filter(resp_blankStand > 0) # call the values with positive resp rates, measing they were slower than the blank!
 print(Resp.outliers)
 
-write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
-#write.csv(Resp.Master_OM, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
+#write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
+write.csv(Resp.Master_OM, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 
 ```
+
+
+
+# b factor plots 
+
+## Shell length
+
+All physiological rates were standardized for a _____ um shell length per individual. This length, corresponding to the median shell length of all individuals monitored during this experiment, was chosen to keep standardized rates consistent with  one  length and  minimize error.
+
+
+### EQ: Ys=(Ws/Wsc)^b(Ye)
+
+* Ys   =  shell length-standardized physiological rate (respiration in this case..) 
+* Ws   =  median shell length per individual in this experiment (fed v. unfed betwen 9/14 - 10/26)
+* Wsc  =  shell length for each bay scllop 
+* b    =  allometric coefficient estimated from the shell length and the physiolgoical process (in this case respiration rate) as Ye = (a)Wsc^b 
+* Ye   =  the experimentally measured rate 
+
+```{r b factor, echo=TRUE}
+
+Resp.Master_OM$resp_volStand_mg_L_hr <- ( (abs(Resp.Master_OM$resp_blankStand)) * # call absolute value of resp in mg per minute - convert to ng min-1
+                (Resp.Master_OM$volume/1000) ) * 60
+
+Resp.Master_OM$Length_um <- (as.numeric(Resp.Master_OM$Length_um))
+Resp.Master_OM$Length_mm <- (Resp.Master_OM$Length_um/1000)
+
+AllLength_lm_eqn <- function(Resp.Master_OM){
+                    #m <- lm(resp_volStand_mg_L_hr ~ Length_um, Resp.Master_OM);
+                    m <- lm(resp_volStand_mg_L_hr ~ exp(Length_mm), Resp.Master_OM);
+                    eq <- substitute(italic(y) == a %.% (x)^b*","~~italic(r)^2~"="~r2, 
+                         list(a = format(unname(coef(m)[1]), digits = 2),
+                              b = format(unname(coef(m)[2]), digits = 2),
+                             r2 = format(summary(m)$r.squared, digits = 3)))
+                    as.character(as.expression(eq));
+}
+
+
+Length_pH8  <- Resp.Master_OM %>% dplyr::filter(pH %in% 8)
+Length_8_lm_eqn  <- function(Length_pH8){
+                    #m <- lm(resp_volStand_mg_L_hr ~ Length_um, Length_pH8);
+                    m <- lm(resp_volStand_mg_L_hr ~  exp(Length_um), Length_pH8);
+                    eq <- substitute(italic(y) == a %.% (x)^b*","~~italic(r)^2~"="~r2, 
+                         list(a = format(unname(coef(m)[1]), digits = 2),
+                              b = format(unname(coef(m)[2]), digits = 2),
+                             r2 = format(summary(m)$r.squared, digits = 3)))
+                    as.character(as.expression(eq));
+}
+Length_pH7.5  <- Resp.Master_OM %>% dplyr::filter(pH %in% 7.5)
+Length_7.5_lm_eqn <- function(Length_pH7.5){
+                    #m <- lm(resp_volStand_mg_L_hr ~ Length_um, Length_pH7.5);
+                    m <- lm(resp_volStand_mg_L_hr ~  exp(Length_um), Length_pH7.5);
+                    eq <- substitute(italic(y) == a %.% (x)^b*","~~italic(r)^2~"="~r2, 
+                         list(a = format(unname(coef(m)[1]), digits = 2),
+                              b = format(unname(coef(m)[2]), digits = 2),
+                             r2 = format(summary(m)$r.squared, digits = 3)))
+                    as.character(as.expression(eq));
+}
+
+??method.args 
+
+
+
+Resp.Master_OM %>% dplyr::filter(pH %in% 8) %>%
+ggplot(aes(x =  Length_um, y = resp_volStand_mg_L_hr)) +
+            geom_point() +
+            geom_smooth(method="glm",
+            method.args=list(family= quasibinomial(link = 'logit'))) #+
+
+
+
+
+
+Resp.Master_OM %>% dplyr::filter(pH %in% 7.5) %>%
+ggplot(aes(x =  Length_um, y = resp_volStand_mg_L_hr)) +
+            geom_point() +
+            geom_smooth(method="glm",
+            method.args=list(family= quasibinomial(link = 'logit'))) #+
+            # method.args=list(family="binomial"))
+
+            #geom_smooth(method = "loess", se=FALSE, color="black", formula = Length_um ~ resp_volStand_mg_L_hr) +
+            geom_point(aes(colour = as.factor(pH)), size=3) +
+            scale_color_manual(values=c("#E69F00", "#56B4E9")) +
+            theme_classic() +
+            geom_text(x = 4000, y = .06, label = AllLength_lm_eqn(Resp.Master_OM), parse = TRUE) +
+            geom_text(x = 4000, y = .05, label = Length_8_lm_eqn(Length_pH8), color="#56B4E9", parse = TRUE) +
+            geom_text(x = 4000, y = .04, label = Length_7.5_lm_eqn(Length_pH7.5), color="#E69F00", parse = TRUE)
+
+```
+
+```{r Ws median shell length, echo=TRUE}
+Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
+summarySE(Resp.Master_OM, measurevar="Length_um")
+print(paste( "Median shell length 9/14-10/26 = ", median(Resp.Master_OM$Length_um))) # 3148.36 
+Ws <- 3148.36
+```
+
+
 
 
 # Calculate rates as ng L-1 O2 um shell length-1 hr-1
@@ -163,7 +272,7 @@ Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
 
 # NORMALIZED for Shell Size (Length)
  Resp.Master_OM$resp_ng_L_μm_Length_hr <- ( 
-          ( ( (abs(Resp.Master_OM$resp_norm)*1000000) * # call absolute value of resp in mg per minute - convert to ng min-1
+          ( ( (abs(Resp.Master_OM$resp_blankStand)*1000000) * # call absolute value of resp in mg per minute - convert to ng min-1
                 (Resp.Master_OM$volume/1000) ) / # vial volume for loligo 8 channel runs was 2.2 mL!!! - correct ng minute-1 to ng liter-1 by multiplying by the resp vial in liters
               Resp.Master_OM$Length_um) * # normalize by individual or larvae count - as to ng L-1 individual-1
             (60)) # correct for the time; final value is ng O2 Liter-1 um shell length-1 hour-1
@@ -172,7 +281,7 @@ Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
  
 # NORMALIZED for Dry Tissue Weight
  Resp.Master_OM$resp_mg_L_g_hr <- ( 
-          ( ( (abs(Resp.Master_OM$resp_norm)) * # call absolute value of resp in mg per minute -  mg O2 L-1 per min-1
+          ( ( (abs(Resp.Master_OM$resp_blankStand)) * # call absolute value of resp in mg per minute -  mg O2 L-1 per min-1
                 (Resp.Master_OM$volume/1000) ) / # vial volume for loligo 8 channel runs was 2.2 mL!!! - correct ng minute-1 to ng liter-1 by multiplying by the resp vial in liters
               (Resp.Master_OM$Dry_Tissue_weight) ) * # normalize by Dry tissue weight  as to mg O2 L-1 g dry tissue weight-1
             (60)) # correct for the time; final value is ug O2 Liter -1 mg dry tissue weight-1 hour-1
@@ -416,7 +525,7 @@ dev.off()
 
 # see what the dry tissue weight looks like for the data we have so far.... ( only have it for the fed animals ! - filter first and then run it)
 Resp_fed_drywt <- Resp_01026 %>% dplyr::filter(Food %in% "fed") %>% 
-                ggplot(aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_mg_L_g_hr, fill = pCO2)) + # DRY TISSUE WEIGHT! 'resp_μg_L_g_hr' - note: look at Length_um, resp_norm, and finally resp_mg_L_g_hr to determine why we see this difference..
+                ggplot(aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_mg_L_g_hr, fill = pCO2)) + # DRY TISSUE WEIGHT! 'resp_μg_L_g_hr' - note: look at Length_um, resp_blankStand, and finally resp_mg_L_g_hr to determine why we see this difference..
                 theme(panel.grid=element_blank()) +
                 geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
                 scale_fill_manual(values=c("white","grey50")) +
