@@ -32,20 +32,18 @@ library(reshape2)
 ## Set Path
 ```{r setup, include=FALSE}
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-#setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length            <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Length_master.csv", header = TRUE)
-dryweight_CI      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/20211026_length_CI.csv", header = TRUE)
-survival_juvenile <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/JuvenileSurvival_LengthMeans.csv", header = TRUE)
-survival_larvae   <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Survival_2d_18d.csv", header = TRUE)
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+length            <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Length_master.csv", header = TRUE)
+dryweight_CI      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/20211026_length_CI.csv", header = TRUE)
+survival_juvenile <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/JuvenileSurvival_LengthMeans.csv", header = TRUE)
+survival_larvae   <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Survival_2d_18d.csv", header = TRUE)
 # Structure of the data - to check that variables are properly assigned to factor or variable
-str(length)
+# str(length)
 ```
 
-# Time Series Analysis for Length Data
+# regression of size metrics
 
-#Line plot for looking at meas shell length overtime (Growth)
-Color codes for ggPlot2:  http://sape.inf.usi.ch/quick-reference/ggplot2/colour
 ```{r, Length plot Mean SE}
 #First make calculations for means and standard error
 REGRESSION_Length.Drytissue<- dryweight_CI %>% 
@@ -68,7 +66,7 @@ Shell <- dryweight_CI %>%
   dplyr::select(c("shell.or.tissue", "weight")) %>%
   filter(shell.or.tissue %in% "shell") %>%
   dplyr::rename(c(tissue = shell.or.tissue, shell_weight = weight))
-Tissue.Shell.Dryweights <- cbind(Tissue, Shell)
+Tissue.Shell.Dryweights <- cbind(Tissue, Shell) %>% 
   tidyr::spread(weight,shell.or.tissue)
 
 REGRESSION_DryShell.Drytissue <- Tissue.Shell.Dryweights %>%
@@ -81,6 +79,7 @@ REGRESSION_DryShell.Drytissue <- Tissue.Shell.Dryweights %>%
                                       scale_y_continuous(name ="Dry tissue weight (g)")
 REGRESSION_DryShell.Drytissue
 ```
+# Larvae survival - Low, Mod, High pCO2  (0 - 18 dpf)
 
 ```{r, Survival plot Mean SE}
 #First make calculations for means and standard error
@@ -111,7 +110,15 @@ LarvaeSurvival_Plot
 dev.off()
 
 ```
-```{r All data MEan SE plots}
+
+
+# Food limitation x pCO2 experiment (50 - 92 dpf)
+
+## Survival plot (all)
+
+* Note: this experiment only included the low and moderate pCO2 due to low survivorship in the high pCO2 condition 
+
+```{r foodxpCO2 survival mean SE plots}
 
 #First make calculations for means and standard erro
 survival_juvenile$Fed_Unfed <-  as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", survival_juvenile$trt))
@@ -125,17 +132,25 @@ levels(survival_juvenile$pCO2) <- c("800 μatm", "500 μatm")
 
 Survival_Means <- summarySE(survival_juvenile, measurevar="Survival", groupvars=c("Age_DPF", "pCO2", "Fed_Unfed")) 
 Survival_Means$pCO2 <- factor(Survival_Means$pCO2, c("500 μatm","800 μatm"))
+
+dodge <- position_dodge(.50)
 ## Use geom_line and geom_point to plot over time
 Survival_All_plot <- ggplot(data=Survival_Means, aes(x=Age_DPF, y=Survival, color=pCO2)) +
-  geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-  geom_point()+ 
-  scale_color_manual(values=c("forestgreen","darkorange2"))+
+  geom_line(aes(linetype = factor(Fed_Unfed)), size = c(0.2, 0.2,0.2, 
+                                                        1,1, 1,
+                                                        0.2, 0.2,0.2, 
+                                                        1,1, 1)) +
+  #geom_point(position = position_jitterdodge(jitter.width = 10)) +
+  geom_point(position = position_dodge(width=10)) +
+  #scale_color_manual(values=c("forestgreen","darkorange2")) +
+  scale_color_manual(values=c("black","black")) +
   geom_errorbar(aes(ymin=Survival-se, ymax=Survival+se), width=.2,
-                position=position_dodge(.1))+
-  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+                position=position_dodge(width=10))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
   scale_x_continuous(name ="Age (days)") +
   scale_y_continuous(name ="Survival (%)")  + 
   scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
+  theme_classic() +
   theme(legend.position="none") +
   # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
   facet_wrap(~pCO2)
@@ -144,7 +159,10 @@ pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis
 Survival_All_plot
 dev.off()
 
+```
 
+##  Shell length plot (all)
+```{r foodxpCO2 shell size  mean SE plots}
 # Length ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 Length_Means <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed"))
@@ -159,7 +177,7 @@ Length_All_plot <- ggplot(data=Length_Means, aes(x=Age_DPF, y=(Length_um/1000), 
   scale_color_manual(values=c("forestgreen","darkorange2"))+
   geom_errorbar(aes(ymin=(Length_um/1000)-(se/1000), ymax=(Length_um/1000)+(se/1000)), width=.2,
                 position=position_dodge(.1))+
-  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
   scale_x_continuous(name ="Age (days)") +
   scale_y_continuous(name ="Shell length (mm)")  + 
   scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
@@ -173,7 +191,24 @@ dev.off()
 
 ```
 
-# Day 64 Analysis and plotting 
+
+# Statistical analysis (survival + shell size)
+* sorted by Age
+
+### first load the necessary stats packages...
+```{r, load stats packages}
+# using lmer
+library(lme4)
+library(lmerTest)
+# using lme
+library(nlme)
+library(car)
+```
+
+
+## Day 50 post-fertilization  (length only) 
+
+* started with the same stock density per downweller - therefore no tests for survival here...
 
 ```{r, Day 50 data}
 data_51 <- length %>%
@@ -181,20 +216,30 @@ data_51 <- length %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
 
+data_51$RFactor <- as.factor(paste(data_51$Replicate, data_51$pH, sep = '_'))
 
-# ANOVA and diagnostics :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# One way ANOVA mixed effects model :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# Survival
-
-# all at 100 for the starting point - NO ANALYSIS NEEDED HERE
-
-# Shell Length
-ShellLengthMod_D51 <- aov(lm(Length_um~pCO2, data = data_51) ) 
-pander(summary(ShellLengthMod_D51), style='rmarkdown')
+# using lmer
+ShellLengthMod_D51 <- lmer(Length_um ~ pCO2 + (1|RFactor),
+                       data=data_51,
+                       REML=TRUE)
+pander(anova(ShellLengthMod_D51), style='rmarkdown')
 check_model(ShellLengthMod_D51) # observe the diagnostics of the model
 shapiro.test(residuals(ShellLengthMod_D51)) # non normal
-leveneTest(ShellLengthMod_D51) # good
+leveneTest(residuals(ShellLengthMod_D51) ~ data_51$pCO2)
 
+# using lme
+ShellLengthMod_D51 = lme(Length_um ~ pCO2, random=~1|RFactor,
+            data=data_51,
+            method="REML")
+pander(Anova(ShellLengthMod_D51), style='rmarkdown')
+check_model(ShellLengthMod_D51) # observe the diagnostics of the model
+shapiro.test(residuals(ShellLengthMod_D51)) # non normal
+leveneTest(residuals(ShellLengthMod_D51) ~ data_51$pCO2)
+
+
+# plot the data
 Day51_Length_BoxPlot<-ggplot(data=data_51, aes(x=pCO2, y=Length_um, fill=pCO2)) +
    geom_boxplot()+scale_fill_manual(values=c("forestgreen","darkorange2"))+ 
   theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank())+ 
@@ -205,36 +250,76 @@ Day51_Length_BoxPlot
 
 ```
 
-# Day 64 Analysis and plotting 
+
+
+# Day 64 post-fertilization ( survival & length) 
 
 ```{r, Day 64 data}
-data_64<- df%>%
-  filter(Age_DPF=="64")
 
+# survival date
+data_64<- survival_juvenile %>%
+  filter(Age_DPF=="64")
 data_64$Fed_Unfed <- as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", data_64$trt))
 levels(data_64$Fed_Unfed) <- c("High food", "Low food")
-
 data_64$pCO2 <-  as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", data_64$trt))
 levels(data_64$pCO2) <- c("800 μatm", "500 μatm")
-
 data_64 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Length))
 
+data_64$RFactor <- as.factor(paste(data_64$Rep, data_64$pH, sep = '_'))
 
-data_64 <- length %>%
+# length data 
+data_64_length <- length %>%
   filter(Age_DPF=="64") %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
 
+data_64_length$RFactor <- as.factor(paste(data_64_length$Replicate, data_64_length$pH, sep = '_'))
+
 
 # ANOVA and diagnostics :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# Survival
-SurvivalMod_D64 <- aov(lm(Survival~pCO2*Fed_Unfed, data = data_64) ) 
-pander(summary(SurvivalMod_D64), style='rmarkdown')
-check_model(SurvivalMod_D64) # observe the diagnostics of the model
-shapiro.test(residuals(SurvivalMod_D64)) # non normal
-leveneTest(SurvivalMod_D64) # good
+# Length:::::::::::::::::::::::::::::::::::::::::::::::
 
+# using lmer
+ShellLengthMod_D64 <- lmer(Length_um ~ pCO2*Fed_Unfed + (1|RFactor),
+                       data=data_64_length,
+                       REML=TRUE)
+pander(anova(ShellLengthMod_D64), style='rmarkdown') #  **Fed_Unfed**    | 1.198e-111 |
+check_model(ShellLengthMod_D64) # observe the diagnosticsdata_64_length$pCO2 of the model
+shapiro.test(residuals(ShellLengthMod_D64)) # non normal - 2.2e-16
+leveneTest(residuals(ShellLengthMod_D64) ~ data_64_length$pCO2) # good  0.627
+
+# using lme
+ShellLengthMod_D64 = lme(Length_um ~ pCO2*Fed_Unfed, random=~1|RFactor,
+            data=data_64_length,
+            method="REML")
+pander(Anova(ShellLengthMod_D64), style='rmarkdown') # **Fed_Unfed**    |  643.8  | 1  | 5.012e-142 |
+
+# Survival:::::::::::::::::::::::::::::::::::::::::::::
+
+# using lmer
+SurvivalMod_D64 <- lmer(Survival ~ pCO2*Fed_Unfed + (1|RFactor),
+                       data=data_64,
+                       REML=TRUE)
+pander(anova(SurvivalMod_D64), style='rmarkdown') #  no sig effects
+check_model(ShellLengthMod_D64) # observe the diagnosticsdata_64_length$pCO2 of the model
+shapiro.test(residuals(ShellLengthMod_D64)) # non normal - 2.2e-16
+leveneTest(residuals(ShellLengthMod_D64) ~ data_64$pCO2) # good  0.627
+
+# using lme
+ShellLengthMod_D64 = lme(Survival ~ pCO2*Fed_Unfed, random=~1|RFactor,
+            data=data_64,
+            method="REML")
+pander(Anova(ShellLengthMod_D64), style='rmarkdown') # **pCO2**      | 2.791  | 1  |  0.09481
+check_model(ShellLengthMod_D64) # observe the diagnosticsdata_64_length$pCO2 of the model
+shapiro.test(residuals(ShellLengthMod_D64)) # non normal - 0.002907
+leveneTest(residuals(ShellLengthMod_D64) ~ data_64$pCO2) # good  0.07483 .
+
+
+
+# plots ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# survival
 Day64_Survival_BoxPlot<-ggplot(data=data_64, aes(x=trt, y=Survival, fill=trt)) +
    geom_boxplot()+scale_fill_manual(values=c("orange1","darkorange2","springgreen2","forestgreen"))+ 
   theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank())+ 
@@ -244,15 +329,8 @@ Day64_Survival_BoxPlot<-ggplot(data=data_64, aes(x=trt, y=Survival, fill=trt)) +
 Day64_Survival_BoxPlot
 
 
-# Shell Length
-
-ShellLengthMod_D64 <- aov(lm(Length_um~pCO2*Fed_Unfed+Replicate, data = data_64) ) 
-pander(summary(ShellLengthMod_D64), style='rmarkdown')
-check_model(ShellLengthMod_D64) # observe the diagnostics of the model
-shapiro.test(residuals(ShellLengthMod_D64)) # non normal
-leveneTest(ShellLengthMod_D64) # good
-
-Day64_Length_BoxPlot<-ggplot(data=data_64, aes(x=pCO2, y=Length_um, fill=pCO2)) +
+# Shell size (length)
+Day64_Length_BoxPlot<-ggplot(data=data_64_length, aes(x=pCO2, y=Length_um, fill=pCO2)) +
    geom_boxplot()+scale_fill_manual(values=c("darkorange2","forestgreen"))+ 
   theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.title = element_blank())+ 
   #ggtitle("Age = 8 days")+
@@ -262,18 +340,13 @@ Day64_Length_BoxPlot<-ggplot(data=data_64, aes(x=pCO2, y=Length_um, fill=pCO2)) 
 Day64_Length_BoxPlot
 
 
-SurvivaleMod_D64 <- aov(lm(Survival~pCO2*Fed_Unfed, data = data_64) ) 
-pander(summary(SurvivaleMod_D64), style='rmarkdown')
-check_model(SurvivaleMod_D64) # observe the diagnostics of the model
-shapiro.test(residuals(SurvivaleMod_D64)) # non normal
-leveneTest(SurvivaleMod_D64) # good
 
 data_64 %>% dplyr::group_by(pCO2) %>% dplyr::summarise(mean = mean(Survival))
 data_64 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Survival), sd = sd(Survival))
 data_64 %>% dplyr::group_by(trt) %>% dplyr::summarise(mean = mean(Survival))
 
 
-Length_64dpf <- ggplot(data_64, aes(x =pCO2, Length_um,  fill = pCO2)) +
+Length_64dpf <- ggplot(data_64_length, aes(x =pCO2, Length_um,  fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
@@ -300,14 +373,14 @@ Survival_64DPF <- ggplot(data_64, aes(x =pCO2, (Survival*100) , fill = pCO2)) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) +
   stat_summary(fun.y=mean, geom="point", shape=18, size=4) +
-  labs(title = "Perent survival; F1 Scallops (juveniles) 66 days post-fertilization", 
+  labs(title = "Perent survival; F1 Scallops (juveniles) 64 days post-fertilization", 
        y = expression(Survival~"(%)"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
   facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
  pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
-#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
+# pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
 Length_64dpf
 dev.off()
 
@@ -318,42 +391,70 @@ Survival_64DPF
 dev.off()
 
 ```
-# Day 92 Analysis and plotting 
+# Day 90 Analysis and plotting 
 
 ```{r, Day 92 data}
-data_92<- df%>%
+
+# survival date
+data_90<- survival_juvenile %>%
   filter(Age_DPF=="92")
+data_90$Fed_Unfed <- as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", data_90$trt))
+levels(data_90$Fed_Unfed) <- c("High food", "Low food")
+data_90$pCO2 <-  as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", data_90$trt))
+levels(data_90$pCO2) <- c("800 μatm", "500 μatm")
+data_90 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Length))
 
-data_92$Fed_Unfed <- as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", data_92$trt))
-levels(data_92$Fed_Unfed) <- c("High food", "Low food")
+data_90$RFactor <- as.factor(paste(data_90$Rep, data_90$pH, sep = '_'))
 
-data_92$pCO2 <-  as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", data_92$trt))
-levels(data_92$pCO2) <- c("800 μatm", "500 μatm")
-
-data_92 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Length))
-
-data_92 <- length %>%
+# length data
+data_90_length <- length %>%
   filter(Age_DPF=="92") %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
 
+data_90_length$RFactor <- as.factor(paste(data_90_length$Replicate, data_90_length$pH, sep = '_'))
+
 
 # ANOVA and diagnostics :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# Survival
-SurvivalMod_D92 <- aov(lm(Survival~pCO2*Fed_Unfed, data = data_92) ) 
-pander(summary(SurvivalMod_D92), style='rmarkdown')
-check_model(SurvivalMod_D92) # observe the diagnostics of the model
-shapiro.test(residuals(SurvivalMod_D92)) # non normal
-leveneTest(SurvivalMod_D92) # good
+# Length:::::::::::::::::::::::::::::::::::::::::::::::
+
+# using lmer
+ShellLengthMod_D90 <- lmer(Length_um ~ pCO2*Fed_Unfed + (1|RFactor),
+                       data=data_90_length,
+                       REML=TRUE)
+pander(anova(ShellLengthMod_D90), style='rmarkdown') # **Fed_Unfed**    | 2.036e-88 
+check_model(ShellLengthMod_D90) # observe the diagnosticsdata_90_length$pCO2 of the model
+shapiro.test(residuals(ShellLengthMod_D90)) # non normal 6.026e-15
+leveneTest(residuals(ShellLengthMod_D90) ~ data_90_length$pCO2) # good 0.1583
+
+# using lme
+ShellLengthMod_D90 = lme(Length_um ~ pCO2*Fed_Unfed, random=~1|RFactor,
+            data=data_90_length,
+            method="REML")
+pander(Anova(ShellLengthMod_D90), style='rmarkdown') # **Fed_Unfed**    |  579.3  | 1  | 5.206e-128 
+
+# Survival:::::::::::::::::::::::::::::::::::::::::::::
+
+# using lmer
+SurvivalMod_D90 <- lmer(Survival ~ pCO2*Fed_Unfed + (1|RFactor),
+                       data=data_90,
+                       REML=TRUE)
+pander(anova(SurvivalMod_D90), style='rmarkdown') #  **Fed_Unfed**    | 2.936e-09 |
+# check_model(ShellLengthMod_D90) # observe the diagnostics data_90_length$pCO2 of the model
+shapiro.test(residuals(ShellLengthMod_D90)) # non normal 6.026e-15
+leveneTest(residuals(ShellLengthMod_D90) ~ data_90$pCO2) # good  0.627
+
+# using lme
+ShellLengthMod_D90 = lme(Survival ~ pCO2*Fed_Unfed, random=~1|RFactor,
+            data=data_90,
+            method="REML")
+pander(Anova(ShellLengthMod_D90), style='rmarkdown') #  **Fed_Unfed**    |  236.3  | 1  | 2.526e-53  |
+check_model(ShellLengthMod_D90) # observe the diagnosticsdata_90_length$pCO2 of the model
+shapiro.test(residuals(ShellLengthMod_D90)) #  normal - 0.1661
+leveneTest(residuals(ShellLengthMod_D90) ~ data_90$pCO2) # good  0.5736
 
 
-# Shell Length
-ShellLengthMod_D92 <- aov(lm(Length_um~pCO2*Fed_Unfed, data = data_92) ) 
-pander(summary(ShellLengthMod_D92), style='rmarkdown')
-check_model(ShellLengthMod_D92) # observe the diagnostics of the model
-shapiro.test(residuals(ShellLengthMod_D92)) # non normal
-leveneTest(ShellLengthMod_D92) # good
 
 
 
@@ -361,9 +462,7 @@ leveneTest(ShellLengthMod_D92) # good
 
 
 
-
-
-Length_92dpf <- ggplot(data_92, aes(x =pCO2, Length_um,  fill = pCO2)) +
+Length_90dpf <- ggplot(data_90_length, aes(x =pCO2, Length_um,  fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
@@ -374,16 +473,16 @@ Length_92dpf <- ggplot(data_92, aes(x =pCO2, Length_um,  fill = pCO2)) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) +
   stat_summary(fun.y=mean, geom="point", shape=18, size=4) +
-  labs(title = "Shell Length; F1 Scallops (juveniles) 92 days post-fertilization", 
+  labs(title = "Shell Length; F1 Scallops (juveniles) 90 days post-fertilization", 
        y = expression(Shell~length~"("~μm~")"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
   facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-Length_92dpf
+Length_90dpf
 
 
 
 
-Survival_92DPF <- ggplot(data_92, aes(x =pCO2, (Survival*100) , fill = pCO2)) +
+Survival_90DPF <- ggplot(data_90, aes(x =pCO2, (Survival*100) , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("grey50","white")) +
@@ -394,24 +493,24 @@ Survival_92DPF <- ggplot(data_92, aes(x =pCO2, (Survival*100) , fill = pCO2)) +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14,face="bold")) +
   stat_summary(fun.y=mean, geom="point", shape=18, size=4) +
-  labs(title = "Perent survival; F1 Scallops (juveniles) 92 days post-fertilization", 
+  labs(title = "Perent survival; F1 Scallops (juveniles) 90 days post-fertilization", 
        y = expression(Survival~"(%)"), 
        x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
   facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-Survival_92DPF
+Survival_90DPF
 
 
 
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration.pdf"))
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_shell_length.pdf"))
-Length_92dpf
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20211026_shell_length.pdf"))
+Length_90dpf
 dev.off()
 
 
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20211026_survival.pdf"))
-#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
-Survival_92DPF
+# pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
+Survival_90DPF
 dev.off()
 
 ```
