@@ -26,21 +26,72 @@ library(data.table)
 library(stringr)
 library(latex2exp)
 library(Rmisc)
-
+library(devtools)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-#setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-resp.data    <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4_15sectrunc1hour.csv", header=T) %>% dplyr::filter(!Date %in% "9/14/2021" | !Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
-exp_metadata <- read.csv(file="Data/ExperimentMetadata.csv", header=T) # treatment assignments to 'Chamber_Tank'
-lengths      <- read.csv(file="Data/Respiration/Lengths_Condition_resp_clearance.csv", header=T)
-resp.ref     <- read.csv(file="Data/Respiration/Reference_master.csv", header=T) %>% dplyr::filter(!Date %in% "9/14/2021" | !Filename %in% 'Run_1_raw.txt')
+resp.data       <- read.csv(file="Output/Respiration/Cumulative_resp_alpha0.4_15sectrunc1hour.csv", header=T) %>% 
+                      dplyr::filter(!Date %in% "9/14/2021" | !Filename %in% 'Run_1_raw.txt') # read the calculate raw rates from 'resp_LoLin' script - contains the calculated rate (not normalized for blanks) for each sensor-channel
+exp_metadata    <- read.csv(file="Data/ExperimentMetadata.csv", header=T) # treatment assignments to 'Chamber_Tank'
+lengths         <- read.csv(file="Data/Respiration/Lengths_Condition_resp_clearance.csv", header=T)
+resp.ref        <- read.csv(file="Data/Respiration/Reference_master.csv", header=T) %>% dplyr::filter(!Date %in% "9/14/2021" | !Filename %in% 'Run_1_raw.txt')
+DWs_Len_1026    <- read.csv(file="Data/Survival_Size/20211026_lengths_dryweights.csv", header=T)
+DWs_Len_914.930 <- read.csv(file="Data/Survival_Size/2021914_930_dryweights.csv", header=T)
 
 ```
+
+# Standardize rates by dry tissue weight 
+
+* NOTE: we have tissue dry weights for the large animals on 1026 (was able to dissect them) whereas we have whole animal dry weights for 914 and 930 
+* here we run regressions on the 1026 dats (shell length v. tissue dry weight) to extrapolate tissue weight for smaller shell sizes (914 and 930) 
+
+
+```{r dry weight and length regs, echo=FALSE}
+
+
+# Tissue Dry Weight (DW) vs Shell length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# filter data
+Tissue_DW_1026 <- DWs_Len_1026 %>% dplyr::filter(shell.or.tissue %in% "tissue")
+
+# note: the raw shell length data yields a curved equation - shell length^2 yields a near-linear fit 
+
+Tissue_DW_1026_subset <- Tissue_DW_1026 %>% dplyr::filter(Shell.Length < 10)  # animals < 10 um shelllength
+fit                   <- lm(weight ~ (Shell.Length)^2, data = Tissue_DW_1026_subset)
+P_DW_v_ShellLen2      <- ggplot(data = Tissue_DW_subset, aes(x = (Shell.Length)^2, y = weight)) +
+                                geom_smooth(method = "lm", se=FALSE, color="black", formula = weight ~ Shell.Length) +
+                                theme_classic() +
+                                ylab("Tissue dry weight (mg)") +
+                                xlab("[ Shell length (um) ]^2") +
+                                # stat_function(fun=my_eq, colour="red") +
+                                geom_point() + 
+                                xlim(0,100) +
+                                annotate(label = sprintf("y = %.3f x\nR² = %.2f", coef(fit), summary(fit)$r.squared),
+                                         geom = "text", x = 80, y = 0.0010, size = 5) +
+                                geom_smooth(method='lm') # y~0+x if you want it through the origin (0,0)
+                           
+P_DW_v_ShellLen2     
+
+
+DW
+
+# 20210914 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+WholeScal_DW_914     <- lengths %>% dplyr::filter(Date %in% '9/14/2021')
+DWs_Len_914          <- DWs_Len_914.930 %>% dplyr::filter(Date %in% '20210914') %>% dplyr::filter(Purpose %in% 'resp_filtration')
+
+# 20210930 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+WholeScal_DW_930     <- lengths %>% dplyr::filter(Date %in% '9/30/2021')
+DWs_Len_930          <- DWs_Len_914.930 %>% dplyr::filter(Date %in% '20210930') %>% dplyr::filter(Purpose %in% 'resp_filtration')
+
+
+```
+
+
 
 ## merge master resp data frame 
 
