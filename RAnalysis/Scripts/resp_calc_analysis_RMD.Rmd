@@ -53,7 +53,6 @@ DWs_Len_914.930 <- read.csv(file="Data/Survival_Size/2021914_930_dryweights.csv"
 
 ```{r dry weight and length regs, echo=FALSE}
 
-
 # Tissue Dry Weight (DW) vs Shell length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # filter data
@@ -63,7 +62,21 @@ Tissue_DW_1026 <- DWs_Len_1026 %>% dplyr::filter(shell.or.tissue %in% "tissue")
 
 Tissue_DW_1026_subset <- Tissue_DW_1026 %>% dplyr::filter(Shell.Length < 10)  # animals < 10 um shelllength
 fit                   <- lm(weight ~ (Shell.Length)^2, data = Tissue_DW_1026_subset)
-P_DW_v_ShellLen2      <- ggplot(data = Tissue_DW_subset, aes(x = (Shell.Length)^2, y = weight)) +
+
+P_DW_v_ShellLen      <- ggplot(data = Tissue_DW_1026_subset, aes(x = (Shell.Length), y = weight)) +
+                                geom_smooth(method = "lm", se=FALSE, color="black", formula = weight ~ Shell.Length) +
+                                theme_classic() +
+                                ylab("Tissue dry weight (mg)") +
+                                xlab("Shell length (um)") +
+                                # stat_function(fun=my_eq, colour="red") +
+                                geom_point() + 
+                                xlim(0,15) +
+                                geom_smooth(method='lm') # y~0+x if you want it through the origin (0,0)
+                           
+P_DW_v_ShellLen    
+
+
+P_DW_v_ShellLen2      <- ggplot(data = Tissue_DW_1026_subset, aes(x = (Shell.Length)^2, y = weight)) +
                                 geom_smooth(method = "lm", se=FALSE, color="black", formula = weight ~ Shell.Length) +
                                 theme_classic() +
                                 ylab("Tissue dry weight (mg)") +
@@ -83,10 +96,36 @@ DW
 # 20210914 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 WholeScal_DW_914     <- lengths %>% dplyr::filter(Date %in% '9/14/2021')
 DWs_Len_914          <- DWs_Len_914.930 %>% dplyr::filter(Date %in% '20210914') %>% dplyr::filter(Purpose %in% 'resp_filtration')
+Scallop_DW_mg
+
+
+
 
 # 20210930 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-WholeScal_DW_930     <- lengths %>% dplyr::filter(Date %in% '9/30/2021')
-DWs_Len_930          <- DWs_Len_914.930 %>% dplyr::filter(Date %in% '20210930') %>% dplyr::filter(Purpose %in% 'resp_filtration')
+WholeScal_DW_930     <- lengths %>% dplyr::filter(Date %in% '9/30/2021') %>% dplyr::rename(Rep = Replicate) %>% dplyr::rename(Fed_unfed = Food) %>% dplyr::rename(Treatment = pH)  %>% dplyr::rename(Num = Number)
+DWs_Len_930          <- DWs_Len_914.930 %>% dplyr::filter(Date %in% '20210930') %>% dplyr::filter(Purpose %in% 'resp_filtration') 
+
+MasterDWLength_930 <- merge(WholeScal_DW_930, DWs_Len_930, by = c('Treatment','Num','Rep','Plate','Run', 'Fed_unfed'))
+
+ggplot(data = MasterDWLength_930, aes(x = (Length_um)/1000, y = Scallop_DW_mg)) +
+                                geom_smooth(method = "loess", se=FALSE, color="black", formula = Scallop_DW_mg ~ Length_um) +
+                                geom_point() + 
+                                theme_classic() +
+                                ylab("Whole animal dry weight (mg)") +
+                                xlab("Shell length (mm)") +
+                                # stat_function(fun=my_eq, colour="red") +
+                                xlim(0,6) +
+                                geom_smooth(method='loess') # y~0+x if you want it through the origin (0,0)
+
+ggplot(data = MasterDWLength_930, aes(x = ((Length_um)/1000)^2, y = Scallop_DW_mg)) +
+                                geom_smooth(method = "lm", se=FALSE, color="black", formula = Scallop_DW_mg ~ Length_um) +
+                                geom_point() + 
+                                theme_classic() +
+                                ylab("Whole animal dry weight (mg)") +
+                                xlab("[Shell length (mm)]^2") +
+                                # stat_function(fun=my_eq, colour="red") +
+                                xlim(0,35) +
+                                geom_smooth(method='lm') # y~0+x if you want it through the origin (0,0)
 
 
 ```
