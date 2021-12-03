@@ -1,4 +1,4 @@
-Date,pH,Rep,n,Shell Length,tin label,tin weight,shell or tissue,tin+scallop weight,weight,CI,Notes
+Date_sampled,pH,Tank_Replicate,n,Shell_length_mm,tin_ID,Tin_Weight_mg,shell_or_tissue,Dry_Sample_Tin_Weight_mg,Dry_Sample_Weight_mg,CI,Notes
 10/26/2021,8,A,3,13.28,,0.4072,tissue,0.4191,0.0119,7.803278689,extras for CI and regressions
 10/26/2021,8,A,3,13.28,,0.4112,shell,0.5637,0.1525,NA,extras for CI and regressions
 10/26/2021,8,A,4,9.47,,0.4114,tissue,0.4166,0.0052,8.566721582,extras for CI and regressions
