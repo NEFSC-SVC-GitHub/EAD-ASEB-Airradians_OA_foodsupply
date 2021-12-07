@@ -12,7 +12,7 @@ Last updates: october 6, 2021
 
 ## Load libraries
 
-```{r, include=FALSE}
+```{r startup, include=FALSE}
 
 library(ggplot2)
 library(dplyr)
@@ -30,22 +30,21 @@ library(Rmisc)
 library(maditr)
 library(reshape2)
 
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 ```
 
 ## Set Path
 ```{r setup, include=TRUE}
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length                     <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Lengths_master.csv", header = TRUE)
-len.dryweight.CI_1026      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
-len.dryweight.CI_1202      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
+length                     <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_50DPF_92DPF.csv", header = TRUE)
+len.dryweight.CI_1026      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
+len.dryweight.CI_1202      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
 
 
-# survival_juvenile <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/JuvenileSurvival_LengthMeans.csv", header = TRUE)
-survival_larvae   <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Data/Survival_Size/Survival_2d_18d.csv", header = TRUE)
+survival                   <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_50DPF_92DPF.csv", header = TRUE)
+survival_larvae            <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_2d_18d.csv", header = TRUE)
 
 
 # Structure of the data - to check that variables are properly assigned to factor or variable
@@ -55,17 +54,41 @@ survival_larvae   <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_reposit
 
 # regression of size metrics
 
-```{r Length plot Mean SE}
+```{r Length plot Mean SE, include=FALSE}
+
+CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>%  
+summarySE(measurevar="CI", groupvars=c("pH")) %>% 
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% # cahmber volumes on different dates with
+      dplyr::mutate(Age = 92)
 
 
-summarySE(len.dryweight.CI_1026, measurevar="CI", groupvars=c("pH")) %>% 
-    dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) # cahmber volumes on different dates with
+CI_1202 <- summarySE(len.dryweight.CI_1202, measurevar="Condition_index_drywtRatio_Walne1976", groupvars=c("pH")) %>% 
+    dplyr::filter(Condition_index_drywtRatio_Walne1976 > 0) %>% 
+    dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% # cahmber volumes on different dates with
+    dplyr::rename(CI = "Condition_index_drywtRatio_Walne1976") %>% # cahmber volumes on different dates with
+    dplyr::mutate(Age = 139)
 
 
-colnames(len.dryweight.CI_1026)
-summarySE(len.dryweight.CI_1202, measurevar="Condition_index_drywtRatio_Walne1976", groupvars=c("pH")) %>% 
-    dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) # cahmber volumes on different dates with
+len.dryweight.CI_1202$Rep_pH <- as.character(paste(len.dryweight.CI_1202$Tank_Replicate, len.dryweight.CI_1202$pH, sep = '_'))
 
+lmer(Condition_index_drywtRatio_Walne1976 ~ pH, + (1|Rep_pH),
+                       data=len.dryweight.CI_1202,
+                       REML=TRUE)
+
+    
+Master_CI <- rbind(CI_1026, CI_1202)
+
+
+ggplot(data=Master_CI, aes(x=Age, y=CI, color=pCO2)) +
+  geom_line( stat = "identity", size=1.0)+
+  geom_point(position=position_dodge(.5))+ 
+  scale_color_manual(values=c("forestgreen","darkorange2"))+
+  geom_errorbar(aes(ymin=CI-se, ymax=CI+se), width=.2,
+                position=position_dodge(.5))+
+  theme_classic() +  
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_y_continuous(name ="Condition index [(Dry tissue / dry shell) *100]")+
+  theme(text = element_text(size=15))
 
 len.dryweight.CI_1202 %>% 
    ggplot(aes(x=Dry_Shell_weight_mg, y=Shell_length_mm, color=as.factor(pH))) +
@@ -80,7 +103,7 @@ len.dryweight.CI_1202 %>%
 #First make calculations for means and standard error
 REGRESSION_Length.Drytissue<- dryweight_CI %>% 
   dplyr::filter(shell.or.tissue %in% "tissue") %>%
-    ggplot(aes(x=Shell.Length, y=weight, color=pH)) +
+    ggplot(aes(x=Shell.Length, y=weight, color=as.factor(pH))) +
     geom_point()+ 
     theme_classic() +  
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
@@ -93,13 +116,13 @@ REGRESSION_Length.Drytissue
 Tissue <- dryweight_CI %>% 
   dplyr::select(c("shell.or.tissue", "weight")) %>%
   filter(shell.or.tissue %in% "tissue") %>%
-  dplyr::rename(c(tissue = shell.or.tissue, tissue_weight = weight))
+  dplyr::rename(c(type = shell.or.tissue, tissue_weight = weight))
 Shell <- dryweight_CI %>% 
   dplyr::select(c("shell.or.tissue", "weight")) %>%
   filter(shell.or.tissue %in% "shell") %>%
-  dplyr::rename(c(tissue = shell.or.tissue, shell_weight = weight))
+  dplyr::rename(c(type = shell.or.tissue, shell_weight = weight))
 Tissue.Shell.Dryweights <- cbind(Tissue, Shell) %>% 
-  tidyr::spread(weight,shell.or.tissue)
+  tidyr::spread(type)
 
 REGRESSION_DryShell.Drytissue <- Tissue.Shell.Dryweights %>%
                                    dplyr::select(!c("tissue", "tissue")) %>%
@@ -256,6 +279,8 @@ data_51$RFactor <- as.factor(paste(data_51$Replicate, data_51$pH, sep = '_'))
 ShellLengthMod_D51 <- lmer(Length_um ~ pCO2 + (1|RFactor),
                        data=data_51,
                        REML=TRUE)
+
+
 pander(anova(ShellLengthMod_D51), style='rmarkdown')
 check_model(ShellLengthMod_D51) # observe the diagnostics of the model
 shapiro.test(residuals(ShellLengthMod_D51)) # non normal
@@ -423,6 +448,7 @@ Survival_64DPF
 dev.off()
 
 ```
+
 # Day 90 Analysis and plotting 
 
 ```{r, Day 92 data}
@@ -455,6 +481,8 @@ data_90_length$RFactor <- as.factor(paste(data_90_length$Replicate, data_90_leng
 ShellLengthMod_D90 <- lmer(Length_um ~ pCO2*Fed_Unfed + (1|RFactor),
                        data=data_90_length,
                        REML=TRUE)
+
+
 pander(anova(ShellLengthMod_D90), style='rmarkdown') # **Fed_Unfed**    | 2.036e-88 
 check_model(ShellLengthMod_D90) # observe the diagnosticsdata_90_length$pCO2 of the model
 shapiro.test(residuals(ShellLengthMod_D90)) # non normal 6.026e-15
@@ -462,9 +490,8 @@ leveneTest(residuals(ShellLengthMod_D90) ~ data_90_length$pCO2) # good 0.1583
 
 # using lme
 ShellLengthMod_D90 = lme(Length_um ~ pCO2*Fed_Unfed, random=~1|RFactor,
-            data=data_90_length,
-            method="REML")
-pander(Anova(ShellLengthMod_D90), style='rmarkdown') # **Fed_Unfed**    |  579.3  | 1  | 5.206e-128 
+            data=data_90_length)
+pander(anova(ShellLengthMod_D90), style='rmarkdown') # **Fed_Unfed**    |  579.3  | 1  | 5.206e-128 
 
 # Survival:::::::::::::::::::::::::::::::::::::::::::::
 

@@ -35,7 +35,7 @@ library(hrbrthemes)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
- setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+ setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -56,9 +56,8 @@ DWs_Len_914.930 <- read.csv(file="Data/Survival_Size/2021914_930_dryweights.csv"
 
 # 20210914 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-<<<<<<< HEAD
 # Tissue Dry Weight (DW) vs Shell length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-=======
+
 
 Length_914           <- lengths         %>% 
   dplyr::filter(Date %in% '9/14/2021')  %>% 
@@ -72,7 +71,6 @@ Dryweight_914        <- DWs_Len_914.930 %>%
   dplyr::select(c("Replicate","pH","Number", "Plate","Run","Scallop_DW_mg"))
 DW_Len_914 <- merge(Length_914, Dryweight_914)
 DW_Len_914$Date <- "9/14/2021"
->>>>>>> d282f00666fe5031a77f73ae2d101bad03875c20
 
 
 # DW_Len_914 %>% ggplot(aes(x = Length_um, y = Scallop_DW_mg)) +
@@ -83,18 +81,17 @@ DW_Len_914$Date <- "9/14/2021"
 #         geom_point() + 
 #         geom_smooth(method='lm')
 
-<<<<<<< HEAD
-Tissue_DW_1026_subset <- Tissue_DW_1026 %>% dplyr::filter(Shell.Length < 10)  # animals < 10 um shelllength
-fit                   <- lm(weight ~ (Shell.Length)^2, data = Tissue_DW_1026_subset)
+Tissue_DW_1026_subset <- lengths %>%  dplyr::filter(Date == '10/26/2021') #%>% dplyr::filter(Length_um > 10000)  # animals < 10 um shelllength
+fit                   <- lm(Dry_Tissue_weight ~ (Length_um)^2, data = Tissue_DW_1026_subset)
 
-P_DW_v_ShellLen      <- ggplot(data = Tissue_DW_1026_subset, aes(x = (Shell.Length), y = weight)) +
+P_DW_v_ShellLen      <- ggplot(data = Tissue_DW_1026_subset, aes(x = (Length_um), y = Dry_Tissue_weight)) +
                                 geom_smooth(method = "lm", se=FALSE, color="black", formula = weight ~ Shell.Length) +
                                 theme_classic() +
                                 ylab("Tissue dry weight (mg)") +
                                 xlab("Shell length (um)") +
                                 # stat_function(fun=my_eq, colour="red") +
                                 geom_point() + 
-                                xlim(0,15) +
+                                # xlim(0,15) +
                                 geom_smooth(method='lm') # y~0+x if you want it through the origin (0,0)
                            
 P_DW_v_ShellLen    
@@ -150,12 +147,10 @@ ggplot(data = MasterDWLength_930, aes(x = ((Length_um)/1000)^2, y = Scallop_DW_m
                                 # stat_function(fun=my_eq, colour="red") +
                                 xlim(0,35) +
                                 geom_smooth(method='lm') # y~0+x if you want it through the origin (0,0)
-=======
 
 
 
 # 20210930 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
->>>>>>> d282f00666fe5031a77f73ae2d101bad03875c20
 
 
 
@@ -451,7 +446,7 @@ Resp.Master_OM$resp_µmol_L_g_hr <- (Resp.Master_OM$resp_umol_L_hr /
 
 
 #write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
-write.csv(Resp.Master_OM, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
+write.csv(Resp.Master_OM, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 
 ```
 
@@ -674,42 +669,34 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 
 # Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-library("ggpubr")
+# plot the replicates (visual diagnostics of random factor)
 Resp914_Length_reps<- ggboxplot(Resp_0914, x = "pH", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
                               add = c("mean_se", "dotplot"),
                               palette = c("#00AFBB", "#E7B800", "brown", "grey"))
 Resp914_Length_reps
 
-# models..
+# Linear mixed-effects model
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_0914_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2, random=~1|Replicate, data=Resp_0914)
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  19   |  38.42  | 5.912e-06 |
-# |    **pCO2**     |   1   |  19   | 0.8712  |  0.3623   |
-pander(anova(LMEmod_0914_SL), style='rmarkdown')
+LMEmod_0914_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2, random=~1|Chamber_tank, data=Resp_0914)
+# |     &nbsp;      | numDF | denDF | F-value | p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:--------:|
+# | **(Intercept)** |   1   |  16   |  70.19  | 3.03e-07 |
+# |    **pCO2**     |   1   |   6   |  0.423  |  0.5395  |
+pander(anova(LMEmod_0914_SL), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(LMEmod_0914_SL))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Diagnostics.pdf"))
+check_model(LMEmod_0914_SL) # print the model diagnostics 
+dev.off()
 
+# call the results of LMER to add to boxplot below 
+DF   <- paste( (anova(LMEmod_0914_SL)[[1]])[2], (anova(LMEmod_0914_SL)[[2]])[2], sep = '/') # call DF
+Fval <- (anova(LMEmod_0914_SL)[[3]])[2] # call f
+pval <- (anova(LMEmod_0914_SL)[[4]])[2] # call p value
 
-# linear model without the random effect of Replicate
-LMmod_0914_SL <- aov(lm(resp_µmol_L_mm_Length_hr~pCO2,data=Resp_0914))
-# |    &nbsp;     | Df | Sum Sq | Mean Sq | F value | Pr(>F) |
-# |:-------------:|:--:|:------:|:-------:|:-------:|:------:|
-# |   **pCO2**    | 1  | 67.77  |  67.77  | 0.6327  | 0.4348 |
-# | **Residuals** | 22 |  2356  |  107.1  |   NA    |   NA   |
-pander(summary(LMmod_0914_SL), style='rmarkdown') 
-
-
-
-check_model(LMmod_0914_SL) # observe the diagnostics of the model
-shapiro.test(residuals(LMmod_0914_SL)) #  normal - 0.3875
-leveneTest(LMmod_0914_SL) # good - 0.6186
-
-DF   <- paste( (summary(LMmod_0914_SL)[[1]][["Df"]])[1], (summary(LMmod_0914_SL)[[1]][["Df"]])[2], sep = '/')
-Fval <- (summary(LMmod_0914_SL)[[1]][["F value"]])[1]
-pval <- (summary(LMmod_0914_SL)[[1]][["Pr(>F)"]])[1]
-
-
+# plot
 Resp914_Length <- ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
                     theme(panel.grid=element_blank()) +
                     geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
@@ -724,15 +711,15 @@ Resp914_Length <- ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', 
                     theme(axis.text=element_text(size=8),
                           axis.title=element_text(size=8,face="bold")) +
                      stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-                     annotate("text", x=2, y=0.000005, size = 4, label = "shapiro wilk = 0.3875") +
-                     annotate("text", x=2, y=0.0000075, size = 4, label = "levene's = 0.6186") +
+                     annotate("text", x=2, y=0.000005, size = 4, label = "shapiro wilk = 0.3347") +
+                     annotate("text", x=2, y=0.0000075, size = 4, label = "levene's = ???") +
                      annotate("text", x=2, y=0.0000115, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
-Resp914_Length
+Resp914_Length # print this figure...
 
 
-# Export to pdf
+# Export the figures to pdf
 ggarrange(Resp914_Length,Resp914_Length_reps,nrow = 2) %>%
-  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_respiration_length.standardized.pdf")
+  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_respiration_length.standardized.pdf")
 
 ```
 
@@ -832,44 +819,36 @@ Resp_0930 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # t
 
 # Visualize the data with the random effet as treplicate 
 Resp_0930$pHxFood   <- paste(Resp_0930$pH, Resp_0930$Food, sep = "_")
-Resp914_Length_reps <- ggboxplot(Resp_0930, x = "pHxFood", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
+Resp930_Length_reps <- ggboxplot(Resp_0930, x = "pHxFood", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
           add = c("mean_se", "dotplot"),
           palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp914_Length_reps
+Resp930_Length_reps
 
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_0930_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Replicate, data=Resp_0930)
-# |     &nbsp;      | numDF | denDF | F-value | p-value |
-# |:---------------:|:-----:|:-----:|:-------:|:-------:|
-# | **(Intercept)** |   1   |  66   |  606.3  |    0    |
-# |    **pCO2**     |   1   |  66   |  4.42   | 0.03934 |
-# |    **Food**     |   1   |  66   |  3.984  | 0.05006 |
-# |  **pCO2:Food**  |   1   |  66   | 0.01138 | 0.9154  |
+LMEmod_0930_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Chamber_tank, data=Resp_0930)
+# |     &nbsp;      | numDF | denDF | F-value  | p-value |
+# |:---------------:|:-----:|:-----:|:--------:|:-------:|
+# | **(Intercept)** |   1   |  63   |  515.6   |    0    |
+# |    **pCO2**     |   1   |   6   |  3.792   | 0.09943 |
+# |    **Food**     |   1   |  63   |  4.029   | 0.04901 |
+# |  **pCO2:Food**  |   1   |  63   | 0.009658 |  0.922  |
 pander(anova(LMEmod_0930_SL), style='rmarkdown')
+kable(as.data.frame(anova(LMEmod_0930_SL))) %>% 
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
+check_model(LMEmod_0930_SL) 
+dev.off()
 
 
-# linear model without the random effect 
-LMmod_0930_SL <- aov(lm(resp_µmol_L_mm_Length_hr~pCO2*Food,data=Resp_0930))
-# |    &nbsp;     | Df | Sum Sq | Mean Sq | F value | Pr(>F)  |
-# |:-------------:|:--:|:------:|:-------:|:-------:|:-------:|
-# |   **pCO2**    | 1  |  1340  |  1340   |  4.42   | 0.03917 |
-# |   **Food**    | 1  |  1208  |  1208   |  3.984  | 0.04988 |
-# | **pCO2:Food** | 1  |  3.45  |  3.45   | 0.01138 | 0.9154  |
-# | **Residuals** | 69 | 20923  |  303.2  |   NA    |   NA    |
-pander(summary(LMmod_0930_SL), style='rmarkdown')
+# call the results of LMER to add to boxplot below 
+DF   <- paste( (anova(LMEmod_0930_SL)[[1]])[3], (anova(LMEmod_0930_SL)[[2]])[3], sep = '/') # call DF
+Fval <- (anova(LMEmod_0930_SL)[[3]])[3] # call f
+pval <- (anova(LMEmod_0930_SL)[[4]])[3] # call p value
 
-
-check_model(LMmod_0930_SL) # observe the diagnostics of the model
-shapiro.test(residuals(LMmod_0930_SL)) #  normal - 0.08494
-leveneTest(LMmod_0930_SL) # good - 0.1906
-
-DF   <- paste( (summary(LMmod_0930_SL)[[1]][["Df"]])[1], (summary(LMmod_0930_SL)[[1]][["Df"]])[2], sep = '/')
-Fval <- (summary(LMmod_0930_SL)[[1]][["F value"]])[1]
-pval <- (summary(LMmod_0930_SL)[[1]][["Pr(>F)"]])[1]
-
-
-Resp914_Length <- ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
+# plot
+Resp930_Length <- ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
               theme(panel.grid=element_blank()) +
               geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
               scale_fill_manual(values=c("white","grey50")) +
@@ -883,12 +862,12 @@ Resp914_Length <- ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', 
                    y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%m^{-1}~shell~length%.% hr^{-1}~")"),
                    x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")"))  + 
                stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-              facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food')))
-Resp914_Length
+               facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food')))
+Resp930_Length
 
 # Export to pdf
-ggarrange(Resp914_Length,Resp914_Length_reps,nrow = 2) %>%
-  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20210930_respiration_length.standardized.pdf")
+ggarrange(Resp930_Length,Resp930_Length_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_Figures.pdf")
 
 ```
 
@@ -907,36 +886,28 @@ Resp930_WholeDW_reps
 
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_0930_DW<-lme(resp_µmol_L_g_hr ~ pCO2 * Food, random=~1|Replicate, data=Resp_0930[!is.na(Resp_0930$resp_µmol_L_g_hr),])
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  65   |  52.7   | 6.024e-10 |
-# |    **pCO2**     |   1   |  65   |  4.646  |  0.03483  |
-# |    **Food**     |   1   |  65   |  12.28  | 0.0008344 |
-# |  **pCO2:Food**  |   1   |  65   |  1.135  |  0.2907   |
-pander(anova(LMEmod_0930_DW), style='rmarkdown')
+LMEmod_0930_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Chamber_tank, data=Resp_0930)
+# |     &nbsp;      | numDF | denDF | F-value  | p-value |
+# |:---------------:|:-----:|:-----:|:--------:|:-------:|
+# | **(Intercept)** |   1   |  63   |  515.6   |    0    |
+# |    **pCO2**     |   1   |   6   |  3.792   | 0.09943 |
+# |    **Food**     |   1   |  63   |  4.029   | 0.04901 |
+# |  **pCO2:Food**  |   1   |  63   | 0.009658 |  0.922  |
+pander(anova(LMEmod_0930_SL), style='rmarkdown')
+kable(as.data.frame(anova(LMEmod_0930_SL))) %>% 
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
+check_model(LMEmod_0930_SL) 
+dev.off()
 
 
-# linear model without the random effect 
-LMmod_0930_DW <- aov(lm(resp_µmol_L_g_hr~pCO2*Food,data=Resp_0930[!is.na(Resp_0930$resp_µmol_L_g_hr),]))
-# |    &nbsp;     | Df |  Sum Sq  | Mean Sq  | F value | Pr(>F)  |
-# |:-------------:|:--:|:--------:|:--------:|:-------:|:-------:|
-# |   **pCO2**    | 1  | 0.007001 | 0.007001 |  4.432  | 0.03896 |
-# |   **Food**    | 1  | 0.01602  | 0.01602  |  10.14  | 0.00219 |
-# | **pCO2:Food** | 1  | 0.001512 | 0.001512 |  0.957  | 0.3314  |
-# | **Residuals** | 68 |  0.1074  | 0.00158  |   NA    |   NA    |
-pander(summary(LMmod_0930_DW), style='rmarkdown')
+# call the results of LMER to add to boxplot below 
+DF   <- paste( (anova(LMEmod_0930_SL)[[1]])[3], (anova(LMEmod_0930_SL)[[2]])[3], sep = '/') # call DF
+Fval <- (anova(LMEmod_0930_SL)[[3]])[3] # call f
+pval <- (anova(LMEmod_0930_SL)[[4]])[3] # call p value
 
-
-check_model(LMmod_0930_DW) # observe the diagnostics of the model
-shapiro.test(residuals(LMmod_0930_DW)) #  non normal - 2.42e-08
-leveneTest(LMmod_0930_DW) # good - 0.2719
-
-DF   <- paste( (summary(LMmod_0930_DW)[[1]][["Df"]])[1], (summary(LMmod_0930_DW)[[1]][["Df"]])[2], sep = '/')
-Fval <- (summary(LMmod_0930_DW)[[1]][["F value"]])[1]
-pval <- (summary(LMmod_0930_DW)[[1]][["Pr(>F)"]])[1]
-
-
+# plot
 Resp930_WholeDW <-  ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_g_hr , fill = pCO2)) +
                       theme(panel.grid=element_blank()) +
                       geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
@@ -1000,38 +971,46 @@ Res1026_Length_reps <- ggboxplot(Resp_1026, x = "pHxFood", y = "resp_µmol_L_mm_
                           palette = c("#00AFBB", "#E7B800", "brown", "grey"))
 Res1026_Length_reps
 
-
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Replicate, data=Resp_1026)
+LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Chamber_tank, data=Resp_1026)
+
+
+x <- Resp_1026 %>%  filter(Food %in% 'fed')
+anova(lme(resp_µmol_L_mm_Length_hr ~ pCO2, random=~1|Chamber_tank, data=x))
+
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  27   |  765.4  |     0     |
-# |    **pCO2**     |   1   |  27   |  32.19  | 5.018e-06 |
-# |    **Food**     |   1   |  27   |  347.3  |     0     |
-# |  **pCO2:Food**  |   1   |  27   |  19.92  | 0.000129  |
+# | **(Intercept)** |   1   |  24   |  765.4  |     0     |
+# |    **pCO2**     |   1   |   6   |  32.19  | 0.001291  |
+# |    **Food**     |   1   |  24   |  347.3  | 8.882e-16 |
+# |  **pCO2:Food**  |   1   |  24   |  19.92  | 0.0001628 |
 pander(anova(LMEmod_1026_SL), style='rmarkdown')
+kable(as.data.frame(anova(LMEmod_1026_SL))) %>% 
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
+check_model(LMEmod_1026_SL) 
+dev.off()
+# tukey posthoc for lmer model
+require('lsmeans')
+lsmeans(LMEmod_1026_SL, pairwise~pCO2 * Food, adjust="tukey") # Compute least-squares means
+ # contrast                         estimate       SE df t.ratio p.value
+ # 500 µatm fed - 800 µatm fed     -5.74e-05 8.93e-06  6  -6.430  0.0027
+ # 500 µatm fed - 500 µatm unfed    9.03e-05 9.41e-06 24   9.589  <.0001
+ # 500 µatm fed - 800 µatm unfed    9.08e-05 9.41e-06  6   9.640  0.0003
+ # 800 µatm fed - 500 µatm unfed    1.48e-04 8.93e-06  6  16.538  <.0001
+ # 800 µatm fed - 800 µatm unfed    1.48e-04 8.93e-06 24  16.592  <.0001
+ # 500 µatm unfed - 800 µatm unfed  4.82e-07 9.41e-06  6   0.051  0.9999
 
 
-# linear model without the random effect 
-LMmod_1026_SL <- aov(lm(resp_µmol_L_mm_Length_hr~pCO2*Food,data=Resp_1026))
-# |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value |  Pr(>F)   |
-# |:-------------:|:--:|:---------:|:---------:|:-------:|:---------:|
-# |   **pCO2**    | 1  | 1.141e-08 | 1.141e-08 |  32.19  | 3.48e-06  |
-# |   **Food**    | 1  | 1.231e-07 | 1.231e-07 |  347.3  | 4.817e-18 |
-# | **pCO2:Food** | 1  | 7.061e-09 | 7.061e-09 |  19.92  | 0.0001057 |
-# | **Residuals** | 30 | 1.064e-08 | 3.546e-10 |   NA    |    NA     |
-pander(summary(LMmod_1026_SL), style='rmarkdown')
 
-  
-check_model(LMmod_1026_SL) # observe the diagnostics of the model
-shapiro.test(residuals(LMmod_1026_SL)) #  normal - 0.3875 (0.01626)
-leveneTest(LMmod_1026_SL) # good - 0.6186 (0.01844 *)
+# call the results of LMER to add to boxplot below 
+DF   <- paste( (anova(LMEmod_01026_SL)[[1]])[3], (anova(LMEmod_01026_SL)[[2]])[3], sep = '/') # call DF
+Fval <- (anova(LMEmod_01026_SL)[[3]])[3] # call f
+pval <- (anova(LMEmod_01026_SL)[[4]])[3] # call p value
 
-DF   <- paste( (summary(LMmod_1026_SL)[[1]][["Df"]])[1], (summary(LMmod_1026_SL)[[1]][["Df"]])[2], sep = '/')
-Fval <- (summary(LMmod_1026_SL)[[1]][["F value"]])[1]
-pval <- (summary(LMmod_1026_SL)[[1]][["Pr(>F)"]])[1]
-
+# plot
 Resp1026_Length <- ggplot(Resp_1026, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
               theme(panel.grid=element_blank()) +
               geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
@@ -1051,7 +1030,7 @@ Resp1026_Length
 
 # Export to pdf
 ggarrange(Resp1026_Length, Res1026_Length_reps,nrow = 2) %>% 
-  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_respiration_length.standardized.pdf")
+  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_Figures.pdf")
 
 ```
 
