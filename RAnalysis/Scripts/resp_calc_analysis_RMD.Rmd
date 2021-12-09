@@ -117,7 +117,6 @@ DW
 # 20210914 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 WholeScal_DW_914     <- lengths %>% dplyr::filter(Date %in% '9/14/2021')
 DWs_Len_914          <- DWs_Len_914.930 %>% dplyr::filter(Date %in% '20210914') %>% dplyr::filter(Purpose %in% 'resp_filtration')
-Scallop_DW_mg
 
 
 
@@ -256,7 +255,7 @@ WholeDW_Shelllength       <- Master_SizeStand_dat[!is.na(Master_SizeStand_dat$Le
                                 #          geom = "text", x = 80, y = 0.0010, size = 5) +
                                 geom_smooth(method='loess')
 WholeDW_Shelllength %>% 
-  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/All_SizeRegression_WholeDW_ShellLength.pdf")
+  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_SizeRegression_WholeDW_ShellLength.pdf")
 
 WholeDR_Length_sq_0_5um       <- Master_SizeStand_dat[!is.na(Master_SizeStand_dat$Length_um),] %>%  
                             dplyr::filter(Length_um < 5000) %>% 
@@ -437,8 +436,8 @@ note: this chunk calls the data that used the 8-channel loligo system and the SD
 # Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
 
 # NORMALIZED for Shell length
-Resp.Master_OM$resp_µmol_L_mm_Length_hr <- (Resp.Master_OM$resp_umol_L_hr / # multiple by 1000 to convert mmol/ O2 to umol/L O2
-              (Resp.Master_OM$Length_um/1000)) # normalize by Dry tissue weight  as to mg O2 L-1 g dry tissue weight-1
+Resp.Master_OM$resp_µmol_L_m_Length_hr <- (Resp.Master_OM$resp_umol_L_hr / # multiple by 1000 to convert mmol/ O2 to umol/L O2
+              (Resp.Master_OM$Length_um/1000000)) # normalize by Dry tissue weight  as to mg O2 L-1 g dry tissue weight-1
 
 # NORMALIZED for Whole animal dry weight (g)
 Resp.Master_OM$resp_µmol_L_g_hr <- (Resp.Master_OM$resp_umol_L_hr / 
@@ -485,7 +484,7 @@ P_WholeDW_resp_facet <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %
 # print in markdown file 
 ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2)
 # Export to pdf
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/RawRespiration_by_WholeDW.pdf"), width = 10, height = 6)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/RawRespiration_by_WholeDW.pdf"), width = 10, height = 6)
 ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2) 
 dev.off()
 
@@ -522,7 +521,7 @@ P_Length_resp_facet <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %>
 # print in markdown file 
 ggarrange(P_Length_resp_all, P_Length_resp_facet,nrow = 2)
 # Export to pdf
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/RawRespiration_by_Length.pdf"), width = 10, height = 6)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/RawRespiration_by_Length.pdf"), width = 10, height = 6)
 ggarrange(P_Length_resp_all, P_Length_resp_facet,ncol = 2)
 dev.off()
 
@@ -627,10 +626,10 @@ Resp_DryWgtStand   <- ggplot(data=RespSumTab_DW, aes(x=Age, y=resp_µmol_L_g_hr,
 
 ggarrange(Resp_LengthStand,
           Resp_DryWgtStand, ncol = 1,nrow = 2) %>% 
-  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/All_Respiration_normalized.pdf")
+  ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized.pdf")
 
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 6)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 6)
 ggarrange(P_Length_resp_all ,Length_time, Resp_LengthStand,
           P_WholeDW_resp_all, WholeDW_time, Resp_DryWgtStand, ncol = 3, nrow = 2, heights=c(1,1))
 dev.off()
@@ -650,7 +649,7 @@ dev.off()
 
 ##### number of replicates for analysis...
 
-```{r 9/14 replicates, echo=FALSE}
+```{r 9/14 replicates and mean resp, echo=FALSE}
 
 # model effect of treatment on resp rate 20210507
 Resp_0914 <- Resp.Master_OM %>% 
@@ -658,6 +657,11 @@ Resp_0914 <- Resp.Master_OM %>%
               dplyr::filter(!Chamber_tank  %in% 'blank')
 
 Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank replication
+
+
+Resp_0914 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=c("pH")) %>% 
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+
 
 ```
 
@@ -805,6 +809,8 @@ Resp_0930 <- Resp.Master_OM %>%
 
 Resp_0930 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # tank replication
 
+Resp_0930 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=("pH")) %>% 
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
 ```
 
 
@@ -975,10 +981,6 @@ require(nlme)
 # Linear mixed effects model with random effect of Replicate 
 LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Chamber_tank, data=Resp_1026)
 
-
-x <- Resp_1026 %>%  filter(Food %in% 'fed')
-anova(lme(resp_µmol_L_mm_Length_hr ~ pCO2, random=~1|Chamber_tank, data=x))
-
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
 # | **(Intercept)** |   1   |  24   |  765.4  |     0     |
@@ -1034,6 +1036,51 @@ ggarrange(Resp1026_Length, Res1026_Length_reps,nrow = 2) %>%
 
 ```
 
+# density plot - fun visualization of data!
+```{r, Day 92 density respiration plot }
+library(dplyr)
+library(tidyr)
+Resp_1026$pHxFood <- as.factor(Resp_1026$pHxFood)
+Resp_1026$resp_µmol_L_mm_Length_hr.noSCI     <- format(as.numeric(Resp_1026$resp_µmol_L_mm_Length_hr), scientific = FALSE, digits = 3)
+Resp_1026$resp_µmol_L_mm_Length_hr.NUM       <- as.numeric(sprintf("%s", Resp_1026$resp_µmol_L_mm_Length_hr.noSCI))
+
+df_mean <- Resp_1026 %>% 
+  dplyr::group_by(pHxFood) %>% 
+  dplyr::summarize(average = mean(resp_µmol_L_mm_Length_hr.NUM)) %>%
+  dplyr::ungroup()
+p.box <- ggplot(Resp_1026, aes(x = pHxFood, y = resp_µmol_L_mm_Length_hr.NUM)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
+             color="red") 
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean$average) %>% 
+  mutate(pHxFood = factor(x, labels = levels(Resp_1026$pHxFood), ordered = TRUE)) %>%
+  select(-x)
+
+denisty_box_resp_92DPF <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15)) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = Resp_1026, aes(x = resp_µmol_L_mm_Length_hr.NUM, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
+                            #  theme
+                            theme_classic() +
+                            facet_grid(pHxFood ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(title = "F1 Scallops: respiration rates 92 DPF)", 
+                                 x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%m^{-1}~shell~length%.% hr^{-1}~")"),
+                                 y = "Scaled density") +
+                            scale_fill_discrete()
+denisty_box_resp_92DPF
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_density_plot.pdf"), width = 5, height = 8)
+denisty_box_resp_92DPF # print the model diagnostics 
+dev.off()
+
+```
 
 #### Whole dry weight standardized
 
