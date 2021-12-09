@@ -692,7 +692,7 @@ denisty_box_length_92DPF <-ggplot(p.box.data) +
                             theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
                             labs(x = "Shell length", y = "frequency") +
                             scale_fill_discrete()
-
+denisty_box_length_92DPF
 
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_density_plot.pdf"), width = 4, height = 8)
 denisty_box_length_92DPF # print the model diagnostics 

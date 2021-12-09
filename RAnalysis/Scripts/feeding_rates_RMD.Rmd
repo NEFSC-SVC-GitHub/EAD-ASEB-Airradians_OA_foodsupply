@@ -670,8 +670,9 @@ FeedRates_930_Means <- df_total.930 %>%
   na.omit()
 FeedRates_930_Means
 
+df_total.930 %>% dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% summarySE(measurevar="FeedingRate_L_hour_m", groupvars=("Fed_Unfed")) 
 
-# plot the replicates (visual diagnostics of random factor)
+ # plot the replicates (visual diagnostics of random factor)
 df_total.930$pHxFood   <- paste(df_total.930$pH, df_total.930$Fed_Unfed, sep = "_")
 Resp930_FR <- ggboxplot(df_total.930, x = "pHxFood", y = "FeedingRate_L_hour_m", color = "Replicate",
                               add = c("mean_se", "dotplot"),
@@ -776,11 +777,12 @@ for (i in 1:nrow(loop_1026)) {
   else {}
 }
 df_total.1026 <- df_total.1026  %>% 
+  dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% 
+  dplyr::mutate(pHxFood = paste(pH, Fed_Unfed, sep = "_")) %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
 
 
 FeedRates_1026_Means <- df_total.1026 %>% 
-  dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% 
   dplyr::group_by(pCO2, Fed_Unfed) %>% 
   dplyr::summarise(
     meanCR = mean(FeedingRate_L_hour_m),
@@ -790,8 +792,9 @@ FeedRates_1026_Means <- df_total.1026 %>%
   na.omit()
 FeedRates_1026_Means
 
+df_total.1026  %>% summarySE(measurevar="FeedingRate_L_hour_m", groupvars=("Fed_Unfed")) 
+
 # plot the replicates (visual diagnostics of random factor)
-df_total.1026$pHxFood   <- paste(df_total.1026$pH, df_total.1026$Fed_Unfed, sep = "_")
 Resp1026_FR <- ggboxplot(df_total.1026, x = "pHxFood", y = "FeedingRate_L_hour_m", color = "Replicate",
                               add = c("mean_se", "dotplot"),
                               palette = c("#00AFBB", "#E7B800", "brown", "grey"))
@@ -802,7 +805,7 @@ Resp1026_FR
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
 df_total.1026$Chamber_tank <- paste(df_total.1026$Replicate, df_total.1026$pH, sep = "_" )
-LMEmod_1026_FR<-lme(FeedingRate_L_hour_m ~ pH * Fed_Unfed, random=~1|Chamber_tank, data=df_total.1026)
+LMEmod_1026_FR<-lme(FeedingRate_L_hour_m ~ pH * Fed_Unfed, random=~1|Chamber_tank, data=df_total.1026  )
 # |      &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:----------------:|:-----:|:-----:|:-------:|:---------:|
 # | **(Intercept)**  |   1   |  24   |  60.53  | 5.152e-08 |
@@ -819,6 +822,7 @@ dev.off()
 
 
 FR_1026_boxplot <- df_total.1026 %>% 
+  dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% 
   ggplot(aes(pCO2 , FeedingRate_L_hour_m , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +

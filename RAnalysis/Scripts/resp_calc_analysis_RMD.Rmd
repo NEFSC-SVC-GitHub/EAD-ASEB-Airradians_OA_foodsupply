@@ -958,6 +958,8 @@ Resp_1026 <- Resp.Master_OM %>%
 
 Resp_1026 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # tank replication
 
+Resp_1026 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=(c("Food","pH"))) %>% 
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
 ```
 
 
@@ -1057,11 +1059,16 @@ p.box.data <- layer_data(p.box) %>%
   mutate(pHxFood = factor(x, labels = levels(Resp_1026$pHxFood), ordered = TRUE)) %>%
   select(-x)
 
+
+p.box.data %>% unnest(outliers)
+
+
 denisty_box_resp_92DPF <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
                             geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15)) +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                            geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
                             # vertical lines at Q1 / Q2 / Q3
                             geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
                             # density plot
@@ -1073,10 +1080,10 @@ denisty_box_resp_92DPF <-ggplot(p.box.data) +
                             labs(title = "F1 Scallops: respiration rates 92 DPF)", 
                                  x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%m^{-1}~shell~length%.% hr^{-1}~")"),
                                  y = "Scaled density") +
-                            scale_fill_discrete()
+                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_resp_92DPF
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_density_plot.pdf"), width = 5, height = 8)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_density_plot.pdf"), width = 5, height = 5)
 denisty_box_resp_92DPF # print the model diagnostics 
 dev.off()
 
