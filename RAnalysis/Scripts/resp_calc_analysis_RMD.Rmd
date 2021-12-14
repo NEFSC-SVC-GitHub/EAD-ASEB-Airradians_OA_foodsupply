@@ -34,8 +34,8 @@ library(hrbrthemes)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
- setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -638,7 +638,21 @@ dev.off()
 ```
 
 
+
+
+### Skip to here to load the resp master file (if already comopleted above chumks!!)
+
+
+
+```{r load master resp file, echo=FALSE}
+Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T)
+```
+
+
+
 # Analysis 
+
+
 
 ### 9/14/2021 F1 juvenile scallops
 
@@ -805,9 +819,11 @@ ggarrange(Resp914_WholeDW,Resp914_WholeDW_reps,nrow = 2) %>%
 
 Resp_0930 <- Resp.Master_OM %>% 
   dplyr::filter(Date %in% '9/30/2021')  %>% # call only 9/14
-  dplyr::select(-Center)
+  dplyr::select(-Center) %>% 
+  dplyr::mutate(pHxFood = paste(pH,Food, sep = "_")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Food, sep="_")))
 
-Resp_0930 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # tank replication
+Resp_0930 %>% dplyr::group_by(pH, Food ) %>% dplyr::summarise(n()) # tank replication
 
 Resp_0930 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=("pH")) %>% 
       dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
@@ -824,7 +840,6 @@ Resp_0930 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=("pH"))
 # Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # Visualize the data with the random effet as treplicate 
-Resp_0930$pHxFood   <- paste(Resp_0930$pH, Resp_0930$Food, sep = "_")
 Resp930_Length_reps <- ggboxplot(Resp_0930, x = "pHxFood", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
           add = c("mean_se", "dotplot"),
           palette = c("#00AFBB", "#E7B800", "brown", "grey"))
@@ -832,18 +847,18 @@ Resp930_Length_reps
 
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_0930_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Chamber_tank, data=Resp_0930)
-# |     &nbsp;      | numDF | denDF | F-value  | p-value |
-# |:---------------:|:-----:|:-----:|:--------:|:-------:|
-# | **(Intercept)** |   1   |  63   |  515.6   |    0    |
-# |    **pCO2**     |   1   |   6   |  3.792   | 0.09943 |
-# |    **Food**     |   1   |  63   |  4.029   | 0.04901 |
-# |  **pCO2:Food**  |   1   |  63   | 0.009658 |  0.922  |
+LMEmod_0930_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|random_fact, data=Resp_0930) 
+# |     &nbsp;      | numDF | denDF | F-value | p-value |
+# |:---------------:|:-----:|:-----:|:-------:|:-------:|
+# | **(Intercept)** |   1   |  57   |  560.5  |    0    |
+# |    **pCO2**     |   1   |  12   |  4.064  | 0.06677 |
+# |    **Food**     |   1   |  12   |  3.663  | 0.07977 |
+# |  **pCO2:Food**  |   1   |  12   | 0.01109 | 0.9179  |
 pander(anova(LMEmod_0930_SL), style='rmarkdown')
 kable(as.data.frame(anova(LMEmod_0930_SL))) %>% 
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
 check_model(LMEmod_0930_SL) 
 dev.off()
 
@@ -874,6 +889,57 @@ Resp930_Length
 # Export to pdf
 ggarrange(Resp930_Length,Resp930_Length_reps,nrow = 2) %>%
   ggexport(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_Figures.pdf")
+
+```
+
+
+# density plot - Day 64
+
+```{r, Day 92 density respiration plot }
+library(dplyr)
+library(tidyr)
+Resp_0930$pHxFood <- as.factor(Resp_0930$pHxFood)
+
+df_mean <- Resp_0930 %>% 
+  dplyr::group_by(pHxFood) %>% 
+  dplyr::summarize(average = mean(resp_µmol_L_m_Length_hr)) %>%
+  dplyr::ungroup()
+p.box <- ggplot(Resp_0930, aes(x = pHxFood, y = resp_µmol_L_m_Length_hr)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
+             color="red") 
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean$average) %>% 
+  mutate(pHxFood = factor(x, labels = levels(Resp_0930$pHxFood), ordered = TRUE)) %>%
+  select(-x)
+
+
+p.box.data %>% unnest(outliers)
+
+
+denisty_box_resp_64DPF <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
+                            # geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = Resp_0930, aes(x = resp_µmol_L_m_Length_hr, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 0.22) +
+                            facet_grid(pHxFood ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(title = "F1 Scallops: respiration rates 64 DPF)", 
+                                 x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%m^{-1}~shell~length%.% hr^{-1}~")"),
+                                 y = "Scaled density") +
+                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+denisty_box_resp_64DPF
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
+denisty_box_resp_64DPF # print the model diagnostics 
+dev.off()
 
 ```
 
@@ -954,9 +1020,11 @@ ggarrange(Resp930_WholeDW,Resp930_WholeDW_reps,nrow = 2) %>%
 
 Resp_1026 <- Resp.Master_OM %>% 
   dplyr::filter(Date %in% '10/26/2021')  %>% # call only 10/14
-  dplyr::select(-Center)
+  dplyr::select(-Center) %>% 
+  dplyr::mutate(pHxFood = paste(pH,Food, sep = "_")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Food, sep="_")))
 
-Resp_1026 %>% dplyr::group_by(Chamber_tank, Food ) %>% dplyr::summarise(n()) # tank replication
+Resp_1026 %>% dplyr::group_by(pH, Food) %>% dplyr::summarise(n()) # tank replication
 
 Resp_1026 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=(c("Food","pH"))) %>% 
       dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
@@ -973,7 +1041,6 @@ Resp_1026 %>% summarySE(measurevar="resp_µmol_L_m_Length_hr", groupvars=(c("Foo
 # Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # Visualize the data with the random effet as treplicate 
-Resp_1026$pHxFood <- paste(Resp_1026$pH, Resp_1026$Food, sep = "_")
 Res1026_Length_reps <- ggboxplot(Resp_1026, x = "pHxFood", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
                           add = c("mean_se", "dotplot"),
                           palette = c("#00AFBB", "#E7B800", "brown", "grey"))
@@ -981,31 +1048,32 @@ Res1026_Length_reps
 
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|Chamber_tank, data=Resp_1026)
+LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|random_fact, data=Resp_1026)
 
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  24   |  765.4  |     0     |
-# |    **pCO2**     |   1   |   6   |  32.19  | 0.001291  |
-# |    **Food**     |   1   |  24   |  347.3  | 8.882e-16 |
-# |  **pCO2:Food**  |   1   |  24   |  19.92  | 0.0001628 |
+# | **(Intercept)** |   1   |  18   |  765.4  | 3.331e-16 |
+# |    **pCO2**     |   1   |  12   |  32.19  | 0.0001033 |
+# |    **Food**     |   1   |  12   |  347.3  | 3.176e-10 |
+# |  **pCO2:Food**  |   1   |  12   |  19.92  | 0.0007755 |
 pander(anova(LMEmod_1026_SL), style='rmarkdown')
 kable(as.data.frame(anova(LMEmod_1026_SL))) %>% 
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
 check_model(LMEmod_1026_SL) 
 dev.off()
 # tukey posthoc for lmer model
 require('lsmeans')
 lsmeans(LMEmod_1026_SL, pairwise~pCO2 * Food, adjust="tukey") # Compute least-squares means
- # contrast                         estimate       SE df t.ratio p.value
- # 500 µatm fed - 800 µatm fed     -5.74e-05 8.93e-06  6  -6.430  0.0027
- # 500 µatm fed - 500 µatm unfed    9.03e-05 9.41e-06 24   9.589  <.0001
- # 500 µatm fed - 800 µatm unfed    9.08e-05 9.41e-06  6   9.640  0.0003
- # 800 µatm fed - 500 µatm unfed    1.48e-04 8.93e-06  6  16.538  <.0001
- # 800 µatm fed - 800 µatm unfed    1.48e-04 8.93e-06 24  16.592  <.0001
- # 500 µatm unfed - 800 µatm unfed  4.82e-07 9.41e-06  6   0.051  0.9999
+# $contrasts
+#  contrast                         estimate       SE df t.ratio p.value
+#  500 µatm fed - 800 µatm fed     -5.74e-05 8.93e-06 12  -6.430  0.0002
+#  500 µatm fed - 500 µatm unfed    9.03e-05 9.41e-06 12   9.589  <.0001
+#  500 µatm fed - 800 µatm unfed    9.08e-05 9.41e-06 12   9.640  <.0001
+#  800 µatm fed - 500 µatm unfed    1.48e-04 8.93e-06 12  16.538  <.0001
+#  800 µatm fed - 800 µatm unfed    1.48e-04 8.93e-06 12  16.592  <.0001
+ # 500 µatm unfed - 800 µatm unfed  4.82e-07 9.41e-06 12   0.051  0.9999
 
 
 
@@ -1038,7 +1106,9 @@ ggarrange(Resp1026_Length, Res1026_Length_reps,nrow = 2) %>%
 
 ```
 
-# density plot - fun visualization of data!
+
+# density plot - Day 92
+
 ```{r, Day 92 density respiration plot }
 library(dplyr)
 library(tidyr)
@@ -1068,7 +1138,6 @@ denisty_box_resp_92DPF <-ggplot(p.box.data) +
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
                             geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
                             geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
-                            geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
                             # vertical lines at Q1 / Q2 / Q3
                             geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
                             # density plot

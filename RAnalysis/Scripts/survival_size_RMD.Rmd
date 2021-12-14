@@ -33,8 +33,14 @@ library(kableExtra)
 library(ggpubr)
 library(dplyr)
 library(tidyr)
-
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+# using lmer
+library(lme4)
+library(lmerTest)
+# using lme
+library(nlme)
+library(car)
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 ```
 
@@ -42,12 +48,12 @@ setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupp
 ```{r setup, include=TRUE}
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length                     <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_50DPF_92DPF.csv", header = TRUE)
-len.dryweight.CI_1026      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
-len.dryweight.CI_1202      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
+length                     <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_50DPF_92DPF.csv", header = TRUE)
+len.dryweight.CI_1026      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
+len.dryweight.CI_1202      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
 
 
-survival_juvenile          <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_50DPF_92DPF.csv", header = TRUE)
+survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_50DPF_92DPF.csv", header = TRUE)
 
 # Structure of the data - to check that variables are properly assigned to factor or variable
 # str(length)
@@ -58,19 +64,19 @@ survival_juvenile          <-read.csv(file="C:/Users/samuel.gurr/Documents/Githu
 
 ```{r Condition index data, statistics, plotting, include=FALSE}
 
-CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>%  
+CI_1026_means <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>%  
 summarySE(measurevar="CI", groupvars=c("pH")) %>% 
       dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% # cahmber volumes on different dates with
       dplyr::mutate(Age = 92)
 
 
-CI_1202 <- summarySE(len.dryweight.CI_1202, measurevar="Condition_index_drywtRatio_Walne1976", groupvars=c("pH")) %>% 
+CI_1202_means <- summarySE(len.dryweight.CI_1202, measurevar="Condition_index_drywtRatio_Walne1976", groupvars=c("pH")) %>% 
     dplyr::filter(Condition_index_drywtRatio_Walne1976 > 0) %>% 
     dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% # cahmber volumes on different dates with
     dplyr::rename(CI = "Condition_index_drywtRatio_Walne1976") %>% # cahmber volumes on different dates with
     dplyr::mutate(Age = 139)
     
-Master_CI <- rbind(CI_1026, CI_1202)
+Master_CI <- rbind(CI_1026_means, CI_1202_means)
 
 
 ggplot(data=Master_CI, aes(x=Age, y=CI, color=pCO2)) +
@@ -87,29 +93,32 @@ ggplot(data=Master_CI, aes(x=Age, y=CI, color=pCO2)) +
 
 
 CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>% 
-  dplyr::select(c('pH','CI','Tank_Replicate')) %>% 
+  dplyr::select(c('pH','CI','Tank_Replicate', "Shell_length_mm")) %>% 
   dplyr::mutate(Age = "64DPF") %>% 
-   dplyr::mutate(pH_Replicate = (as.factor(paste(pH,Age, Tank_Replicate, sep ='_')))) %>% 
+  dplyr::mutate(random_eff = (as.factor(paste(pH,Tank_Replicate, sep ='_')))) %>% 
   dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) %>% 
   dplyr::select(-Tank_Replicate)
 
 CI_1202 <- len.dryweight.CI_1202[!is.na(len.dryweight.CI_1202$Condition_index_drywtRatio_Walne1976),] %>% 
-   dplyr::select(c('pH','Condition_index_drywtRatio_Walne1976', 'pH_Replicate')) %>% 
+   dplyr::select(c('pH','Condition_index_drywtRatio_Walne1976', 'Tank_Replicate', "Shell_length_mm")) %>% 
    dplyr::rename(CI = Condition_index_drywtRatio_Walne1976) %>% 
+   dplyr::mutate(random_eff = (as.factor(paste(pH,Tank_Replicate, sep ='_')))) %>% 
    dplyr::mutate(Age = "139DPF") %>% 
-   dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_'))))
+   dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) %>% 
+   dplyr::select(-Tank_Replicate)
 
 # merge the raw data 
-
 Master_CI_raw <- rbind(CI_1026, CI_1202) %>% dplyr::filter(CI > 0) # ommit values with negative CI (poor data due to error)
 Master_CI_raw$pH <- as.factor(Master_CI_raw$pH)
 
 
 # Linear mixed effects model 
 
+# 1026 data
 # statistical approach to 20211026 (last time point of the food OA challenge BUT just the fed animals..)
 LMEmod_CI_1026.DATA <- Master_CI_raw %>% dplyr::filter(Age %in% '64DPF') # filter the data from 20211026
-LMEmod_CI_1026      <- lme(CI ~ pH, random=~1|pH_Replicate, data= LMEmod_CI_1026.DATA) # run the model with ranodom effect of the tank replicate within treatment
+levels(LMEmod_CI_1026.DATA$random_eff) # should be 8 levels A B C D within 7.5 and 8 
+LMEmod_CI_1026      <- lme(CI ~ pH, random=~1|random_eff, data= LMEmod_CI_1026.DATA) # run the model with ranodom effect of the tank replicate within treatment
 # |     &nbsp;      | numDF | denDF | F-value | p-value |
 # |:---------------:|:-----:|:-----:|:-------:|:-------:|
 # | **(Intercept)** |   1   |  80   |  1627   |    0    |
@@ -117,21 +126,83 @@ LMEmod_CI_1026      <- lme(CI ~ pH, random=~1|pH_Replicate, data= LMEmod_CI_1026
 pander(anova(LMEmod_CI_1026), style='rmarkdown') # print the model
 kable(as.data.frame(anova(LMEmod_CI_1026))) %>%  # save the table 
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Diagnostics.pdf"))
 check_model(LMEmod_CI_1026)  # model diagnostics
 dev.off()
 shapiro.test(residuals(LMEmod_CI_1026)) # non-normal 8.769e-07
 
 
+summarySE(LMEmod_CI_1026.DATA, measurevar="CI", groupvars="pH")
+
+# denisty plot 
+library(dplyr)
+library(tidyr)
+
+df_mean <- LMEmod_CI_1026.DATA %>% 
+  dplyr::group_by(pH) %>% 
+  dplyr::summarize(average = mean(CI)) %>%
+  dplyr::ungroup()
+p.box <- ggplot(LMEmod_CI_1026.DATA, aes(x = pH, y = CI)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pH, y = average),
+             color="red") 
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean$average) %>% 
+  mutate(pH = factor(x, labels = levels(LMEmod_CI_1026.DATA$pH), ordered = TRUE)) %>%
+  select(-x)
+denisty_box_CI_92DPF <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pH),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pH, lower, mean, upper) %>% gather(key, value, -pH), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = LMEmod_CI_1026.DATA, aes(x = CI, fill=pH, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            #xlim(0, 20) +
+                            facet_grid(pH ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(x = "Condition index", y = "Scaled density")  +
+                            scale_fill_manual(values=c("grey40", "grey85"))
+denisty_box_CI_92DPF
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_Fed_density_plot.pdf"), width = 4, height = 4)
+denisty_box_CI_92DPF # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # statistical approach to 20211026 (last time point of the food OA challenge BUT just the fed animals..)
-LMEmod_CI_1202.DATA <- Master_CI_raw %>% dplyr::filter(Age %in% '139DPF') # filter the data from 20211202
-LMEmod_CI_1202      <- lme(CI ~ pH, random=~1|pH_Replicate, data= LMEmod_CI_1202.DATA) # run the model with ranodom effect of the tank replicate within treatment
-# |     &nbsp;      | numDF | denDF | F-value | p-value |
-# |:---------------:|:-----:|:-----:|:-------:|:-------:|
-# | **(Intercept)** |   1   |  68   |  426.9  |    0    |
-# |     **pH**      |   1   |   6   | 0.05716 |  0.819  |
+LMEmod_CI_1202.DATA <- Master_CI_raw %>% dplyr::filter(Age %in% '139DPF')  %>% 
+  mutate(size_class = as.factor(case_when(Shell_length_mm < 7 ~ "small",  Shell_length_mm > 7 & Shell_length_mm < 14.05 ~ "mid", Shell_length_mm > 14.05 ~ "large"))) %>%  # filter the data from 20211202
+  dplyr::mutate(sizeclass_pH = as.factor(paste(pH, size_class, sep = '_')))
+LMEmod_CI_1202      <- lme(CI ~ pH, random=~1|random_eff, data= LMEmod_CI_1202.DATA) # run the model with ranodom effect of the tank replicate within treatment
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  69   |  75.21  | 1.179e-12 |
+# |     **pH**      |   1   |   6   | 0.1874  |  0.6802   |
 pander(anova(LMEmod_CI_1202), style='rmarkdown') # print the model
 kable(as.data.frame(anova(LMEmod_CI_1202))) %>% # save the table 
   kable_styling() %>%
@@ -143,42 +214,36 @@ shapiro.test(residuals(LMEmod_CI_1202)) # non-normal 4.964e-05
 
 
 # plot the desnity boxplot 
-CI_mean <- Master_CI_raw %>% 
-  dplyr::group_by(pH_Age) %>% 
+CI_mean <- LMEmod_CI_1202.DATA %>% 
+  dplyr::group_by(sizeclass_pH) %>% 
   dplyr::summarize(average = mean(CI)) %>%
   dplyr::ungroup()
-p.box <- ggplot(Master_CI_raw, aes(x = pH_Age, y = CI)) + geom_boxplot() + geom_point(data= CI_mean, mapping = aes(x = pH_Age, y = average),
+p.box <- ggplot(LMEmod_CI_1202.DATA, aes(x = sizeclass_pH, y = CI)) + geom_boxplot() + geom_point(data= CI_mean, mapping = aes(x = sizeclass_pH, y = average),
              color="red") 
 p.box.data <- layer_data(p.box) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
   dplyr::mutate(mean  = CI_mean$average) %>% 
-  mutate(pH_Age = factor(x, labels = levels(Master_CI_raw$pH_Age), ordered = TRUE)) %>%
+  mutate(sizeclass_pH = factor(x, labels = levels(LMEmod_CI_1202.DATA$sizeclass_pH), ordered = TRUE)) %>%
   select(-x)
 
-denisty_box_CI <-ggplot(p.box.data) +
+denisty_box_CI_1202 <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.075, yend = -0.075)) +
-                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.2, ymax = -0.05,  fill = pH_Age),color = "black") +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.2, ymax = -0.05,  fill = sizeclass_pH),color = "black") +
                             geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
                             # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pH_Age, lower, mean, upper) %>% gather(key, value, -pH_Age), aes(xintercept = value)) +
+                            geom_vline(data = . %>% select(sizeclass_pH, lower, mean, upper) %>% gather(key, value, -sizeclass_pH), aes(xintercept = value)) +
                             # density plot
-                            geom_density(data = Master_CI_raw, aes(x = CI, group=pH_Age, fill=pH_Age, ..scaled..), alpha=.4, adjust=1.5) +
+                            geom_density(data = LMEmod_CI_1202.DATA, aes(x = CI, group=sizeclass_pH, fill=sizeclass_pH, ..scaled..), alpha=.4, adjust=1.5) +
                             #  theme
                             theme_classic() +
-                            facet_grid(pH_Age ~ .) +
+                            facet_grid(sizeclass_pH ~ .) +
                             theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                            labs(title = "F1 Scallops: Condition index 20211026-20211202", 
+                            labs(title = "F1 Scallops: Condition index 20211202 BY SIZE CLASS", 
                                  x = expression(Condition~index),
-                                 y = "Scaled density") +
-                            scale_fill_manual(values=c("grey40", "grey85", "grey40", "grey85"))
-denisty_box_CI
-
-
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_CI_density_plot.pdf"), width = 5, height = 8)
-denisty_box_CI # export
-
+                                 y = "Scaled density") 
+denisty_box_CI_1202
 
 ```
 
@@ -332,17 +397,6 @@ dev.off()
 
 
 # Statistical analysis (survival + shell size)
-* sorted by Age
-
-### first load the necessary stats packages...
-```{r, load stats packages}
-# using lmer
-library(lme4)
-library(lmerTest)
-# using lme
-library(nlme)
-library(car)
-```
 
 
 ## Day 50 post-fertilization  (length only) 
@@ -354,8 +408,12 @@ library(car)
 data_51 <- length %>%
   filter(Age_DPF=="51") %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
-data_51$Chamber_tank <- as.factor(paste(data_51$Replicate, data_51$pH, sep = '_'))
+  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate, sep = "_")))
+
+# data_51_AVG <- data_51 %>%  summarySE(measurevar="Length_um", groupvars= "pCO2")
+# data_51_AVG
+
 
 # plot the replicates (visual diagnostics of random factor)
 Length914_reps<- ggboxplot(data_51, x = "pCO2", y = "Length_um", color = "Replicate",
@@ -366,7 +424,7 @@ Length914_reps
 # Linear mixed effects models :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
-ShellLengthMod_D51 = lme(Length_um ~ pCO2, random=~1|Chamber_tank,data=data_51)
+ShellLengthMod_D51 = lme(Length_um ~ pCO2, random=~1|random_fact,data=data_51)
 # output the model results
 # |     &nbsp;      | numDF | denDF | F-value | p-value |
 # |:---------------:|:-----:|:-----:|:-------:|:-------:|
@@ -421,64 +479,77 @@ ggarrange(Length914,Length914_reps,nrow = 2) %>%
 data_64_length <- length %>%
   filter(Age_DPF=="64") %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
-data_64_length$Chamber_tank <- as.factor(paste(data_64_length$Replicate, data_64_length$pH, sep = '_'))
+  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
+
+# data_64_AVG.length <- data_64_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))
+# data_64_AVG.length
+# 
+# data_64_AVG.length <- data_64_length %>%  summarySE(measurevar="Length_um", groupvars= "Fed_Unfed")
+# data_64_AVG.length
 
 # Survival data 
 data_64_survival <- survival_juvenile %>%
   dplyr::filter(Age_DPF=="64") %>% 
-  dplyr::mutate(Fed_Unfed = as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", data_64$trt))) %>% 
-  dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", data_64$trt))) %>% 
-  dplyr::rename(Length_um = Length)
-data_64_survival$Chamber_tank <- as.factor(paste(data_64_survival$Replicate, data_64_survival$pH, sep = '_'))
-levels(data_64$Fed_Unfed) <- c("High food", "Low food")
-levels(data_64$pCO2) <- c("800 μatm", "500 μatm")
-data_64 %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Length))
+  dplyr::mutate(Fed_Unfed = as.factor(Food)) %>% 
+  dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", trt))) %>% 
+  dplyr::rename(Length_um = Length) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Food, sep = "_")))
+levels(data_64_survival$Fed_Unfed) <- c("High food", "Low food")
+levels(data_64_survival$pCO2) <- c("800 μatm", "500 μatm")
+
+data_64_AVG.survival <- data_64_survival %>%  summarySE(measurevar="Survival", groupvars= c("pCO2", "Fed_Unfed"))
+data_64_AVG.survival
 
 # Linear mixed effects models :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 require(nlme)
 
 # Length:::::::::::::::::::::::::::::::::::::::::::::::
-ShellLengthMod_D64 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|Chamber_tank,data=data_64_survival)
+ShellLengthMod_D64 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|random_fact,data=data_64_length)
 # output the model results
-# |       &nbsp;       | numDF | denDF | F-value | p-value |
-# |:------------------:|:-----:|:-----:|:-------:|:-------:|
-# |  **(Intercept)**   |   1   | 1094  |  1339   |    0    |
-# |      **pCO2**      |   1   |   6   | 0.0564  | 0.8202  |
-# |   **Fed_Unfed**    |   1   | 1094  |  643.8  |    0    |
-# | **pCO2:Fed_Unfed** |   1   | 1094  | 0.2846  | 0.5938  |
+# |       &nbsp;       | numDF | denDF | F-value |  p-value  |
+# |:------------------:|:-----:|:-----:|:-------:|:---------:|
+# |  **(Intercept)**   |   1   | 1088  |  2112   |     0     |
+# |      **pCO2**      |   1   |  12   | 0.03278 |  0.8593   |
+# |   **Fed_Unfed**    |   1   |  12   |   107   | 2.488e-07 |
+# | **pCO2:Fed_Unfed** |   1   |  12   | 0.07402 |  0.7902   |
 pander(anova(ShellLengthMod_D64), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(ShellLengthMod_D64))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_LME_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_LME_Table.png", zoom = 1.5)
 # mod assumptions
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_LME_Diagnostics.pdf"))
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_LME_Diagnostics.pdf"))
 check_model(ShellLengthMod_D64) # print the model diagnostics 
 dev.off()
-shapiro.test(residuals(ShellLengthMod_D64)) # non normal < 2.2e-16
+shapiro.test(residuals(ShellLengthMod_D64)) #  non normal < 2.2e-16
 leveneTest(residuals(ShellLengthMod_D51) ~ data_64_length$pCO2) # 0.7793
 leveneTest(residuals(ShellLengthMod_D51) ~ data_64_length$Fed_Unfed) # < 2.2e-16 ***
 
+
+
+
 # Survival:::::::::::::::::::::::::::::::::::::::::::::
-SurvivalhMod_D64 = lm(Survival ~ pCO2 * Food, data=data_64_survival) # no replicates within the tanks a,b,c,d - linear model used here
+
+
+SurvivalhMod_D64 = lme(Survival ~ pCO2 * Fed_Unfed, random=~1|random_fact, data=data_64_survival) # no replicates within the tanks a,b,c,d - linear model used here
 # output the model results
-# |    &nbsp;     | Df |  Sum Sq  | Mean Sq  | F value | Pr(>F) |
-# |:-------------:|:--:|:--------:|:--------:|:-------:|:------:|
-# |   **pCO2**    | 1  | 0.03901  | 0.03901  |  2.791  | 0.1207 |
-# |   **Food**    | 1  | 0.001806 | 0.001806 | 0.1292  | 0.7255 |
-# | **pCO2:Food** | 1  | 0.001406 | 0.001406 | 0.1006  | 0.7565 |
-# | **Residuals** | 12 |  0.1677  | 0.01398  |   NA    |   NA   |
+# |       &nbsp;       | numDF | denDF | F-value |  p-value  |
+# |:------------------:|:-----:|:-----:|:-------:|:---------:|
+# |  **(Intercept)**   |   1   |  12   |  1005   | 6.127e-13 |
+# |      **pCO2**      |   1   |  12   |  2.791  |  0.1207   |
+# |   **Fed_Unfed**    |   1   |  12   | 0.1292  |  0.7255   |
+# | **pCO2:Fed_Unfed** |   1   |  12   | 0.1006  |  0.7565   |
 pander(anova(SurvivalhMod_D64), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(SurvivalhMod_D64))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_survival_LME_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_survival_LME_Table.png", zoom = 1.5)
 # mod assumptions
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_survival_LME_Diagnostics.pdf"))
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_survival_LME_Diagnostics.pdf"))
 check_model(SurvivalhMod_D64) # print the model diagnostics 
 dev.off()
-shapiro.test(residuals(SurvivalhMod_D64)) # non normal 0.002907
-leveneTest(residuals(SurvivalhMod_D64) ~ data_64_survival$pCO2) # 0.07483 .
-leveneTest(residuals(SurvivalhMod_D64) ~ data_64_survival$Food) # 0.2951
+shapiro.test(residuals(SurvivalhMod_D64)) # non normal 0.00368
+leveneTest(residuals(SurvivalhMod_D64) ~ data_64_survival$pCO2) # 0.04072 *
+leveneTest(residuals(SurvivalhMod_D64) ~ data_64_survival$Food) # 0.2942
 
 
 
@@ -547,7 +618,61 @@ ggarrange(Length_64dpf,Survival_64DPF,nrow = 2) %>%
 
 ```
 
+
+# density plot - Day 64 shell length data 
+```{r, Day 92 density length plot }
+library(dplyr)
+library(tidyr)
+
+data_64_length$pHxfood <- as.factor(paste(data_64_length$pH, data_64_length$Fed_Unfed, sep = "_"))
+df_mean <- data_64_length %>% 
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(Length_um)) %>%
+  dplyr::ungroup()
+p.box <- ggplot(data_64_length, aes(x = pHxfood, y = (Length_um/1000))) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxfood, y = (average/1000)),
+             color="red") 
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = (df_mean$average/1000)) %>% 
+  mutate(pHxfood = factor(x, labels = levels(data_64_length$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+denisty_box_length_64DPF <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pHxfood),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = data_64_length, aes(x = (Length_um/1000), fill=pHxfood, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 20) +
+                            facet_grid(pHxfood ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(x = "Shell length", y = "frequency")  +
+                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+denisty_box_length_64DPF
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_density_plot.pdf"), width = 4, height = 8)
+denisty_box_length_64DPF # print the model diagnostics 
+dev.off()
+```
+
+
+
+
+
+
+
+
+
 # Day 90 Analysis and plotting 
+
+
+
 
 ```{r, Day 92 data}
 
@@ -556,46 +681,60 @@ ggarrange(Length_64dpf,Survival_64DPF,nrow = 2) %>%
 data_92_length <- length %>%
   filter(Age_DPF=="92") %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
-data_92_length$Chamber_tank <- as.factor(paste(data_92_length$Replicate, data_92_length$pH, sep = '_'))
-data_92_length %>% dplyr::group_by(Fed_Unfed) %>% dplyr::summarise(mean = mean(Length_um))
+  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))%>% 
+  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
+
+data_92_AVG.length <- data_92_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))
+data_92_AVG.length
+
+data_92_AVG.length <- data_92_length %>%  summarySE(measurevar="Length_um", groupvars= "Fed_Unfed")
+data_92_AVG.length
 
 # Survival data 
 data_92_survival <- survival_juvenile %>%
   dplyr::filter(Age_DPF=="92") %>% 
   dplyr::mutate(Fed_Unfed = as.factor(gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", trt))) %>% 
   dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", trt))) %>% 
-  dplyr::rename(Length_um = Length)
-data_92_survival$Chamber_tank <- as.factor(paste(data_92_survival$Replicate, data_92_survival$pH, sep = '_'))
+  dplyr::rename(Length_um = Length)%>% 
+  dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Fed_Unfed, sep = "_")))
 levels(data_92_survival$Fed_Unfed) <- c("High food", "Low food")
 levels(data_92_survival$pCO2) <- c("800 μatm", "500 μatm")
+
+data_92_AVG.survival<- data_92_survival %>%  summarySE(measurevar="Survival", groupvars= "Fed_Unfed")
+data_92_AVG.survival
 
 # Linear mixed effects models :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 require(nlme)
 
+
 # Length:::::::::::::::::::::::::::::::::::::::::::::::
-ShellLengthMod_D92 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|Chamber_tank,data=data_92_length)
+
+
+ShellLengthMod_D92 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|random_fact,data=data_92_length)
 # output the model results
-# |       &nbsp;       | numDF | denDF | F-value | p-value |
-# |:------------------:|:-----:|:-----:|:-------:|:-------:|
-# |  **(Intercept)**   |   1   |  555  |  1772   |    0    |
-# |      **pCO2**      |   1   |   6   | 0.1754  |  0.69   |
-# |   **Fed_Unfed**    |   1   |  555  |  579.3  |    0    |
-# | **pCO2:Fed_Unfed** |   1   |  555  | 0.4771  |  0.49   |
+# |       &nbsp;       | numDF | denDF | F-value |  p-value  |
+# |:------------------:|:-----:|:-----:|:-------:|:---------:|
+# |  **(Intercept)**   |   1   |  549  |  1598   |     0     |
+# |      **pCO2**      |   1   |  12   | 0.06353 |  0.8053   |
+# |   **Fed_Unfed**    |   1   |  12   |  329.6  | 4.303e-10 |
+# | **pCO2:Fed_Unfed** |   1   |  12   | 0.1953  |  0.6664   |
 pander(anova(ShellLengthMod_D92), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(ShellLengthMod_D92))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_LME_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_LME_Table.png", zoom = 1.5)
 # mod assumptions
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_LME_Diagnostics.pdf"))
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_LME_Diagnostics.pdf"))
 check_model(ShellLengthMod_D92) # print the model diagnostics 
 dev.off()
 shapiro.test(residuals(ShellLengthMod_D92)) # non normal 6.026e-15
 leveneTest(residuals(ShellLengthMod_D92) ~ data_92_length$pCO2) # 0.1583
 leveneTest(residuals(ShellLengthMod_D92) ~ data_92_length$Fed_Unfed) # < 2.2e-16 ***
 
+
 # Survival:::::::::::::::::::::::::::::::::::::::::::::
-SurvivalhMod_D92 = lm(Survival ~ pCO2 * Food, data=data_92_survival) # no replicates within the tanks a,b,c,d - linear model used here
+
+
+SurvivalhMod_D92 = lme(Survival ~ pCO2 * Food, random=~1|random_fact, data=data_92_survival) # no replicates within the tanks a,b,c,d - linear model used here
 # output the model results
 # |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value |  Pr(>F)   |
 # |:-------------:|:--:|:---------:|:---------:|:-------:|:---------:|
@@ -658,7 +797,7 @@ ggarrange(Length_92dpf,Survival_92DPF,nrow = 2) %>%
 
 ```
 
-# density plot - fun visualization of data!
+# density plot - Day 92 shell length data 
 ```{r, Day 92 density length plot }
 library(dplyr)
 library(tidyr)
@@ -681,22 +820,21 @@ denisty_box_length_92DPF <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
                             geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pHxfood),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2)) +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
                             # vertical lines at Q1 / Q2 / Q3
                             geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
                             # density plot
-                            geom_density(data = data_92_length, aes(x = (Length_um/1000), fill=pHxfood), alpha=.4) +
+                            geom_density(data = data_92_length, aes(x = (Length_um/1000), fill=pHxfood, ..scaled..), alpha=.4) +
                             #  theme
                             theme_classic() +
+                            xlim(0, 20) +
                             facet_grid(pHxfood ~ .) +
                             theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                            labs(x = "Shell length", y = "frequency") +
-                            scale_fill_discrete()
+                            labs(x = "Shell length", y = "frequency")  +
+                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_length_92DPF
-
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_density_plot.pdf"), width = 4, height = 8)
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_density_plot.pdf"), width = 4, height = 8)
 denisty_box_length_92DPF # print the model diagnostics 
 dev.off()
-
-
 ```
