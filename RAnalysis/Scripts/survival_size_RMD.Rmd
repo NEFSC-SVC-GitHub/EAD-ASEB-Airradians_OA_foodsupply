@@ -289,10 +289,7 @@ REGRESSION_Length.Dryshell
 LarvaeSurvival_Summ <- summarySE(survival_larvae, measurevar="Survival", groupvars=c("Day", "Treatment")) %>% 
     dplyr::mutate(pCO2 = case_when(Treatment == "Low"  ~ "500 μatm", Treatment == "Moderate" ~ "800 μatm", Treatment == "High" ~ "1200 μatm")) # cahmber volumes on different dates with different instruments 
 
-
-#stL$Treatment <- factor(stL$trt,                 # Relevel group factor
-#                         levels = c("Low OA", "Moderate OA", "High OA"))
-LarvaeSurvival_Summ$pCO2 <- factor(LarvaeSurvival_Summ$pCO2, c("500 μatm","800 μatm","1200 μatm"))
+LarvaeSurvival_Summ$pCO2 <- factor(LarvaeSurvival_Summ$pCO2, c("500 μatm","800 μatm", "1200 μatm"))
 ## Use geom_line and geom_point to plot over time
 LarvaeSurvival_Plot <-ggplot(data=LarvaeSurvival_Summ, aes(x=Day, y=Survival, color=pCO2)) +
   geom_line( stat = "identity", size=1.0)+
@@ -307,11 +304,30 @@ LarvaeSurvival_Plot <-ggplot(data=LarvaeSurvival_Summ, aes(x=Day, y=Survival, co
 LarvaeSurvival_Plot
 
 
+LarvaeSurvival_Plot_low_mod <- LarvaeSurvival_Summ %>% 
+  dplyr::filter(!Treatment %in% 'High') %>% 
+  ggplot(aes(x=Day, y=Survival, color=pCO2)) +
+  geom_line( stat = "identity", size=1.0)+
+  geom_point()+ 
+  scale_color_manual(values=c("black","black"))+
+  geom_errorbar(aes(ymin=Survival-se, ymax=Survival+se), width=.2,
+                position=position_dodge(.1))+
+  theme_bw() +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_x_continuous(name ="Age (days)") +
+  scale_y_continuous(name ="Survival (%)")+
+  theme_classic() +
+  theme(text = element_text(size=15), legend.position="none") %>% 
+  facet_wrap(~pCO2)
+LarvaeSurvival_Plot_low_mod
+
 # pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/20210930_survival.pdf"))
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Survival_size/Larval_survival.pdf"),width=10, height=7)
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Larval_survival.pdf"),width=10, height=7)
 LarvaeSurvival_Plot
 dev.off()
 
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Larval_survival_LowMod.pdf"))
+LarvaeSurvival_Plot_low_mod
+dev.off()
 ```
 
 
