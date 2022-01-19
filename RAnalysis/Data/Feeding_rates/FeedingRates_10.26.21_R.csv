@@ -1,4 +1,4 @@
-raw_ID_sample_number,sample_ID,pH_treatment,Food,Replicate,Round,time,Chaet_count,PLY_count,Low_chlorophyll_count,Volume (µL),Chaet_cell.ml,PLY_cell.ml,Low_chlorophyll_cell.ml
+raw_ID_sample_number,raw_ID_sample_number,pH_treatment,Food,Replicate,Round,time,Chaet_count,PLY_count,Low_chlorophyll_count,Volume (µL),Chaet_cell.ml,PLY_cell.ml,Low_chlorophyll_cell.ml
 F04 R1 S8 7.5 Blank,7.5 Blank,7.5,fed,NA,1,0,"1,312",269,"4,495",33,39757.57576,8151.515152,136212.1212
 F05 7.5blank t=2,7.5 Blank,7.5,fed,NA,1,15,"1,040",114,"3,504",33,31515.15152,3454.545455,106181.8182
 F06 blank 7.5 blank,7.5 Blank,7.5,fed,NA,1,30,916,51,"2,304",33,27757.57576,1545.454545,69818.18182
@@ -216,4 +216,3 @@ E08 R3 S8 T60,7.5 Blank,7.5,fed,NA,3,60,781,64,"1,612",33,23666.66667,1939.39393
 20,7.5B,7.5,unfed,B,1,30,882,74,2685,33,26727.27273,2242.424242,81363.63636
 20,7.5B,7.5,unfed,B,1,45,605,50,"1,637",33,18333.33333,1515.151515,49606.06061
 20,7.5B,7.5,unfed,B,1,60,896,47,"2,752",33,27151.51515,1424.242424,83393.93939
-,,,,,,,,,,,,,
