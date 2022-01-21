@@ -478,7 +478,7 @@ for (i in 1:nrow(loop_BLANKS)) { # for each unique identifier....
     t0_Ply         <- min(dat$time[dat$PLY_cell.ml==C0_Ply])
     
     
-    if (  min(dat$PLY_cell.ml[c(t_end_min1:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
+    if (  min(dat$PLY_cell.ml[c(t_end_min:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
                           Cend_Ply <- min(dat$PLY_cell.ml[c(t_end_min:t_end)])  # call this value 
                           } else (Cend_Ply <- min(dat$PLY_cell.ml[t_end])) # ...else just call the last value - it will result in a negative ln() and be ommitted after the loop (below)
     
@@ -493,7 +493,7 @@ for (i in 1:nrow(loop_BLANKS)) { # for each unique identifier....
     
     t0_Chaet        <- min(dat$time[dat$Chaet_cell.ml==C0_Chaet])
     
-    if (  min(dat$Chaet_cell.ml[c(t_end_min1:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
+    if (  min(dat$Chaet_cell.ml[c(t_end_min:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
                           Cend_Chaet <- min(dat$Chaet_cell.ml[c(t_end_min:t_end)])  # call this value 
                           } else (Cend_Chaet <- min(dat$Chaet_cell.ml[t_end])) # ...else just call the last value - it will result in a negative ln() and be ommitted after the loop (below)
     
@@ -506,7 +506,7 @@ for (i in 1:nrow(loop_BLANKS)) { # for each unique identifier....
                      } else (C0_seston <-  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))))  
     t0_seston       <- min(dat$time[dat$Low_chlorophyll_cell.ml==C0_seston])
     
-    if (  min(dat$Low_chlorophyll_cell.ml[c(t_end_min1:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
+    if (  min(dat$Low_chlorophyll_cell.ml[c(t_end_min:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
                           Cend_seston <- min(dat$Low_chlorophyll_cell.ml[c(t_end_min:t_end)])  # call this value 
                           } else (Cend_seston <- min(dat$Low_chlorophyll_cell.ml[t_end])) # ...else just call the last value - it will result in a negative ln() and be ommitted after the loop (below)
     
@@ -577,7 +577,7 @@ write.csv(meanBLANKS.Summary, "C:/Users/samuel.gurr/Documents/Github_repositorie
 
 
 
-## 20210914 Filtration Rate data 
+## 20210914 Clearance Rate data 
 
 ```{r 20210914 FR, echo = T}
 
@@ -741,8 +741,8 @@ require(nlme)
 Ply_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ply_FR_914_df)
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  10   |  44.42  | 5.602e-05 |
-# |     **pH**      |   1   |   6   | 0.8047  |  0.4042   |
+# | **(Intercept)** |   1   |   8   |  61.6   | 5.011e-05 |
+# |     **pH**      |   1   |   6   | 0.1432  |  0.7181   |
 pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Ply_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
@@ -756,8 +756,8 @@ dev.off()
 Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Chaet_FR_914_df)
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  15   |  61.29  | 1.122e-06 |
-# |     **pH**      |   1   |   6   |  3.563  |   0.108   |
+# | **(Intercept)** |   1   |  15   |  64.57  | 8.153e-07 |
+# |     **pH**      |   1   |   6   |  4.102  |  0.08924  |
 pander(anova(Chaet_LMEmod_0914), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
@@ -771,8 +771,8 @@ dev.off()
 Seston_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Seston_FR_914_df)
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  13   |  50.02  | 8.384e-06 |
-# |     **pH**      |   1   |   6   | 0.6278  |  0.4583   |
+# | **(Intercept)** |   1   |  15   |  48.89  | 4.339e-06 |
+# |     **pH**      |   1   |   6   |  1.496  |  0.2672   |
 pander(anova(Seston_LMEmod_0914), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
@@ -792,6 +792,7 @@ dev.off()
 
 
 Master_914_plotting      <- rbind(Chaet_FR_914_df, Ply_FR_914_df, Seston_FR_914_df)
+Master_914_plotting$pHxfood <- paste(Master_914_plotting$pH, Master_914_plotting$Fed_Unfed, sep = '_')
 
 CR_914_boxplot <- Master_914_plotting %>% 
   ggplot(aes(pCO2 , CR_mL.hr.mmlength , fill = pCO2)) +
@@ -820,7 +821,7 @@ dev.off()
 
 
 
-## 20210930 Filtration Rate data 
+## 20210930 Clearance Rate data 
 
 ```{r 20210930 FR, echo = T}
 
@@ -906,7 +907,7 @@ for (i in 1:nrow(loop_930)) {
     FeedRate.table$Fed_Unfed                  <- dat2$Fed_Unfed
     FeedRate.table$Run                        <- gsub("^(?:[^_]+_){3}([^_]+).*", "\\1", FeedRate.table$ID)
     FeedRate.table$Plate                      <- dat2$Plate
-    FeedRate.table$Number                     <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Number                     <- gsub("^(?:[^_]+_){7}([^_]+).*", "\\1", FeedRate.table$ID)
     FeedRate.table$Length_um                  <- dat2$Length_um
     FeedRate.table$Chaet_mL.hr.mmlength       <- dat2$Chaet_mL.hr.mmlength
     FeedRate.table$Ply_mL.hr.mmlength         <- dat2$Ply_mL.hr.mmlength
@@ -982,12 +983,12 @@ require(nlme)
 
 # Ply - Linear Mixed Effects Model
 Ply_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Ply_FR_930_df)
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  23   |  22.21  | 9.522e-05 |
-# |      **pH**      |   1   |   9   | 0.0902  |  0.7707   |
-# |  **Fed_Unfed**   |   1   |   9   | 0.7314  |  0.4146   |
-# | **pH:Fed_Unfed** |   1   |   9   |  1.277  |  0.2877   |
+# |      &nbsp;      | numDF | denDF | F-value  | p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:--------:|
+# | **(Intercept)**  |   1   |  10   |  10.95   | 0.007887 |
+# |      **pH**      |   1   |   6   | 0.004046 |  0.9513  |
+# |  **Fed_Unfed**   |   1   |   6   |  1.365   |  0.287   |
+# | **pH:Fed_Unfed** |   1   |   6   |  0.1011  |  0.7612  |
 pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Ply_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
@@ -1068,7 +1069,7 @@ dev.off()
 
 
 
-## 20211026 Filtration Rate data 
+## 20211026 Clearance Rate data 
 
 NOTE: the calculation here changes from the other tiepoints due to **complete clearance of algae in larger/older individuals!** 
 if the 0 value is kept it will become 'Inf' due to negative denominator in the natural log... in ln(C_init / C_end)
@@ -1321,6 +1322,12 @@ dev.off()
 
 ```
 
+```{r, master Clearance rate data }
+
+ClearanceRate_Master <- rbind(Master_1026_plotting, Master_914_plotting, Master_930_plotting)
+write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/ClearanceRate_Master.csv")
+
+```
 
 ## Density plots
 
