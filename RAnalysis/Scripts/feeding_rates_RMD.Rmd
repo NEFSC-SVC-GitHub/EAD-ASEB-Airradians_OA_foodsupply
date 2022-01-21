@@ -39,11 +39,11 @@ library(Rmisc)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
-# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-Master_data       <- read.csv(file="Data/Feeding_rates/Feeding_MasterData.csv", header=T) # master data file
+Master_data       <- read.csv(file="Data/Feeding_rates/FeedingRates_MasterData.csv", header=T) # master data file
 
 feed.rate_914    <- Master_data  %>% dplyr::filter(Date %in% 20210914)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
@@ -59,7 +59,9 @@ feed.rate_1026    <- Master_data  %>% dplyr::filter(Date %in% 20211026)  %>%
 length.resp.feed <- read.csv(file="Data/Respiration/Lengths_Condition_resp_clearance.csv", header=T) %>% 
   dplyr::mutate(Date = paste("20",(format(as.Date(Date, "%m/%d/%Y"), "%y%m%d")), sep ='')) %>%
   dplyr::rename(Fed_Unfed = Food) 
-length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),]
+length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),] %>%  dplyr::select(c('Date', 'Run', 'Plate', 
+                                                                                               'pH', 'Fed_Unfed', 'Replicate',
+                                                                                               'Chamber_tank', 'Number', 'Length_um','whole_Dry_weight'))
 
 ```
 ## Merge to master file 'FeedRate_Master'
@@ -76,7 +78,7 @@ Date from:
 feed.rate_914_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
   (feed.rate_914),
   (length.resp.feed %>% 
-     dplyr::filter(Date %in% 20210914)) ) 
+     dplyr::filter(Date %in% 20210914) %>% dplyr::mutate(Fed_Unfed = 'fed')) ) 
 
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # formatting for merge
@@ -96,17 +98,17 @@ feed.rate_1026_Scallops <- merge( # note - merging with th elengths removed the 
 
 
 FeedRate_Master             <- rbind(feed.rate_914_Scallops, feed.rate_930_Scallops, feed.rate_1026_Scallops)
-FeedRate_Master$tet.ply     <- (as.numeric(gsub(",", "", FeedRate_Master$tet.ply )))*(1000/33)
-FeedRate_Master$chaet       <- (as.numeric(gsub(",", "", FeedRate_Master$chaet )))*(1000/33)
-FeedRate_Master$total_algae <- (as.numeric(gsub(",", "", FeedRate_Master$total_algae )))*(1000/33)
-FeedRate_Master$seston      <- (as.numeric(gsub(",", "", FeedRate_Master$seston )))*(1000/33)
+# FeedRate_Master$tet.ply     <- (as.numeric(gsub(",", "", FeedRate_Master$tet.ply )))*(1000/33)
+# FeedRate_Master$chaet       <- (as.numeric(gsub(",", "", FeedRate_Master$chaet )))*(1000/33)
+# FeedRate_Master$total_algae <- (as.numeric(gsub(",", "", FeedRate_Master$total_algae )))*(1000/33)
+# FeedRate_Master$seston      <- (as.numeric(gsub(",", "", FeedRate_Master$seston )))*(1000/33)
 
 print(head(FeedRate_Master))
 ```
 
 
 
-``` {r loops for for statements - visualization of slope and calculation loops, echo = TRUE}
+``` {r loops and  for statements - visualization of slope and calculation of CR, echo = TRUE}
 # Day 0 0914 
 FeedRate_Master.914 <- FeedRate_Master %>% 
   dplyr::filter(Date %in% 20210914) %>% 
@@ -140,16 +142,19 @@ loop_1026 <- as.data.frame(unique(FeedRate_Master.1026$uniq_Identifier)) %>% dpl
 
 ``` {r raw data plots, echo = TRUE}
 
-
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-SlopePlots_914 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>% 
+
+# SlopePlots_914 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>% 
+SlopePlots_914_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210914") %>% 
-  dplyr::mutate(Time._min = as.numeric(as.character(minutes))) %>% 
-  ggplot(aes(minutes, total_algae, color=Replicate)) + 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(Time._min, Chaet_cell.ml, color=Replicate)) + 
   geom_point(shape=1, color = "black")+ 
-  ggtitle("RAW DATA: F1 Scallops, Feeding Rate 20210914")+
+  ggtitle("RAW DATA - Chaetoceros: F1s Feeding Rate 20210914")+
   labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
        x = expression(Time~"("~minutes~")")) + 
   theme(plot.title= element_text(size =16, face ="bold", 
@@ -158,16 +163,59 @@ SlopePlots_914 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>%
   theme_bw() +
   scale_shape_identity() + 
   facet_wrap( ~ pH, scales = "free_x" )
-SlopePlots_914
+SlopePlots_914_chaet
 
+
+SlopePlots_914_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>% 
+  dplyr::filter(!Replicate %in% 'blank') %>%
+  dplyr::filter(Date %in% "20210914") %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(time, PLY_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - PLY: F1s Feeding Rate 20210914")+
+  labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
+       x = expression(Time~"("~minutes~")")) + 
+  theme(plot.title= element_text(size =16, face ="bold", 
+                                 lineheight = 8, vjust=1), aspect.ratio=1)+
+  stat_smooth(method="lm", se = F) + 
+  theme_bw() +
+  scale_shape_identity() + 
+  facet_wrap( ~ pH, scales = "free_x" )
+SlopePlots_914_ply
+
+
+SlopePlots_914_lowchla <- FeedRate_Master[!is.na(FeedRate_Master$Low_chlorophyll_cell.ml),] %>% 
+  dplyr::filter(!Replicate %in% 'blank') %>%
+  dplyr::filter(Date %in% "20210914") %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(time, Low_chlorophyll_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - Low chl a (seston): F1s Feeding Rate 20210914")+
+  labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
+       x = expression(Time~"("~minutes~")")) + 
+  theme(plot.title= element_text(size =16, face ="bold", 
+                                 lineheight = 8, vjust=1), aspect.ratio=1)+
+  stat_smooth(method="lm", se = F) + 
+  theme_bw() +
+  scale_shape_identity() + 
+  facet_wrap( ~ pH, scales = "free_x" )
+SlopePlots_914_lowchla
+
+ggarrange(SlopePlots_914_chaet, SlopePlots_914_ply, SlopePlots_914_lowchla)
+
+
+
+
+
+# Table of slope data
 
 SlopeTable_914 <- data.frame() # run this before the loop
 for(i in 1:nrow(loop_914)){
   dat <- FeedRate_Master.914 %>%  filter(uniq_Identifier %in% loop_914[i,])
-    slope<- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Estimate"]
-    SLOPE  <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$r.squared
-    pval <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Pr(>|t|)"]
-    mod  <- lm(as.numeric(dat$minutes) ~ dat$total_algae)
+    slope<- summary(lm((dat$Chaet_cell.ml) ~ as.numeric(dat$time)))$coef[2,"Estimate"]
+    SLOPE  <- summary(lm((dat$Chaet_cell.ml) ~ as.numeric(dat$time)))$r.squared
+    pval <- summary(lm((dat$Chaet_cell.ml) ~ as.numeric(dat$time)))$coef[2,"Pr(>|t|)"]
+    mod  <- lm(as.numeric(dat$time) ~ dat$Chaet_cell.ml)
     norm_assum <- shapiro.test(resid(mod))
     shapiro_pval <- norm_assum$p.value
     # assign the data table 
@@ -209,15 +257,36 @@ SlopeFig914_geombox <- ggplot(SlopeTable_914, aes(pH , abs(slope) , fill = pH)) 
 SlopeFig914_geombox # 0.0531
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-SlopePlots_930 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>% 
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+SlopePlots_930_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
-  dplyr::filter(Date %in% 20210930) %>% 
-  dplyr::mutate(pH_feed = paste(pH, Fed_Unfed, sep='_')) %>% 
-  dplyr::mutate(minutes = as.numeric(as.character(minutes))) %>% 
-  ggplot(aes(minutes, total_algae, color=Replicate)) + 
-  geom_point(shape=1, fill = "white", color = "black")+ 
-  ggtitle("RAW DATA: F1 Scallops, Feeding Rate 20210930")+
+  dplyr::filter(Date %in% "20210930") %>% 
+  dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(Time._min, Chaet_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - Chaetoceros: F1s Feeding Rate 20210930")+
   labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
        x = expression(Time~"("~minutes~")")) + 
   theme(plot.title= element_text(size =16, face ="bold", 
@@ -225,71 +294,67 @@ SlopePlots_930 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>%
   stat_smooth(method="lm", se = F) + 
   theme_bw() +
   scale_shape_identity() + 
-  facet_wrap( ~ pH_feed, scales = "free_x" )
-SlopePlots_930
+  facet_wrap( ~ pH_food, scales = "free_x" )
+SlopePlots_930_chaet
 
-SlopeTable_930 <- data.frame() # run this before the loop
-for(i in 1:nrow(loop_930)){
-  dat <- FeedRate_Master.930 %>%  filter(uniq_Identifier %in% loop_930[i,])
-  slope<- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Estimate"]
-  SLOPE  <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$r.squared
-  pval <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Pr(>|t|)"]
-  mod  <- lm(as.numeric(dat$minutes) ~ dat$total_algae)
-  norm_assum <- shapiro.test(resid(mod))
-  shapiro_pval <- norm_assum$p.value
-  # assign the data table 
-  SLOPE.loop <- data.frame(matrix(nrow = 1, ncol = 6)) # create a new data table
-  colnames(SLOPE.loop) <- c('pH', 'Replicate', 'Fed_Unfed','slope', 'SLOPE', 'pval') # assign headers
-  SLOPE.loop$pH        <- gsub("_.*", "\\1", loop_930[i,])
-  SLOPE.loop$Replicate <- gsub("^(?:[^_]+_){5}([^_]+).*", "\\1", loop_930[i,])
-  SLOPE.loop$Fed_Unfed <- gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", loop_930[i,])
-  SLOPE.loop$slope     <- slope * 60  # cells per mL per hour  
-  SLOPE.loop$Number    <- gsub("^(?:[^_]+_){7}([^_]+).*", "\\1", loop_930[i,])
-  SLOPE.loop$SLOPE       <- SLOPE
-  SLOPE.loop$pval      <- pval
-  SLOPE.loop$shapiro_pval <- shapiro_pval
-  # loop additions 
-  df <- data.frame(SLOPE.loop) # name dataframe for this single row
-  SlopeTable_930 <- rbind(SlopeTable_930,df) # bind to a cumulative list dataframe
-  #print(SlopeTable_930) # show loop progress in the console
-}# outside loo
 
-SLOPE_mod_930 <- aov(lm(slope ~ pH*Fed_Unfed, data= SlopeTable_930))
-summary(SLOPE_mod_930) # Fed_Unfed     2.39e-05 ***
-DF.930   <- paste( (summary(SLOPE_mod_930)[[1]][["Df"]])[1], (summary(SLOPE_mod_930)[[1]][["Df"]])[2], sep = '/')
-Fval.930 <- (summary(SLOPE_mod_930)[[1]][["F value"]])[1]
-pval.930 <- (summary(SLOPE_mod_930)[[1]][["Pr(>F)"]])[1]
+SlopePlots_930_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>% 
+  dplyr::filter(!Replicate %in% 'blank') %>%
+  dplyr::filter(Date %in% "20210930") %>% 
+  dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(time, PLY_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - PLY: F1s Feeding Rate 20210930")+
+  labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
+       x = expression(Time~"("~minutes~")")) + 
+  theme(plot.title= element_text(size =16, face ="bold", 
+                                 lineheight = 8, vjust=1), aspect.ratio=1)+
+  stat_smooth(method="lm", se = F) + 
+  theme_bw() +
+  scale_shape_identity() + 
+  facet_wrap( ~ pH_food, scales = "free_x" )
+SlopePlots_930_ply
 
-SlopeFig930_geombox <- SlopeTable_930 %>%  
-  mutate(pH_feed = paste(pH, Fed_Unfed, sep = '_')) %>% 
-  ggplot(aes(pH , abs(slope) , fill = pH)) +
-    theme(panel.grid=element_blank()) +
-    geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
-    scale_fill_manual(values=c("grey50","white")) +
-    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-    theme_classic() +
-    scale_x_discrete(labels= c('Elevated (H)', 'Ambient (L)')) +
-    theme(axis.text=element_text(size=12),
-          axis.title=element_text(size=14,face="bold")) +
-    labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20210930", 
-         y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
-         x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-    facet_wrap(~ Fed_Unfed)
 
-SlopeFig930_geombox # 
+SlopePlots_930_lowchla <- FeedRate_Master[!is.na(FeedRate_Master$Low_chlorophyll_cell.ml),] %>% 
+  dplyr::filter(!Replicate %in% 'blank') %>%
+  dplyr::filter(Date %in% "20210930") %>% 
+  dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(time, Low_chlorophyll_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - Low chl a (seston): F1s Feeding Rate 20210930")+
+  labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
+       x = expression(Time~"("~minutes~")")) + 
+  theme(plot.title= element_text(size =16, face ="bold", 
+                                 lineheight = 8, vjust=1), aspect.ratio=1)+
+  stat_smooth(method="lm", se = F) + 
+  theme_bw() +
+  scale_shape_identity() + 
+  facet_wrap( ~ pH_food, scales = "free_x" )
+SlopePlots_930_lowchla
+
+ggarrange(SlopePlots_930_chaet, SlopePlots_930_ply, SlopePlots_930_lowchla)
 
 
 
 
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 20211026 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-SlopePlots_1026 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>% 
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+SlopePlots_1026_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
-  dplyr::filter(Date %in% 20211026) %>% 
-  dplyr::mutate(pH_feed = paste(pH, Fed_Unfed, sep='_')) %>% 
-  dplyr::mutate(minutes = as.numeric(as.character(minutes))) %>% 
-  ggplot(aes(minutes, total_algae, color=Replicate)) + 
-  geom_point(shape=1, fill = "white", color = "black")+ 
-  ggtitle("RAW DATA: F1 Scallops, Feeding Rate 20211026")+
+  dplyr::filter(Date %in% "20211026") %>% 
+  dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(Time._min, Chaet_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - Chaetoceros: F1s Feeding Rate 20211026")+
   labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
        x = expression(Time~"("~minutes~")")) + 
   theme(plot.title= element_text(size =16, face ="bold", 
@@ -297,86 +362,203 @@ SlopePlots_1026 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>%
   stat_smooth(method="lm", se = F) + 
   theme_bw() +
   scale_shape_identity() + 
-  facet_wrap( ~ pH_feed, scales = "free_x" )
+  facet_wrap( ~ pH_food, scales = "free_x" )
+SlopePlots_1026_chaet
 
-SlopePlots_1026
 
-# Clearance rate anlaysis for 10/26 data
+SlopePlots_1026_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>% 
+  dplyr::filter(!Replicate %in% 'blank') %>%
+  dplyr::filter(Date %in% "20211026") %>% 
+  dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(time, PLY_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - PLY: F1s Feeding Rate 20211026")+
+  labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
+       x = expression(Time~"("~minutes~")")) + 
+  theme(plot.title= element_text(size =16, face ="bold", 
+                                 lineheight = 8, vjust=1), aspect.ratio=1)+
+  stat_smooth(method="lm", se = F) + 
+  theme_bw() +
+  scale_shape_identity() + 
+  facet_wrap( ~ pH_food, scales = "free_x" )
+SlopePlots_1026_ply
 
-SlopeTable_1026 <- data.frame() # run this before the loop
-for(i in 1:nrow(loop_1026)){
-  dat <- FeedRate_Master.1026 %>%  filter(uniq_Identifier %in% loop_1026[i,])
-  slope<- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Estimate"]
-  SLOPE  <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$r.squared
-  pval <- summary(lm((dat$total_algae) ~ as.numeric(dat$minutes)))$coef[2,"Pr(>|t|)"]
-  mod  <- lm(as.numeric(dat$minutes) ~ dat$total_algae)
-  norm_assum <- shapiro.test(resid(mod))
-  shapiro_pval <- norm_assum$p.value
-  # assign the data table 
-  SLOPE.loop <- data.frame(matrix(nrow = 1, ncol = 6)) # create a new data table
-  colnames(SLOPE.loop) <- c('pH', 'Replicate', 'Fed_Unfed','slope', 'SLOPE', 'pval') # assign headers
-  SLOPE.loop$pH        <- gsub("_.*", "\\1", loop_1026[i,])
-  SLOPE.loop$Replicate <- gsub("^(?:[^_]+_){5}([^_]+).*", "\\1", loop_1026[i,])
-  SLOPE.loop$Fed_Unfed <- gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", loop_1026[i,])
-  SLOPE.loop$slope     <- slope * 60  # cells per mL per hour  
-  SLOPE.loop$Number    <- gsub("^(?:[^_]+_){7}([^_]+).*", "\\1", loop_1026[i,])
-  SLOPE.loop$SLOPE       <- SLOPE
-  SLOPE.loop$pval      <- pval
-  SLOPE.loop$shapiro_pval <- shapiro_pval
-  # loop additions 
-  df <- data.frame(SLOPE.loop) # name dataframe for this single row
-  SlopeTable_1026 <- rbind(SlopeTable_1026,df) # bind to a cumulative list dataframe
-  #print(SlopeTable_1026) # show loop progress in the console
-}# outside loo
 
-SLOPE_mod_1026 <- aov(lm(slope ~ pH*Fed_Unfed, data= SlopeTable_1026))
-summary(SLOPE_mod_1026) # Fed_Unfed    2.62e-08 ***
-DF.1026   <- paste( (summary(SLOPE_mod_1026)[[1]][["Df"]])[1], (summary(SLOPE_mod_1026)[[1]][["Df"]])[2], sep = '/')
-Fval.1026 <- (summary(SLOPE_mod_1026)[[1]][["F value"]])[1]
-pval.1026 <- (summary(SLOPE_mod_1026)[[1]][["Pr(>F)"]])[1]
+SlopePlots_1026_lowchla <- FeedRate_Master[!is.na(FeedRate_Master$Low_chlorophyll_cell.ml),] %>% 
+  dplyr::filter(!Replicate %in% 'blank') %>%
+  dplyr::filter(Date %in% "20211026") %>% 
+  dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
+  dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
+  ggplot(aes(time, Low_chlorophyll_cell.ml, color=Replicate)) + 
+  geom_point(shape=1, color = "black")+ 
+  ggtitle("RAW DATA - Low chl a (seston): F1s Feeding Rate 20211026")+
+  labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
+       x = expression(Time~"("~minutes~")")) + 
+  theme(plot.title= element_text(size =16, face ="bold", 
+                                 lineheight = 8, vjust=1), aspect.ratio=1)+
+  stat_smooth(method="lm", se = F) + 
+  theme_bw() +
+  scale_shape_identity() + 
+  facet_wrap( ~ pH_food, scales = "free_x" )
+SlopePlots_1026_lowchla
 
-SlopeFig1026_geombox <- SlopeTable_1026 %>%  
-  mutate(pH_feed = paste(pH, Fed_Unfed, sep = '_')) %>% 
-  ggplot(aes(pH , abs(slope) , fill = pH)) +
-    theme(panel.grid=element_blank()) +
-    geom_boxplot(size=0.2, alpha=0.1, aes(fill=pH)) +
-    scale_fill_manual(values=c("grey50","white")) +
-    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-    theme_classic() +
-    scale_x_discrete(labels= c('Elevated (H)', 'Ambient (L)')) +
-    theme(axis.text=element_text(size=12),
-          axis.title=element_text(size=14,face="bold")) +
-    labs(title = "F1 Scallops: Slope algae cells/time - feeding rate trials 20211026", 
-         y = expression(Slope~"="~absolute~value~"("~Live~algae~cells~mL^{-1}~hour^{-1}~")"), 
-         x = expression(italic(p)*CO[2]~Treatment~"("~mu*atm~")")) + 
-    facet_wrap(~ Fed_Unfed)
+ggarrange(SlopePlots_1026_chaet, SlopePlots_1026_ply, SlopePlots_1026_lowchla, ncol = 1, nrow = 3)
 
-SlopeFig1026_geombox
+
+
+
+
+
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_FlowCytometry_rawdata.pdf"))
 pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_FlowCytometry_rawdata.pdf"))
-ggarrange(SlopePlots_914, SlopeFig914_geombox,
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
+ggarrange(SlopePlots_914_chaet, SlopePlots_914_ply, SlopePlots_914_lowchla, ncol = 1, nrow = 3)
 dev.off()
 
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"))
-ggarrange(SlopePlots_930, SlopeFig930_geombox,
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"), height = 12)
+ggarrange(SlopePlots_930_chaet, SlopePlots_930_ply, SlopePlots_930_lowchla, ncol = 1, nrow = 3)
 dev.off()
 
-
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"))
-ggarrange(SlopePlots_1026, SlopeFig1026_geombox,
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"), height = 12)
+ggarrange(SlopePlots_1026_chaet, SlopePlots_1026_ply, SlopePlots_1026_lowchla, ncol = 1, nrow = 3)
 dev.off()
 ```
 
+
+
+## Calculate the blank Clearance rate values for each trial
+
+### CLEARANCE RATE EQUATION
+
+**CR =  CR = V * (ln(C0/Ct)/t - A)**
+
+- **V** == the volume of the vessel
+- **t** == time of the trial interval (i.e. 60 minutes or 1 hour)
+- **ln(C_0/C_t)** == ratio of the live algae concentration (cells ml-1) at time 0 (C0) and at the elapsed time interval(s) (Ct) - take the natural log of this ratio
+- **A** == V * (ln(Blank_0/Blank_t)/t) for the 'blank' values in each treatment, accounts for the sink or stuck algae cells 
+- **L** == normalization factor between individuals - here we will use the shell length in mm
+
+
+
+
+```{r Calculate BLANKS and write csv, echo = FALSE}
+
+# **A** == V * (ln(Blank_0/Blank_t)/t) for the 'blank' values in each treatment, accounts for the sink or stuck algae cells 
+
+Blanks.Master <- Master_data[is.na(Master_data$Replicate),] %>% 
+                                dplyr::mutate(unique_identifier = paste(Date, pH, "Run", Run, raw_ID_sample_number, sep ='_'))
+
+loop_BLANKS       <- as.data.frame(unique(Blanks.Master$unique_identifier)) %>%
+                            dplyr::rename(ID = "unique(Blanks.Master$unique_identifier)") # call unique identifier tfor the for loop calc of blanks 
+
+meanBLANKS.Master       <- data.frame() 
+for (i in 1:nrow(loop_BLANKS)) { # for each unique identifier....
+  
+  # data loop
+  dat <- Blanks.Master %>% 
+          dplyr::filter(unique_identifier == loop_BLANKS[i,]) %>% # subset the data out for that ID
+          dplyr::arrange(time) # arrange from time 0 to the last recorded time )this is important for the next part of this loop!
+    
+    # note that in some cases t_init and t_end are not the max and minimum values, respectively - this can alse call bad values due to error or pseudofeces!
+    
+    #  C0 = concentration at T initial
+    #  t_init below (C0), I call a conditional statement based on the first two values 
+    #  if the max value of timepoints 0 and 1 is  < than 1.25 * the minimum values ( > than assumed as exaggerated by pseudofeces) - call the MAX - else call the MIN
+    
+    # parameters
+    t_end      <- nrow(dat)
+    t_end_min <- nrow(dat) - 3
+
+    # ply
+    C0_Ply         <- if ( (max(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml))) < (1.25*  (min(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml)))) )  { 
+                           C0_Ply <-  (max(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml))) 
+                           } else (C0_Ply <-  (min(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml)))) # C0 for the ply 
+    
+    t0_Ply         <- min(dat$time[dat$PLY_cell.ml==C0_Ply])
+    
+    
+    if (  min(dat$PLY_cell.ml[c(t_end_min1:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
+                          Cend_Ply <- min(dat$PLY_cell.ml[c(t_end_min:t_end)])  # call this value 
+                          } else (Cend_Ply <- min(dat$PLY_cell.ml[t_end])) # ...else just call the last value - it will result in a negative ln() and be ommitted after the loop (below)
+    
+    
+    tot.time_Ply   <- max(dat$time[dat$PLY_cell.ml==Cend_Ply]) - t0_Ply
+
+    
+    # chaet
+    C0_Chaet        <- if ( (max(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml))) < (1.25*  (min(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml)))) )  { 
+                           C0_Chaet <-  (max(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml))) 
+                           } else (C0_Chaet <-  (min(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml)))) 
+    
+    t0_Chaet        <- min(dat$time[dat$Chaet_cell.ml==C0_Chaet])
+    
+    if (  min(dat$Chaet_cell.ml[c(t_end_min1:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
+                          Cend_Chaet <- min(dat$Chaet_cell.ml[c(t_end_min:t_end)])  # call this value 
+                          } else (Cend_Chaet <- min(dat$Chaet_cell.ml[t_end])) # ...else just call the last value - it will result in a negative ln() and be ommitted after the loop (below)
+    
+    tot.time_Chaet  <- max(dat$time[dat$Chaet_cell.ml==Cend_Chaet]) - t0_Chaet
+    
+    
+    # low chl a (seston)
+    C0_seston <- if ( (max(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))) < (1.25*  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml)))) )  { 
+                     C0_seston <-  (max(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))) 
+                     } else (C0_seston <-  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))))  
+    t0_seston       <- min(dat$time[dat$Low_chlorophyll_cell.ml==C0_seston])
+    
+    if (  min(dat$Low_chlorophyll_cell.ml[c(t_end_min1:t_end)])  <   C0_Ply) { # if the minmum value of the last three timepoints is less than the concentration at time 0....
+                          Cend_seston <- min(dat$Low_chlorophyll_cell.ml[c(t_end_min:t_end)])  # call this value 
+                          } else (Cend_seston <- min(dat$Low_chlorophyll_cell.ml[t_end])) # ...else just call the last value - it will result in a negative ln() and be ommitted after the loop (below)
+    
+    tot.time_seston <- max(dat$time[dat$Low_chlorophyll_cell.ml==Cend_seston]) - t0_seston
+    
+    # natural log (ln) of the start and end ratio
+    Blank_dat <- dat[1,] %>%  
+        dplyr::select(c('Date','pH','Fed_Unfed','Run')) %>% 
+        dplyr::mutate(CR.Blank_Chaet  = (ln(C0_Chaet / Cend_Chaet) / (tot.time_Chaet/60) ) ) %>%  # calc the ration of algae lost to the time 0 number 
+        dplyr::mutate(CR.Blank_Ply    = (ln(C0_Ply / Cend_Ply) / (tot.time_Ply/60) ) ) %>%  # calc the ration of algae lost to the time 0 number 
+        dplyr::mutate(CR.Blank_Seston = (ln(C0_seston / Cend_seston)/ (tot.time_seston/60) ) ) # calc the ration of algae lost to the time 0 number 
+   
+    df                <- data.frame(Blank_dat) # name dataframe for this single row
+    meanBLANKS.Master <- rbind(meanBLANKS.Master,df) #bind to a cumulative list dataframe
+ } 
+
+meanBLANKS.Chaet <- data.frame(meanBLANKS.Master) %>% 
+                      dplyr::group_by(Date, pH) %>% 
+                      mutate(CR.Blank_Chaet = if_else(CR.Blank_Chaet < 0, 0, CR.Blank_Chaet)) %>% # make all negative values 0 
+                      dplyr::summarise(
+                       meanBlank  = mean(CR.Blank_Chaet),
+                       sdBlank    = sd(CR.Blank_Chaet),
+                       n = n()) %>% 
+                       dplyr::mutate(Type = 'Chaet') %>% 
+                       dplyr::mutate(Date_pH = paste(Date, pH, sep = '_'))
+
+meanBLANKS.Ply   <- data.frame(meanBLANKS.Master) %>% 
+                          dplyr::group_by(Date, pH) %>% 
+                          mutate(CR.Blank_Ply = if_else(CR.Blank_Ply < 0, 0, CR.Blank_Ply)) %>% # make all negative values 0 
+                          dplyr::summarise(
+                           meanBlank  = mean(CR.Blank_Ply),
+                           sdBlank    = sd(CR.Blank_Ply),
+                           n= n()) %>% 
+                          dplyr::mutate(Type = 'Ply') %>% 
+                          dplyr::mutate(Date_pH = paste(Date, pH, sep = '_'))
+                                      
+meanBLANKS.Seson <- data.frame(meanBLANKS.Master) %>% 
+                        dplyr::group_by(Date, pH) %>% 
+                        mutate(CR.Blank_Seston = if_else(CR.Blank_Seston < 0, 0, CR.Blank_Seston)) %>% # make all negative values 0 
+                        dplyr::summarise(
+                         meanBlank  = mean(CR.Blank_Seston),
+                         sdBlank    = sd(CR.Blank_Seston),
+                         n= n()) %>% 
+                        dplyr::mutate(Type = 'Seston') %>% 
+                        dplyr::mutate(Date_pH = paste(Date, pH, sep = '_'))
+
+meanBLANKS.Summary <- rbind(meanBLANKS.Chaet, meanBLANKS.Ply, meanBLANKS.Seson)
+
+
+write.csv(meanBLANKS.Summary, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/Blanks_Master.csv")
+
+```
 
 # Calculate Clearance Rate 
 
@@ -385,215 +567,234 @@ dev.off()
 
 ### CLEARANCE RATE EQUATION
 
-**FR =( V/t * (ln(C_0/C_t ) - A) )/ L**
+**CR =  CR = V * (ln(C0/Ct)/t - A)**
 
 - **V** == the volume of the vessel
 - **t** == time of the trial interval (i.e. 60 minutes or 1 hour)
-- **ln(C_0/C_t)** == ratio of the live algae concentration (cells ml-1) at time 0 (C0) and at the elapsed time interval(s) (Ct) - take the natural log of this number
-- **A** == ln(C_0/C_t) for the 'blank' values in each treatment, accounts for the sink or stuck algae cells 
+- **ln(C_0/C_t)** == ratio of the live algae concentration (cells ml-1) at time 0 (C0) and at the elapsed time interval(s) (Ct) - take the natural log of this ratio
+- **A** == V * (ln(Blank_0/Blank_t)/t) for the 'blank' values in each treatment, accounts for the sink or stuck algae cells 
 - **L** == normalization factor between individuals - here we will use the shell length in mm
 
 
-
-## 'A' Calculate the blank values for each trial
-
-
-```{r Calculate BLANKS and write csv, echo = FALSE}
-
-Blanks.Master <- Master_data %>% 
-                                dplyr::filter(Replicate %in% 'blank') %>% 
-                                dplyr::mutate(unique_identifier = paste(Date, pH, "Run", Run, sep ='_'))
-Blanks.Master$tet.ply     <- (as.numeric(gsub(",", "", Blanks.Master$tet.ply )))*(1000/33)
-Blanks.Master$chaet       <- (as.numeric(gsub(",", "", Blanks.Master$chaet )))*(1000/33)
-Blanks.Master$total_algae <- (as.numeric(gsub(",", "", Blanks.Master$total_algae )))*(1000/33)
-Blanks.Master$seston      <- (as.numeric(gsub(",", "", Blanks.Master$seston )))*(1000/33)
-
-loop_BLANKS       <- as.data.frame(unique(Blanks.Master$unique_identifier)) %>%
-                            dplyr::rename(ID = "unique(Blanks.Master$unique_identifier)") # call unique identifier tfor the for loop calc of blanks 
-
-meanBLANKS.Master       <- data.frame() 
-for (i in 1:nrow(loop_BLANKS)) { # for each unique identifier....
-  dat <- Blanks.Master %>% 
-          dplyr::filter(unique_identifier == loop_BLANKS[i,]) %>% # subset the data out for that ID
-          dplyr::arrange(minutes)
-  # C0_tet         <- (dat %>% dplyr::filter(minutes == 0))$tet.ply
-  # C0_chaet       <- (dat %>% dplyr::filter(minutes == 0))$chaet
-    C0_total_algae <- dat[1,]$total_algae # first row - typically time 0 but may be time 15 or 10 for missing values
-    C0_seston      <- dat[1,]$seston      # first row - typically time 0 but may be time 15 or 10 for missing values
-  # C0 <- max(dat$Cells_ml[1:2])
-    for (j in 2:nrow(dat)) { # for each row 
-      Algae_Seston_dat <- dat %>%  
-        dplyr::mutate(TotalLiveAlgaeLossRatio = C0_total_algae / as.numeric(dat$total_algae) ) %>%  # calc the ration of algae lost to the time 0 number 
-        dplyr::mutate(SestonLossRatio = C0_seston / as.numeric(dat$seston) ) %>%  # calc the ration of algae lost to the time 0 number 
-        # dplyr::mutate(Tet_AlgaeLossRatio = C0_tet / as.numeric(dat$tet.ply) ) %>%  # calc the ration of algae lost to the time 0 number 
-        #dplyr::filter(!Tet_AlgaeLossRatio < 1) %>% 
-        dplyr::mutate(ln_TotalLiveAlgaeLossRatio = ln(TotalLiveAlgaeLossRatio)) %>% 
-        dplyr::mutate(ln_SestonLossRatio = ln(SestonLossRatio)) %>% 
-        dplyr::mutate(Time_period = paste((as.numeric(substr(minutes,1,1)) -1), "0-", minutes, sep =''))
-      Algae_Seston_datOM <- Algae_Seston_dat %>% dplyr::filter(!minutes == 0)
-    }
-  if (nrow(Algae_Seston_datOM) > 0) {
-    df                <- data.frame(Algae_Seston_datOM) # name dataframe for this single row
-    meanBLANKS.Master <- rbind(meanBLANKS.Master,df) #bind to a cumulative list dataframe
-    # print(meanBLANKS.914) # print to monitor progress
-  } else {}
-}
-
-
-
-meanBLANKS.Summary <- data.frame( meanBLANKS.Master[!is.na(meanBLANKS.Master$ln_TotalLiveAlgaeLossRatio),] %>% 
-                     dplyr::filter(!ln_TotalLiveAlgaeLossRatio < 0) %>% 
-                     dplyr::group_by(Date, pH, Time_point) %>% 
-                     dplyr::summarise(
-                       meanBlank_ln_AlgaeLoss  = mean(ln_TotalLiveAlgaeLossRatio),
-                       sdBlank_ln_AlgaeLoss    = sd(ln_TotalLiveAlgaeLossRatio),
-                       seBlank_ln_AlgaeLoss    = sd(ln_TotalLiveAlgaeLossRatio) / sqrt(length(ln_TotalLiveAlgaeLossRatio)), 
-                       meanBlank_ln_SestonLoss = mean(ln_SestonLossRatio),
-                       sdBlank_ln_SestonLoss   = sd(ln_SestonLossRatio),
-                       seBlank_ln_SestonLoss   = sd(ln_SestonLossRatio) / sqrt(length(ln_SestonLossRatio)), 
-                       n= n())) 
-
-
-write.csv(meanBLANKS.Summary, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/Blanks_Master.csv")
-
-```
-
-
-
-## 'A' Call the blank values for each trial - continued....
-
- - Call the blank value **specifically for the final timepoint** of the clearance rate trial(s)!
- - this value will be called in the for loop when calculating CR in following cluster(s)
-
-
-```{r blank values, echo = T}
-meanBLANKS.Summary$meanBlank_ln_AlgaeLoss
-# 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-AlgaeBlank_914_pH7.5  <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210914) %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_AlgaeLoss[1]
-AlgaeBlank_914_pH8.0  <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210914) %>% dplyr::filter(pH == 8) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_AlgaeLoss[1]
-SestonBlank_914_pH7.5 <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210914) %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_SestonLoss[1]
-SestonBlank_914_pH8.0 <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210914) %>% dplyr::filter(pH == 8) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_SestonLoss[1]
-
-# 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-AlgaeBlank_930_pH7.5  <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210930) %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_AlgaeLoss[1]
-AlgaeBlank_930_pH8.0  <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210930) %>% dplyr::filter(pH == 8) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_AlgaeLoss[1]
-SestonBlank_930_pH7.5 <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210930) %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_SestonLoss[2]
-SestonBlank_930_pH8.0 <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20210930) %>% dplyr::filter(pH == 8) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_SestonLoss[1]
-
-# 20211026 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-AlgaeBlank_1026_pH7.5  <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20211026) %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_AlgaeLoss[1]
-AlgaeBlank_1026_pH8.0  <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20211026) %>% dplyr::filter(pH == 8) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_AlgaeLoss[1]
-SestonBlank_1026_pH7.5 <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20211026) %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_SestonLoss[2]
-SestonBlank_1026_pH8.0 <- (meanBLANKS.Summary %>% dplyr::filter(Date %in% 20211026) %>% dplyr::filter(pH == 8) %>% dplyr::arrange(desc(Time_point)))$meanBlank_ln_SestonLoss[1]
-
-# 
-# # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Blank_914_pH7.5 <- (A_914_BlankMeans %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time._min)))$meanBlank_ln_AlgaeLoss[1]
-# Blank_914_pH8.0 <- (A_914_BlankMeans %>% dplyr::filter(pH == 8.0) %>% dplyr::arrange(desc(Time._min)))$meanBlank_ln_AlgaeLoss[1]
-# 
-# # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Blank_930_pH7.5 <- (A_930_BlankMeans %>% dplyr::filter(pH == 7.5) %>% dplyr::arrange(desc(Time._min)))$meanBlank_ln_AlgaeLoss[1]
-# Blank_930_pH8.0 <- (A_930_BlankMeans %>% dplyr::filter(pH == 8.0) %>% dplyr::arrange(desc(Time._min)))$meanBlank_ln_AlgaeLoss[1]
-
-```
 
 ## 20210914 Filtration Rate data 
 
 ```{r 20210914 FR, echo = T}
 
-df_total.914              <- data.frame() # start dataframe 
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Clearance Rate for loop     ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+V = 25 # V == Volume of the vessel (in mL as 25 ml)
+
+df_total.914<- data.frame() # start dataframe 
 for (i in 1:nrow(loop_914)) {
   dat <- FeedRate_Master.914 %>% 
     dplyr::filter(uniq_Identifier == loop_914[i,]) %>% 
-    dplyr::arrange(minutes)
-  C0_total_algae <- max(c(dat[1,]$total_algae, dat[2,]$total_algae)) # call the max number in the first two time points - allows for error 
-  dat2 <- dat %>% 
-    do(tail(., 2)) %>%
-    #dplyr::mutate(diff = as.numeric(Time._min) - lag(as.numeric(Time._min), default = first(as.numeric(Time._min)))) %>% 
-    dplyr::filter(total_algae %in% min(total_algae)) %>% 
-    dplyr::mutate(Blank = if(pH == 7.5) AlgaeBlank_914_pH7.5 else AlgaeBlank_914_pH8.0 ) %>% 
-    dplyr::mutate(TotalAlgaeLossRatio = C0_total_algae / as.numeric(total_algae) ) %>% 
-    dplyr::filter(!TotalAlgaeLossRatio < 1) %>% 
-    dplyr::mutate(ln_TotalAlgaeLossRatio = ln(TotalAlgaeLossRatio)) %>% 
-   # dplyr::mutate(FeedingRate =  ( (25/1000) / (diff/60)  * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-   #                                   ( ln_AlgaeLossRatio ) / Length.um. ) ) %>% 
-    dplyr::mutate(FeedingRate_L_hour_m = ( (25/1000) * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-                                       (( ln_TotalAlgaeLossRatio /  (as.numeric(minutes)/60) - Blank))) / (Length_um/1000000) ) %>% 
-    dplyr::mutate(Time_period = paste( (dat[1,]$minutes),as.numeric(minutes), sep ='-'))
-    dat2OM <- dat2 %>% dplyr::filter(!minutes == 0)
+    dplyr::mutate(Date_pH = paste(Date, pH, sep = '_')) %>% 
+    dplyr::arrange(time)
+  
+  t_end      <- nrow(dat)
+  t_end_min1 <- nrow(dat) - 1
+  
+  blanks <- meanBLANKS.Summary %>% dplyr::filter(Date_pH %in% dat$Date_pH[1])
+  
+  # ply
+  A.ply               <- blanks$meanBlank[blanks$Type == 'Ply']
+ 
+  C0_Ply              <- if ( (max(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml))) < (1.25*  (min(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml)))) )  { 
+                             C0_Ply <-  (max(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml))) 
+                             } else (C0_Ply <-  (min(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml)))) # C0 for the ply 
+  
+  Cend_Ply            <- (min(c(dat[t_end_min1,]$PLY_cell.ml, dat[t_end,]$PLY_cell.ml)))
+  
+  t0_Ply              <- dat$time[dat$PLY_cell.ml==C0_Ply]
+  
+  t_Ply               <- max((dat$time[dat$PLY_cell.ml==Cend_Ply]) - t0_Ply) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  ClearanceRate.Ply   <- (V * ((ln( C0_Ply / Cend_Ply )/(t_Ply/60)) - A.ply)) / (dat$Length_um[1] / 1000) # Tetraselmis cells mL-1  hr-1 mm shell length-1
     
-  if (nrow(dat2OM) > 0) {
-    FeedRate.table           <- data.frame(matrix(nrow = nrow(dat2OM), ncol = 10)) # create dataframe to save cumunalitively during for loop
-    colnames(FeedRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Num','Run', 'Fed_Unfed', 'Time_period', 'TotalAlgaeLossRatio', 'FeedingRate_L_hour_mm') # names for comuns in the for loop
+  # chaet
+  A.chaet             <- blanks$meanBlank[blanks$Type == 'Chaet']
+ 
+  C0_Chaet            <- if ( (max(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml))) < (1.25*  (min(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml)))) )  { 
+                             C0_Chaet <-  (max(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml))) 
+                             } else (C0_Chaet <-  (min(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml)))) # C0 for the ply 
+  
+  Cend_Chaet          <- (min(c(dat[t_end_min1,]$Chaet_cell.ml, dat[t_end,]$Chaet_cell.ml)))
+  
+  t0_Chaet            <- dat$time[dat$Chaet_cell.ml==C0_Chaet]
+  
+  t_Chaet             <- max((dat$time[dat$Chaet_cell.ml==Cend_Chaet]) - t0_Chaet) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  ClearanceRate.Chaet <- (V * ((ln( C0_Chaet / Cend_Chaet )/(t_Chaet/60)) - A.chaet)) / (dat$Length_um[1] / 1000) # Chaetoceros cells mL-1  hr-1 mm shell length-1
+
     
-    FeedRate.table$Date                       <- dat2OM$Date
+  # low chl a (seston)
+  A.Seston             <- blanks$meanBlank[blanks$Type == 'Seston']
+ 
+  C0_Seston            <- if ( (max(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))) < (1.25*  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml)))) )  { 
+                             C0_Seston <-  (max(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))) 
+                             } else (C0_Seston <-  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml)))) # C0 for the ply 
+  
+  Cend_Seston          <- (min(c(dat[t_end_min1,]$Low_chlorophyll_cell.ml, dat[t_end,]$Low_chlorophyll_cell.ml)))
+  
+  t0_Seston            <- dat$time[dat$Low_chlorophyll_cell.ml==C0_Seston]
+  
+  t_Seston             <- max((dat$time[dat$Low_chlorophyll_cell.ml==Cend_Seston]) - t0_Seston) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  ClearanceRate.Seston <- (V * ((ln( C0_Seston / Cend_Seston )/(t_Seston/60)) - A.Seston)) / (dat$Length_um[1] / 1000) # seston cells mL-1  hr-1 mm shell length-1
+  
+  
+  dat2 <- dat[1,] %>%
+    dplyr::select(c('Date','pH', 'Replicate', 'Fed_Unfed','Run', 'Plate', 'Number', 'Length_um')) %>% 
+    mutate(Chaet_mL.hr.mmlength = ClearanceRate.Chaet) %>% 
+    mutate(Ply_mL.hr.mmlength = ClearanceRate.Ply) %>% 
+    mutate(Seston_mL.hr.mmlength = ClearanceRate.Seston)
+    
+  if (nrow(dat2) > 0) {
+    FeedRate.table           <- data.frame(matrix(nrow = nrow(dat2), ncol = 12)) # create dataframe to save cumunalitively during for loop
+    colnames(FeedRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Fed_Unfed','Run', 'Plate', 'Number', 'Length_um', 'Chaet_mL.hr.mmlength', 'Ply_mL.hr.mmlength', 'Seston_mL.hr.mmlength') 
+    FeedRate.table$Date                       <- dat2$Date
     FeedRate.table$ID                         <- loop_914[i,]
     FeedRate.table$pH                         <- gsub("_.*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Fed_Unfed                  <- NA
     FeedRate.table$Replicate                  <- gsub("^(?:[^_]+_){4}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Num                        <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Fed_Unfed                  <- dat2$Fed_Unfed
     FeedRate.table$Run                        <- gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Time_period                <- dat2OM$Time_period
-    FeedRate.table$TotalAlgaeLossRatio        <- dat2OM$TotalAlgaeLossRatio
-    FeedRate.table$FeedingRate_L_hour_m       <- dat2OM$FeedingRate_L_hour_m
+    FeedRate.table$Plate                      <- dat2$Plate
+    FeedRate.table$Number                     <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Length_um                  <- dat2$Length_um
+    FeedRate.table$Chaet_mL.hr.mmlength       <- dat2$Chaet_mL.hr.mmlength
+    FeedRate.table$Ply_mL.hr.mmlength         <- dat2$Ply_mL.hr.mmlength
+    FeedRate.table$Seston_mL.hr.mmlength      <- dat2$Seston_mL.hr.mmlength
     
     df       <- data.frame(FeedRate.table) # name dataframe for this single row
     df_total.914 <- rbind(df_total.914,df) #bind to a cumulative list dataframe
     #print(df_total.914) # print to monitor progress
-  }
-  else {}
+  } else {}
 }
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# clean & view means...       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 df_total.914 <- df_total.914  %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% 
   dplyr::mutate(random_fact = as.factor(paste(Replicate, pH, sep = '_')))
 
 
-FeedRates_914_Means <- df_total.914 %>% 
-  #dplyr::filter(!FeedingRate_L_hour_meter %in% '-Inf') %>% 
+Ply_CR_914_Means <- df_total.914 %>% 
   dplyr::group_by(pCO2) %>% 
+  dplyr::filter(Ply_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
-    meanCR = mean(FeedingRate_L_hour_m),
-    sdCR   = sd(FeedingRate_L_hour_m), 
-    seCR   = sd(FeedingRate_L_hour_m) / sqrt(length(FeedingRate_L_hour_m)), 
-    n = n()) %>% 
-  na.omit()
+    Ply_meanCR = mean(Ply_mL.hr.mmlength),
+    Ply_sdCR   = sd(Ply_mL.hr.mmlength), 
+    Ply_seCR   = sd(Ply_mL.hr.mmlength) / sqrt(length(Ply_mL.hr.mmlength)), 
+    n = n())
+print(Ply_CR_914_Means)
 
-print(FeedRates_914_Means)
-# summary(lmer(meanCR~pH+ (1|Time_period), data=FeedRates_914_Means))
-# summary(aov(lm(meanCR~pH*Time_period, data=FeedRates_914_Means)))
+Chaet_CR_914_Means <- df_total.914 %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::filter(Chaet_mL.hr.mmlength > 0) %>% # ommit negative values
+  dplyr::summarise(
+    Ply_meanCR = mean(Chaet_mL.hr.mmlength),
+    Ply_sdCR   = sd(Chaet_mL.hr.mmlength), 
+    Ply_seCR   = sd(Chaet_mL.hr.mmlength) / sqrt(length(Chaet_mL.hr.mmlength)), 
+    n = n())
+print(Chaet_CR_914_Means)
 
 
-# plot the replicates (visual diagnostics of random factor)
-Resp914_FR <- ggboxplot(df_total.914, x = "pH", y = "FeedingRate_L_hour_m", color = "Replicate",
-                              add = c("mean_se", "dotplot"),
-                              palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp914_FR
+Seston_CR_914_Means <- df_total.914 %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::filter(Seston_mL.hr.mmlength > 0) %>% # ommit negative values
+  dplyr::summarise(
+    Ply_meanCR = mean(Seston_mL.hr.mmlength),
+    Ply_sdCR   = sd(Seston_mL.hr.mmlength), 
+    Ply_seCR   = sd(Seston_mL.hr.mmlength) / sqrt(length(Seston_mL.hr.mmlength)), 
+    n = n())
+print(Seston_CR_914_Means)
 
 
-# Linear mixed-effects model
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# Data
+Ply_FR_914_df      <- df_total.914 %>% filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))
+Chaet_FR_914_df    <- df_total.914 %>% filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))
+Seston_FR_914_df   <- df_total.914 %>% filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))
+
+# library
 require(nlme)
-# Linear mixed effects model with random effect of Replicate 
-LMEmod_0914_FR<-lme(FeedingRate_L_hour_m ~ pH, random=~1|random_fact, data=df_total.914)
-# |     &nbsp;      | numDF | denDF | F-value | p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:--------:|
-# | **(Intercept)** |   1   |  16   |  69.39  | 3.27e-07 |
-# |    **pCO2**     |   1   |   6   |  1.26   |  0.3046  |
-pander(anova(LMEmod_0914_FR), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(LMEmod_0914_FR))) %>%  # print a png of this table
+
+# Ply - Linear Mixed Effects Model
+Ply_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ply_FR_914_df)
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  10   |  44.42  | 5.602e-05 |
+# |     **pH**      |   1   |   6   | 0.8047  |  0.4042   |
+pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Ply_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_FR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_FR_LME_Diagnostics.pdf"))
-check_model(LMEmod_0914_FR) # print the model diagnostics 
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_PLY_CR_LME_Diagnostics.pdf"))
+check_model(Ply_LMEmod_0914) # print the model diagnostics 
 dev.off()
 
-# call the results of LMER to add to boxplot below 
-DF   <- paste( (anova(LMEmod_0914_FR)[[1]])[2], (anova(LMEmod_0914_FR)[[2]])[2], sep = '/') # call DF
-Fval <- (anova(LMEmod_0914_FR)[[3]])[2] # call f
-pval <- (anova(LMEmod_0914_FR)[[4]])[2] # call p value
+
+# Chaet - Linear Mixed Effects Model
+Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Chaet_FR_914_df)
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  15   |  61.29  | 1.122e-06 |
+# |     **pH**      |   1   |   6   |  3.563  |   0.108   |
+pander(anova(Chaet_LMEmod_0914), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_CHAET_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_CHAET_CR_LME_Diagnostics.pdf"))
+check_model(Chaet_LMEmod_0914) # print the model diagnostics 
+dev.off()
 
 
-FR_914_boxplot <- df_total.914 %>% 
-  ggplot(aes(pCO2 , FeedingRate_L_hour_m , fill = pCO2)) +
+# Seston - Linear Mixed Effects Model
+Seston_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Seston_FR_914_df)
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  13   |  50.02  | 8.384e-06 |
+# |     **pH**      |   1   |   6   | 0.6278  |  0.4583   |
+pander(anova(Seston_LMEmod_0914), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_SESTON_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_SESTON_CR_LME_Diagnostics.pdf"))
+check_model(Seston_LMEmod_0914) # print the model diagnostics 
+dev.off()
+
+
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+Master_914_plotting      <- rbind(Chaet_FR_914_df, Ply_FR_914_df, Seston_FR_914_df)
+
+CR_914_boxplot <- Master_914_plotting %>% 
+  ggplot(aes(pCO2 , CR_mL.hr.mmlength , fill = pCO2)) +
   theme(panel.grid=element_blank()) +
   geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
   scale_fill_manual(values=c("white","grey50")) +
@@ -602,396 +803,816 @@ FR_914_boxplot <- df_total.914 %>%
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=10)) +
   stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance Rate, F1 Scallops 20210914 (0-90 minutes)")
-FR_914_boxplot
+  ggtitle("Clearance rate, F1 Scallops 20210914") +
+  facet_wrap(~type)
+CR_914_boxplot
 
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/2010914_FR_LME.pdf"))
-ggarrange(FR_914_boxplot, Resp914_FR,
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
+ggarrange(CR_914_boxplot)
 dev.off()
 
 
 ```
+
+
 
 
 ## 20210930 Filtration Rate data 
 
 ```{r 20210930 FR, echo = T}
 
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Clearance Rate for loop     ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-df_total.930              <- data.frame() # start dataframe 
+
+V = 25 # V == Volume of the vessel (in mL as 25 ml)
+
+df_total.930<- data.frame() # start dataframe 
 for (i in 1:nrow(loop_930)) {
   dat <- FeedRate_Master.930 %>% 
     dplyr::filter(uniq_Identifier == loop_930[i,]) %>% 
-    dplyr::arrange(minutes) # order by least to greatest (first to last flow cytometry measurement)
-  C0_total_algae <- max(c(dat[1,]$total_algae, dat[2,]$total_algae)) # call the max number in the first two time points - allows for error 
-  dat2 <- dat %>% 
-    do(tail(., 2)) %>%
-    #dplyr::mutate(diff = as.numeric(Time._min) - lag(as.numeric(Time._min), default = first(as.numeric(Time._min)))) %>% 
-    dplyr::filter(total_algae %in% min(total_algae)) %>% 
-    dplyr::mutate(Blank = if(pH == "7.5") AlgaeBlank_930_pH7.5 else AlgaeBlank_930_pH8.0 ) %>% 
-    dplyr::mutate(TotalAlgaeLossRatio = C0_total_algae / as.numeric(total_algae) ) %>% 
-    dplyr::filter(!TotalAlgaeLossRatio < 1) %>% 
-    dplyr::mutate(ln_TotalAlgaeLossRatio = ln(TotalAlgaeLossRatio)) %>% 
-   # dplyr::mutate(FeedingRate =  ( (25/1000) / (diff/60)  * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-   #                                   ( ln_AlgaeLossRatio ) / Length.um. ) ) %>% 
-    dplyr::mutate(FeedingRate_L_hour_m = ( (25/1000) * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-                                       (( ln_TotalAlgaeLossRatio /  (as.numeric(minutes)/60) - Blank))) / (Length_um/1000000) ) %>% 
-    dplyr::mutate(Time_period = paste( (dat[1,]$minutes),as.numeric(minutes), sep ='-'))
-    dat2OM <- dat2 %>% dplyr::filter(!minutes == 0)
+    dplyr::mutate(Date_pH = paste(Date, pH, sep = '_')) %>% 
+    dplyr::arrange(time)
+  
+  t_end      <- nrow(dat)
+  t_end_min1 <- nrow(dat) - 1
+  
+  blanks <- meanBLANKS.Summary %>% dplyr::filter(Date_pH %in% dat$Date_pH[1])
+  
+  # ply
+  A.ply               <- blanks$meanBlank[blanks$Type == 'Ply']
+ 
+  C0_Ply              <- if ( (max(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml))) < (1.25*  (min(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml)))) )  { 
+                             C0_Ply <-  (max(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml))) 
+                             } else (C0_Ply <-  (min(c(dat[1,]$PLY_cell.ml, dat[2,]$PLY_cell.ml)))) # C0 for the ply 
+  
+  Cend_Ply            <- (min(c(dat[t_end_min1,]$PLY_cell.ml, dat[t_end,]$PLY_cell.ml)))
+  
+  t0_Ply              <- dat$time[dat$PLY_cell.ml==C0_Ply]
+  
+  t_Ply               <- max((dat$time[dat$PLY_cell.ml==Cend_Ply]) - t0_Ply) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  ClearanceRate.Ply   <- (V * ((ln( C0_Ply / Cend_Ply )/(t_Ply/60)) - A.ply)) / (dat$Length_um[1] / 1000) # Tetraselmis cells mL-1  hr-1 mm shell length-1
     
-  if (nrow(dat2OM) > 0) {
-    FeedRate.table           <- data.frame(matrix(nrow = nrow(dat2OM), ncol = 10)) # create dataframe to save cumunalitively during for loop
-    colnames(FeedRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Num','Run', 'Fed_Unfed', 'Time_period', 'TotalAlgaeLossRatio', 'FeedingRate_L_hour_mm') # names for comuns in the for loop
+  # chaet
+  A.chaet             <- blanks$meanBlank[blanks$Type == 'Chaet']
+ 
+  C0_Chaet            <- if ( (max(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml))) < (1.25*  (min(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml)))) )  { 
+                             C0_Chaet <-  (max(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml))) 
+                             } else (C0_Chaet <-  (min(c(dat[1,]$Chaet_cell.ml, dat[2,]$Chaet_cell.ml)))) # C0 for the ply 
+  
+  Cend_Chaet          <- (min(c(dat[t_end_min1,]$Chaet_cell.ml, dat[t_end,]$Chaet_cell.ml)))
+  
+  t0_Chaet            <- dat$time[dat$Chaet_cell.ml==C0_Chaet]
+  
+  t_Chaet             <- max((dat$time[dat$Chaet_cell.ml==Cend_Chaet]) - t0_Chaet) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  ClearanceRate.Chaet <- (V * ((ln( C0_Chaet / Cend_Chaet )/(t_Chaet/60)) - A.chaet)) / (dat$Length_um[1] / 1000) # Chaetoceros cells mL-1  hr-1 mm shell length-1
+
     
-    FeedRate.table$Date                       <- dat2OM$Date
+  # low chl a (seston)
+  A.Seston             <- blanks$meanBlank[blanks$Type == 'Seston']
+ 
+  C0_Seston            <- if ( (max(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))) < (1.25*  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml)))) )  { 
+                             C0_Seston <-  (max(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml))) 
+                             } else (C0_Seston <-  (min(c(dat[1,]$Low_chlorophyll_cell.ml, dat[2,]$Low_chlorophyll_cell.ml)))) # C0 for the ply 
+  
+  Cend_Seston          <- (min(c(dat[t_end_min1,]$Low_chlorophyll_cell.ml, dat[t_end,]$Low_chlorophyll_cell.ml)))
+  
+  t0_Seston            <- dat$time[dat$Low_chlorophyll_cell.ml==C0_Seston]
+  
+  t_Seston             <- max((dat$time[dat$Low_chlorophyll_cell.ml==Cend_Seston]) - t0_Seston) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  ClearanceRate.Seston <- (V * ((ln( C0_Seston / Cend_Seston )/(t_Seston/60)) - A.Seston)) / (dat$Length_um[1] / 1000) # seston cells mL-1  hr-1 mm shell length-1
+  
+  
+  dat2 <- dat[1,] %>%
+    dplyr::select(c('Date','pH', 'Replicate', 'Fed_Unfed','Run', 'Plate', 'Number', 'Length_um')) %>% 
+    mutate(Chaet_mL.hr.mmlength = ClearanceRate.Chaet) %>% 
+    mutate(Ply_mL.hr.mmlength = ClearanceRate.Ply) %>% 
+    mutate(Seston_mL.hr.mmlength = ClearanceRate.Seston)
+    
+  if (nrow(dat2) > 0) {
+    FeedRate.table           <- data.frame(matrix(nrow = nrow(dat2), ncol = 12)) # create dataframe to save cumunalitively during for loop
+    colnames(FeedRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Fed_Unfed','Run', 'Plate', 'Number', 'Length_um', 'Chaet_mL.hr.mmlength', 'Ply_mL.hr.mmlength', 'Seston_mL.hr.mmlength') 
+    FeedRate.table$Date                       <- dat2$Date
     FeedRate.table$ID                         <- loop_930[i,]
     FeedRate.table$pH                         <- gsub("_.*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Fed_Unfed                  <- dat2OM$Fed_Unfed
     FeedRate.table$Replicate                  <- gsub("^(?:[^_]+_){5}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Num                        <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Run                        <- gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Time_period                <- dat2OM$Time_period
-    FeedRate.table$TotalAlgaeLossRatio             <- dat2OM$TotalAlgaeLossRatio
-    FeedRate.table$FeedingRate_L_hour_m <- dat2OM$FeedingRate_L_hour_m
+    FeedRate.table$Fed_Unfed                  <- dat2$Fed_Unfed
+    FeedRate.table$Run                        <- gsub("^(?:[^_]+_){3}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Plate                      <- dat2$Plate
+    FeedRate.table$Number                     <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Length_um                  <- dat2$Length_um
+    FeedRate.table$Chaet_mL.hr.mmlength       <- dat2$Chaet_mL.hr.mmlength
+    FeedRate.table$Ply_mL.hr.mmlength         <- dat2$Ply_mL.hr.mmlength
+    FeedRate.table$Seston_mL.hr.mmlength      <- dat2$Seston_mL.hr.mmlength
     
     df       <- data.frame(FeedRate.table) # name dataframe for this single row
     df_total.930 <- rbind(df_total.930,df) #bind to a cumulative list dataframe
     #print(df_total.930) # print to monitor progress
-  }
-  else {}
+  } else {}
 }
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# clean & view means...       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 df_total.930 <- df_total.930  %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pH,Replicate,Fed_Unfed, sep = '_'))) %>% 
-  dplyr::filter(!FeedingRate_L_hour_m  < 0)
+  dplyr::mutate(random_fact = as.factor(paste(Replicate, pH, Fed_Unfed, sep = '_')))
 
 
-FeedRates_930_Means <- df_total.930 %>% 
-  dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% 
+Ply_CR_930_Means <- df_total.930 %>% 
   dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::filter(Ply_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
-    meanCR = mean(FeedingRate_L_hour_m),
-    sdCR   = sd(FeedingRate_L_hour_m), 
-    seCR   = sd(FeedingRate_L_hour_m) / sqrt(length(FeedingRate_L_hour_m)), 
-    n = n()) %>% 
-  na.omit()
-FeedRates_930_Means
+    Ply_meanCR = mean(Ply_mL.hr.mmlength),
+    Ply_sdCR   = sd(Ply_mL.hr.mmlength), 
+    Ply_seCR   = sd(Ply_mL.hr.mmlength) / sqrt(length(Ply_mL.hr.mmlength)), 
+    n = n())
+print(Ply_CR_930_Means)
 
-df_total.930 %>%  summarySE(measurevar="FeedingRate_L_hour_m", groupvars=("Fed_Unfed")) 
+Chaet_CR_930_Means <- df_total.930 %>% 
+  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::filter(Chaet_mL.hr.mmlength > 0) %>% # ommit negative values
+  dplyr::summarise(
+    Chaet_meanCR = mean(Chaet_mL.hr.mmlength),
+    Chaet_sdCR   = sd(Chaet_mL.hr.mmlength), 
+    Chaet_seCR   = sd(Chaet_mL.hr.mmlength) / sqrt(length(Chaet_mL.hr.mmlength)), 
+    n = n())
+print(Chaet_CR_930_Means)
 
- # plot the replicates (visual diagnostics of random factor)
-df_total.930$pHxFood   <- paste(df_total.930$pH, df_total.930$Fed_Unfed, sep = "_")
-Resp930_FR <- ggboxplot(df_total.930, x = "pHxFood", y = "FeedingRate_L_hour_m", color = "Replicate",
-                              add = c("mean_se", "dotplot"),
-                              palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp930_FR
+
+Seston_CR_930_Means <- df_total.930 %>% 
+  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::filter(Seston_mL.hr.mmlength > 0) %>% # ommit negative values
+  dplyr::summarise(
+    Seston_meanCR = mean(Seston_mL.hr.mmlength),
+    Seston_sdCR   = sd(Seston_mL.hr.mmlength), 
+    Seston_seCR   = sd(Seston_mL.hr.mmlength) / sqrt(length(Seston_mL.hr.mmlength)), 
+    n = n())
+print(Seston_CR_930_Means)
 
 
-# Linear mixed-effects model
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# Data
+Ply_FR_930_df      <- df_total.930 %>% filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))
+Chaet_FR_930_df    <- df_total.930 %>% filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))
+Seston_FR_930_df   <- df_total.930 %>% filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))
+
+# library
 require(nlme)
-# Linear mixed effects model with random effect of Replicate 
-df_total.930$Chamber_tank <- paste(df_total.930$Replicate, df_total.930$pH, sep = "_" )
-LMEmod_0930_FR<-lme(FeedingRate_L_hour_m ~ pH * Fed_Unfed, random=~1|random_fact, data=df_total.930)
+
+# Ply - Linear Mixed Effects Model
+Ply_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Ply_FR_930_df)
 # |      &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  60   |  52.27  | 1.014e-09 |
-# |      **pH**      |   1   |   6   | 0.1085  |  0.7531   |
-# |  **Fed_Unfed**   |   1   |  60   |  19.84  | 3.738e-05 |
-# | **pH:Fed_Unfed** |   1   |  60   | 0.2207  |  0.6402   |
-pander(anova(LMEmod_0930_FR), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(LMEmod_0930_FR))) %>%  # print a png of this table
+# | **(Intercept)**  |   1   |  23   |  22.21  | 9.522e-05 |
+# |      **pH**      |   1   |   9   | 0.0902  |  0.7707   |
+# |  **Fed_Unfed**   |   1   |   9   | 0.7314  |  0.4146   |
+# | **pH:Fed_Unfed** |   1   |   9   |  1.277  |  0.2877   |
+pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Ply_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FR_LME_Diagnostics.pdf"))
-check_model(LMEmod_0930_FR) # print the model diagnostics 
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_PLY_CR_LME_Diagnostics.pdf"))
+check_model(Ply_LMEmod_0930) # print the model diagnostics 
 dev.off()
 
-# call the results of LMER to add to boxplot below 
-DF   <- paste( (anova(LMEmod_0930_FR)[[1]])[2], (anova(LMEmod_0930_FR)[[2]])[2], sep = '/') # call DF
-Fval <- (anova(LMEmod_0930_FR)[[3]])[2] # call f
-pval <- (anova(LMEmod_0930_FR)[[4]])[2] # call p value
+
+# Chaet - Linear Mixed Effects Model
+Chaet_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df)
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  52   |  44.02  | 1.893e-08 |
+# |      **pH**      |   1   |  12   | 0.06041 |   0.81    |
+# |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  |
+# | **pH:Fed_Unfed** |   1   |  12   | 0.01714 |   0.898   |
+pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Chaet_LMEmod_0930))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CHAET_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CHAET_CR_LME_Diagnostics.pdf"))
+check_model(Chaet_LMEmod_0930) # print the model diagnostics 
+dev.off()
 
 
-FR_930_boxplot <- df_total.930 %>% 
-  ggplot(aes(pCO2 , FeedingRate_L_hour_m , fill = pCO2)) +
+# Seston - Linear Mixed Effects Model
+Seston_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df)
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  34   |  33.37  | 1.682e-06 |
+# |      **pH**      |   1   |  12   | 0.05125 |  0.8247   |
+# |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
+# | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
+pander(anova(Seston_LMEmod_0930), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Seston_LMEmod_0930))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_SESTON_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_SESTON_CR_LME_Diagnostics.pdf"))
+check_model(Seston_LMEmod_0930) # print the model diagnostics 
+dev.off()
+
+
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+Master_930_plotting         <- rbind(Chaet_FR_930_df, Ply_FR_930_df, Seston_FR_930_df)
+Master_930_plotting$pHxfood <- paste(Master_930_plotting$pH, Master_930_plotting$Fed_Unfed, sep = '_')
+CR_930_boxplot <- Master_930_plotting %>% 
+  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
   theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
-  scale_fill_manual(values=c("white","grey50")) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
+  scale_fill_manual(values=c("grey50","grey50","white","white")) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=10)) +
   stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance Rate, F1 Scallops 20210914 (0-90 minutes)") +
-  facet_wrap(~Fed_Unfed)
-FR_930_boxplot
+  ggtitle("Clearance rate, F1 Scallops 20210930") +
+  facet_wrap(~type)
+CR_930_boxplot
 
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/2010930_FR_LME.pdf"))
-ggarrange(FR_930_boxplot, Resp930_FR,
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/2010930_CR_Boxplots.pdf"), width = 10)
+ggarrange(CR_930_boxplot)
 dev.off()
+
 ```
-
-# density plot - Day 64 filtration rate 
-```{r, Day 64 density length plot }
-library(dplyr)
-library(tidyr)
-
-df_total.930$pHxfood <- as.factor(paste(df_total.930$pH, df_total.930$Fed_Unfed, sep = "_"))
-df_mean <- df_total.930 %>% 
-  dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(FeedingRate_L_hour_m)) %>%
-  dplyr::ungroup()
-p.box <- ggplot(df_total.930, aes(x = pHxfood, y = FeedingRate_L_hour_m)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxfood, y = average),
-             color="red") 
-p.box.data <- layer_data(p.box) %>%
-  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
-  dplyr::rename(mean = flipped_aes) %>% 
-  dplyr::mutate(mean  = (df_mean$average)) %>% 
-  mutate(pHxfood = factor(x, labels = levels(df_total.930$pHxfood), ordered = TRUE)) %>%
-  select(-x)
-
-denisty_box_FR_64DPF <-ggplot(p.box.data) +
-                            # manually plot flipped boxplot
-                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
-                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pHxfood),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
-                            # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
-                            # density plot
-                            geom_density(data = df_total.930, aes(x = FeedingRate_L_hour_m, fill=pHxfood, ..scaled..), alpha=.4) +
-                            #  theme
-                            theme_classic() +
-                            xlim(0, 30) +
-                            facet_grid(pHxfood ~ .) +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                            labs(x = "Filtration rate", y = "frequency")  +
-                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
-denisty_box_FR_64DPF
-# export the plot
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FR_density_plot.pdf"), width = 4, height = 8)
-denisty_box_FR_64DPF # print the model diagnostics 
-dev.off()
-```
-
-
 
 
 
 
 ## 20211026 Filtration Rate data 
 
+NOTE: the calculation here changes from the other tiepoints due to **complete clearance of algae in larger/older individuals!** 
+if the 0 value is kept it will become 'Inf' due to negative denominator in the natural log... in ln(C_init / C_end)
+thus I wrote a conditional statement (if else) for these negative values - making them equal to 0.0001 for this ratio
+the alternative can be to call the nearest non-zero value in line
+
+
 ```{r 20211026 FR, echo = T}
 
-df_total.1026              <- data.frame() # start dataframe 
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Clearance Rate for loop     ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+V = 25 # V == Volume of the vessel (in mL as 25 ml)
+
+df_total.1026<- data.frame() # start dataframe 
 for (i in 1:nrow(loop_1026)) {
   dat <- FeedRate_Master.1026 %>% 
     dplyr::filter(uniq_Identifier == loop_1026[i,]) %>% 
-    dplyr::arrange(minutes)
-  C0_total_algae <- max(c(dat[1,]$total_algae, dat[2,]$total_algae)) # call the max number in the first two time points - allows for error 
-  dat2 <- dat %>% 
-    do(tail(., 2)) %>%
-    #dplyr::mutate(diff = as.numeric(Time._min) - lag(as.numeric(Time._min), default = first(as.numeric(Time._min)))) %>% 
-    dplyr::filter(total_algae %in% min(total_algae)) %>% 
-    dplyr::mutate(Blank = if(pH == 7.5) AlgaeBlank_1026_pH7.5 else AlgaeBlank_1026_pH8.0 ) %>% 
-    dplyr::mutate(TotalAlgaeLossRatio = C0_total_algae / as.numeric(total_algae) ) %>% 
-    dplyr::filter(!TotalAlgaeLossRatio < 1) %>% 
-    dplyr::mutate(ln_TotalAlgaeLossRatio = ln(TotalAlgaeLossRatio)) %>% 
-   # dplyr::mutate(FeedingRate =  ( (25/1000) / (diff/60)  * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-   #                                   ( ln_AlgaeLossRatio ) / Length.um. ) ) %>% 
-    dplyr::mutate(FeedingRate_L_hour_m = ( (25/1000) * # V / t == Volume of the vessel (in Liters as 25 ml / 1000 ml L-1) and t = time in hours as the diff between the interval sin minutes / 60 mins hour-1
-                                       (( ln_TotalAlgaeLossRatio /  (as.numeric(minutes)/60) - Blank))) / (Length_um/1000000) ) %>% 
-    dplyr::mutate(Time_period = paste( (dat[1,]$minutes),as.numeric(minutes), sep ='-'))
-    dat2OM <- dat2 %>% dplyr::filter(!minutes == 0)
+    dplyr::mutate(Date_pH = paste(Date, pH, sep = '_')) %>% 
+    dplyr::arrange(time)
+  
+  t_end      <- nrow(dat)
+  t_end_min1 <- nrow(dat) - 2
+  
+  blanks <- meanBLANKS.Summary %>% dplyr::filter(Date_pH %in% dat$Date_pH[1])
+  
+  # ply
+  A.ply               <- blanks$meanBlank[blanks$Type == 'Ply']
+ 
+  C0_Ply              <- max(dat$PLY_cell.ml[c(1:2)])
+  
+  Cend_Ply            <- min(dat$PLY_cell.ml[c(t_end_min1:t_end)])
+  
+  t0_Ply              <- dat$time[dat$PLY_cell.ml==C0_Ply]
+  
+  t_Ply               <- max(  (min(dat$time[dat$PLY_cell.ml==Cend_Ply])) - t0_Ply) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  if (Cend_Ply == 0) { 
+        ClearanceRate.Ply <- (V * ((ln( C0_Ply / 0.0001 )/(t_Ply/60)) - A.ply)) / (dat$Length_um[1] / 1000) # Chaetoceros cells mL-1  hr-1 mm shell length-1
+         } else ( ClearanceRate.Ply <- (V * ((ln( C0_Ply / Cend_Ply )/(t_Ply/60)) - A.ply)) / (dat$Length_um[1] / 1000))
     
-  if (nrow(dat2OM) > 0) {
-    FeedRate.table           <- data.frame(matrix(nrow = nrow(dat2OM), ncol = 10)) # create dataframe to save cumunalitively during for loop
-    colnames(FeedRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Num','Run', 'Fed_Unfed', 'Time_period', 'TotalAlgaeLossRatio', 'FeedingRate_L_hour_mm') # names for comuns in the for loop
+  # chaet
+  A.chaet             <- blanks$meanBlank[blanks$Type == 'Chaet']
+ 
+  C0_Chaet            <- max(dat$Chaet_cell.ml[c(1:2)])
+  
+  Cend_Chaet          <- min(dat$Chaet_cell.ml[c(t_end_min1:t_end)])
+  
+  t0_Chaet            <- dat$time[dat$Chaet_cell.ml==C0_Chaet]
+  
+  t_Chaet             <- max((dat$time[dat$Chaet_cell.ml==Cend_Chaet]) - t0_Chaet) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  if (Cend_Chaet == 0) {  
+    ClearanceRate.Chaet <- (V * ((ln( C0_Chaet / 0.0001 )/(t_Chaet/60)) - A.chaet)) / (dat$Length_um[1] / 1000) # Chaetoceros cells mL-1  hr-1 mm shell length-1
+         } else ( ClearanceRate.Chaet <- (V * ((ln( C0_Chaet / Cend_Chaet )/(t_Chaet/60)) - A.chaet)) / (dat$Length_um[1] / 1000))
     
-    FeedRate.table$Date                       <- dat2OM$Date
+  # low chl a (seston)
+  A.Seston             <- blanks$meanBlank[blanks$Type == 'Seston']
+ 
+  C0_Seston            <- max(dat$Low_chlorophyll_cell.ml[c(1:2)])
+  
+  Cend_Seston          <- min(dat$Low_chlorophyll_cell.ml[c(t_end_min1:t_end)])
+  
+  t0_Seston            <- dat$time[dat$Low_chlorophyll_cell.ml==C0_Seston]
+  
+  t_Seston             <- max((dat$time[dat$Low_chlorophyll_cell.ml==Cend_Seston]) - t0_Seston) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
+  
+  if (Cend_Seston == 0) {  
+    ClearanceRate.Seston <- (V * ((ln( C0_Seston / 0.0001 )/(t_Seston/60)) - A.Seston)) / (dat$Length_um[1] / 1000) # Chaetoceros cells mL-1  hr-1 mm shell length-1
+         } else ( ClearanceRate.Seston <- (V * ((ln( C0_Seston / Cend_Seston )/(t_Seston/60)) - A.Seston)) / (dat$Length_um[1] / 1000))
+  
+  
+  dat2 <- dat[1,] %>%
+    dplyr::select(c('Date','pH', 'Replicate', 'Fed_Unfed','Run', 'Plate', 'Number', 'Length_um')) %>% 
+    mutate(Chaet_mL.hr.mmlength = ClearanceRate.Chaet) %>% 
+    mutate(Ply_mL.hr.mmlength = ClearanceRate.Ply) %>% 
+    mutate(Seston_mL.hr.mmlength = ClearanceRate.Seston)
+    
+  if (nrow(dat2) > 0) {
+    FeedRate.table           <- data.frame(matrix(nrow = nrow(dat2), ncol = 12)) # create dataframe to save cumunalitively during for loop
+    colnames(FeedRate.table) <- c('Date', 'ID', 'pH', 'Replicate', 'Fed_Unfed','Run', 'Plate', 'Number', 'Length_um', 'Chaet_mL.hr.mmlength', 'Ply_mL.hr.mmlength', 'Seston_mL.hr.mmlength') 
+    FeedRate.table$Date                       <- dat2$Date
     FeedRate.table$ID                         <- loop_1026[i,]
     FeedRate.table$pH                         <- gsub("_.*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Fed_Unfed                  <- dat2OM$Fed_Unfed
     FeedRate.table$Replicate                  <- gsub("^(?:[^_]+_){5}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Num                        <- gsub("^(?:[^_]+_){6}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Run                        <- gsub("^(?:[^_]+_){2}([^_]+).*", "\\1", FeedRate.table$ID)
-    FeedRate.table$Time_period                <- dat2OM$Time_period
-    FeedRate.table$TotalAlgaeLossRatio             <- dat2OM$TotalAlgaeLossRatio
-    FeedRate.table$FeedingRate_L_hour_m <- dat2OM$FeedingRate_L_hour_m
+    FeedRate.table$Fed_Unfed                  <- dat2$Fed_Unfed
+    FeedRate.table$Run                        <- gsub("^(?:[^_]+_){3}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Plate                      <- dat2$Plate
+    FeedRate.table$Number                     <- gsub("^(?:[^_]+_){7}([^_]+).*", "\\1", FeedRate.table$ID)
+    FeedRate.table$Length_um                  <- dat2$Length_um
+    FeedRate.table$Chaet_mL.hr.mmlength       <- dat2$Chaet_mL.hr.mmlength
+    FeedRate.table$Ply_mL.hr.mmlength         <- dat2$Ply_mL.hr.mmlength
+    FeedRate.table$Seston_mL.hr.mmlength      <- dat2$Seston_mL.hr.mmlength
     
     df       <- data.frame(FeedRate.table) # name dataframe for this single row
     df_total.1026 <- rbind(df_total.1026,df) #bind to a cumulative list dataframe
     #print(df_total.1026) # print to monitor progress
-  }
-  else {}
+  } else {}
 }
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# clean & view means...       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 df_total.1026 <- df_total.1026  %>% 
-  dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% 
-  dplyr::mutate(pHxFood = paste(pH, Fed_Unfed, sep = "_")) %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pH,Replicate,Fed_Unfed, sep = '_'))) 
+  dplyr::mutate(random_fact = as.factor(paste(Replicate, pH, Fed_Unfed, sep = '_')))
 
 
-FeedRates_1026_Means <- df_total.1026 %>% 
+Ply_CR_1026_Means <- df_total.1026 %>% 
   dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::filter(Ply_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
-    meanCR = mean(FeedingRate_L_hour_m),
-    sdCR   = sd(FeedingRate_L_hour_m), 
-    seCR   = sd(FeedingRate_L_hour_m) / sqrt(length(FeedingRate_L_hour_m)), 
-    n = n()) %>% 
-  na.omit()
-FeedRates_1026_Means
+    Ply_meanCR = mean(Ply_mL.hr.mmlength),
+    Ply_sdCR   = sd(Ply_mL.hr.mmlength), 
+    Ply_seCR   = sd(Ply_mL.hr.mmlength) / sqrt(length(Ply_mL.hr.mmlength)), 
+    n = n())
+print(Ply_CR_1026_Means)
 
-df_total.1026  %>% summarySE(measurevar="FeedingRate_L_hour_m", groupvars=("Fed_Unfed")) 
+Chaet_CR_1026_Means <- df_total.1026 %>% 
+  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::filter(Chaet_mL.hr.mmlength > 0) %>% # ommit negative values
+  dplyr::summarise(
+    Chaet_meanCR = mean(Chaet_mL.hr.mmlength),
+    Chaet_sdCR   = sd(Chaet_mL.hr.mmlength), 
+    Chaet_seCR   = sd(Chaet_mL.hr.mmlength) / sqrt(length(Chaet_mL.hr.mmlength)), 
+    n = n())
+print(Chaet_CR_1026_Means)
 
-# plot the replicates (visual diagnostics of random factor)
-Resp1026_FR <- ggboxplot(df_total.1026, x = "pHxFood", y = "FeedingRate_L_hour_m", color = "Replicate",
-                              add = c("mean_se", "dotplot"),
-                              palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp1026_FR
+
+Seston_CR_1026_Means <- df_total.1026 %>% 
+  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::filter(Seston_mL.hr.mmlength > 0) %>% # ommit negative values
+  dplyr::summarise(
+    Seston_meanCR = mean(Seston_mL.hr.mmlength),
+    Seston_sdCR   = sd(Seston_mL.hr.mmlength), 
+    Seston_seCR   = sd(Seston_mL.hr.mmlength) / sqrt(length(Seston_mL.hr.mmlength)), 
+    n = n())
+print(Seston_CR_1026_Means)
 
 
-# Linear mixed-effects model
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# Data
+Ply_FR_1026_df      <- df_total.1026 %>% filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))
+Chaet_FR_1026_df    <- df_total.1026 %>% filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))
+Seston_FR_1026_df   <- df_total.1026 %>% filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))
+
+# library
 require(nlme)
-# Linear mixed effects model with random effect of Replicate 
-LMEmod_1026_FR<-lme(FeedingRate_L_hour_m ~ pH * Fed_Unfed, random=~1|random_fact, data=df_total.1026  )
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  24   |  60.53  | 5.152e-08 |
-# |      **pH**      |   1   |   6   | 0.03345 |  0.8609   |
-# |  **Fed_Unfed**   |   1   |  24   |  53.45  | 1.497e-07 |
-# | **pH:Fed_Unfed** |   1   |  24   | 0.02382 |  0.8786   |
-pander(anova(LMEmod_1026_FR), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(LMEmod_1026_FR))) %>%  # print a png of this table
+
+# Ply - Linear Mixed Effects Model
+Ply_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Ply_FR_1026_df)
+# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:---------:|
+# | **(Intercept)**  |   1   |  15   |  36.13   | 2.384e-05 |
+# |      **pH**      |   1   |  12   | 4.12e-07 |  0.9995   |
+# |  **Fed_Unfed**   |   1   |  12   |  19.18   | 0.0008971 | ***
+# | **pH:Fed_Unfed** |   1   |  12   | 0.02747  |  0.8711   |
+pander(anova(Ply_LMEmod_1026), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Ply_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FR_LME_Diagnostics.pdf"))
-check_model(LMEmod_1026_FR) # print the model diagnostics 
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_PLY_CR_LME_Diagnostics.pdf"))
+check_model(Ply_LMEmod_1026) # print the model diagnostics 
 dev.off()
 
 
-FR_1026_boxplot <- df_total.1026 %>% 
-  dplyr::filter(!FeedingRate_L_hour_m  < 0) %>% 
-  ggplot(aes(pCO2 , FeedingRate_L_hour_m , fill = pCO2)) +
+# Chaet - Linear Mixed Effects Model
+Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df)
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  14   |  45.77  | 9.091e-06 |
+# |      **pH**      |   1   |  10   | 0.2495  |  0.6282   |
+# |  **Fed_Unfed**   |   1   |  10   |  17.84  | 0.001763  | ***
+# | **pH:Fed_Unfed** |   1   |  10   | 0.5351  |  0.4813   |
+pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Chaet_LMEmod_1026))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CHAET_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CHAET_CR_LME_Diagnostics.pdf"))
+check_model(Chaet_LMEmod_1026) # print the model diagnostics 
+dev.off()
+
+
+# Seston - Linear Mixed Effects Model
+Seston_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Seston_FR_1026_df)
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  14   |  61.2   | 1.775e-06 |
+# |      **pH**      |   1   |  11   |  1.138  |  0.3089   |
+# |  **Fed_Unfed**   |   1   |  11   |  19.33  | 0.001068  |
+# | **pH:Fed_Unfed** |   1   |  11   |  2.006  |  0.1843   |
+pander(anova(Seston_LMEmod_1026), style='rmarkdown') # anova table of lmer
+kable(as.data.frame(anova(Seston_LMEmod_1026))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_SESTON_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_SESTON_CR_LME_Diagnostics.pdf"))
+check_model(Seston_LMEmod_1026) # print the model diagnostics 
+dev.off()
+
+
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+Master_1026_plotting         <- rbind(Chaet_FR_1026_df, Ply_FR_1026_df, Seston_FR_1026_df)
+Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pH, Master_1026_plotting$Fed_Unfed, sep = '_')
+CR_1026_boxplot <- Master_1026_plotting %>% 
+  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
   theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
-  scale_fill_manual(values=c("white","grey50")) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
+  scale_fill_manual(values=c("grey50","grey50","white","white")) +
   geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
   theme_classic() +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=10)) +
   stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance Rate, F1 Scallops 20210914 (0-90 minutes)") +
-  facet_wrap(~Fed_Unfed)
-FR_1026_boxplot
+  ggtitle("Clearance rate, F1 Scallops 20211026") +
+  facet_wrap(~type)
+CR_1026_boxplot
 
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/2011026_FR_LME.pdf"))
-ggarrange(FR_1026_boxplot, Resp1026_FR,
-          labels = c("A", "B"),
-          ncol = 1, nrow = 2)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/2011026_CR_Boxplots.pdf"), width = 10)
+ggarrange(CR_1026_boxplot)
 dev.off()
+
 
 ```
 
 
-# density plot - Day 64 filtration rate 
-```{r, Day 64 density length plot }
+## Density plots
+
+
+```{r, 20210930 Density plots }
 library(dplyr)
 library(tidyr)
 
-df_total.1026$pHxfood <- as.factor(paste(df_total.1026$pH, df_total.1026$Fed_Unfed, sep = "_"))
-df_mean <- df_total.1026 %>% 
+Master_930_plotting$pHxfood <- as.factor(Master_930_plotting$pHxfood)
+CHAET_plotting  <- Master_930_plotting %>% dplyr::filter(type %in% 'chaet')
+PLY_plotting    <- Master_930_plotting %>% dplyr::filter(type %in% 'ply')
+SESTON_plotting <- Master_930_plotting %>% dplyr::filter(type %in% 'seston')
+
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Chaetoceros                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+df_mean_CHAET <- CHAET_plotting %>%
   dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(FeedingRate_L_hour_m)) %>%
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
   dplyr::ungroup()
-p.box <- ggplot(df_total.1026, aes(x = pHxfood, y = FeedingRate_L_hour_m)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxfood, y = average),
+p.box_CHAET <- ggplot(CHAET_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
              color="red") 
-p.box.data <- layer_data(p.box) %>%
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
-  dplyr::mutate(mean  = (df_mean$average)) %>% 
-  mutate(pHxfood = factor(x, labels = levels(df_total.1026$pHxfood), ordered = TRUE)) %>%
+  dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(CHAET_plotting$pHxfood), ordered = TRUE)) %>%
   select(-x)
 
-ggplot(df_total.1026, aes(x=FeedingRate_L_hour_m, color=pHxfood)) +
-  geom_density()
+p.box.data.CHAET %>% unnest(outliers)
 
 
-denisty_box_FR_92DPF <-ggplot(p.box.data) +
-                            # manually plot flipped boxplot
-                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
-                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pHxfood),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
-                            # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
-                            # density plot
-                            geom_density(data = df_total.1026, aes(x = FeedingRate_L_hour_m, fill=pHxfood, ..scaled..), alpha=.4) +
-                            #  theme
-                            theme_classic() +
-                            xlim(0, 30) +
-                            facet_grid(pHxfood ~ .) +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                            labs(x = "Filtration rate", y = "frequency")  +
-                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
-denisty_box_FR_92DPF
-# export the plot
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FR_density_plot.pdf"), width = 4, height = 8)
-denisty_box_FR_92DPF # print the model diagnostics 
+density.plot_CR_CHAET_930 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = CHAET_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_CHAET_930
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_CHAET_930 # print the model diagnostics 
 dev.off()
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Tetraselmis (Ply)                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_PLY <- PLY_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.PLY <- layer_data(p.box_PLY) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_PLY$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(PLY_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.PLY %>% unnest(outliers)
+
+
+density.plot_CR_PLY_930 <-ggplot(p.box.data.PLY) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = PLY_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Tetraselmis/PLY) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Tetraselmis~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_PLY_930
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_PLY_930 # print the model diagnostics 
+dev.off()
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Seston                             ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_SESTON <- SESTON_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.SESTON <- layer_data(p.box_SESTON) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_SESTON$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(SESTON_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.SESTON %>% unnest(outliers)
+
+
+density.plot_CR_SESTON_0930 <-ggplot(p.box.data.SESTON) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = SESTON_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (seston) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~SESTONoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_SESTON_0930
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_SESTON_0930 # print the model diagnostics 
+dev.off()
+
 ```
 
 
 
+```{r, 20211026 Density plots }
+library(dplyr)
+library(tidyr)
+
+Master_1026_plotting$pHxfood <- as.factor(Master_1026_plotting$pHxfood)
+CHAET_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'chaet')
+PLY_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'ply')
+SESTON_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'seston')
 
 
 
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Chaetoceros                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-``` {r CR master file write csv, echo = FALSE}
+df_mean_CHAET <- CHAET_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_CHAET <- ggplot(CHAET_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(CHAET_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
 
-# write csv ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-df_total.914 <- df_total.914 %>% dplyr::mutate(pHxFood = "none") %>%  dplyr::mutate(Fed_Unfed = "fed") # make te column to maetch and rbind below 
-All_FR_Master <- rbind(df_total.914, df_total.930, df_total.1026)
+p.box.data.CHAET %>% unnest(outliers)
 
 
-FR_MasterSumTab <- All_FR_Master %>% 
-  dplyr::filter(!FeedingRate_L_hour_m < 0) %>%
-  Rmisc::summarySE(measurevar="FeedingRate_L_hour_m", groupvars=c("Date", "pCO2", "Fed_Unfed"))   %>% 
-  dplyr::mutate(Age = case_when(Date == "20210914" ~ 50, Date == "20210930" ~ 64,Date == "20211026" ~ 92)) %>%
-  replace_na(list(Fed_Unfed = 'High food')) # replaces the NAs for 20210914 Fed_Unfed as 'High food' - this was before split for the food deprivation  
+density.plot_CR_CHAET_1026 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = CHAET_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_CHAET_1026
 
-## Use geom_line and geom_point to plot over time
-FR_TotalAlgae_geomline <-ggplot(data=FR_MasterSumTab, aes(x=Age, y=FeedingRate_L_hour_m, color=pCO2)) +
-                            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-                            geom_point()+ 
-                            scale_color_manual(values=c("forestgreen","darkorange2"))+
-                            geom_errorbar(aes(ymin=FeedingRate_L_hour_m-se, ymax=FeedingRate_L_hour_m+se), width=.2,
-                                          position=position_dodge(.1))+
-                            theme_bw() +  
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
-                            scale_x_continuous(name ="Age (days)") +
-                            labs(title = "Feeding rate; F1 Scallops (juveniles) FoodxOAexperiment", 
-                                  y = expression(Feeding~rate~"("~live~cells~L^{-1}%.%m^{-1}%.%hr^{-1}~")")) +
-                            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
-                            theme(legend.position="none") +
-                            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-                            facet_wrap(~pCO2)
-
-#pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Respiration/Juvenile_respiration_FoodxOA.pdf"))
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/Juvenile_FeedingRate_FoodxOA.pdf"))
-FR_TotalAlgae_geomline
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_CHAET_1026 # print the model diagnostics 
 dev.off()
 
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Tetraselmis (Ply)                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_PLY <- PLY_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.PLY <- layer_data(p.box_PLY) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_PLY$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(PLY_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.PLY %>% unnest(outliers)
+
+
+density.plot_CR_PLY_1026 <-ggplot(p.box.data.PLY) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = PLY_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Tetraselmis/PLY) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Tetraselmis~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_PLY_1026
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_PLY_1026 # print the model diagnostics 
+dev.off()
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Seston                             ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_SESTON <- SESTON_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.SESTON <- layer_data(p.box_SESTON) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_SESTON$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(SESTON_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.SESTON %>% unnest(outliers)
+
+
+density.plot_CR_SESTON_1026 <-ggplot(p.box.data.SESTON) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = SESTON_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (seston) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~SESTONoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_SESTON_1026
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_SESTON_1026 # print the model diagnostics 
+dev.off()
 
 ```
