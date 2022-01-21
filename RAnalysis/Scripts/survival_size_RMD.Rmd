@@ -39,8 +39,8 @@ library(lmerTest)
 # using lme
 library(nlme)
 library(car)
-# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+ setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 ```
 
@@ -48,12 +48,12 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 ```{r setup, include=TRUE}
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length                     <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_50DPF_92DPF.csv", header = TRUE)
-len.dryweight.CI_1026      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
-len.dryweight.CI_1202      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
+length                     <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_50DPF_92DPF.csv", header = TRUE)
+len.dryweight.CI_1026      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
+len.dryweight.CI_1202      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
 
 
-survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_50DPF_92DPF.csv", header = TRUE)
+survival_juvenile          <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_50DPF_92DPF.csv", header = TRUE)
 
 # Structure of the data - to check that variables are properly assigned to factor or variable
 # str(length)
@@ -427,7 +427,7 @@ data_51 <- length %>%
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
   dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate, sep = "_")))
 
-# data_51_AVG <- data_51 %>%  summarySE(measurevar="Length_um", groupvars= "pCO2")
+data_51_AVG <- data_51 %>%  summarySE(measurevar="Length_um", groupvars= "pCO2")
 # data_51_AVG
 
 
@@ -498,7 +498,7 @@ data_64_length <- length %>%
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
   dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
 
-# data_64_AVG.length <- data_64_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))
+data_64_AVG.length <- data_64_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))
 # data_64_AVG.length
 # 
 # data_64_AVG.length <- data_64_length %>%  summarySE(measurevar="Length_um", groupvars= "Fed_Unfed")

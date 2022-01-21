@@ -1004,7 +1004,7 @@ Chaet_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact,
 # |:----------------:|:-----:|:-----:|:-------:|:---------:|
 # | **(Intercept)**  |   1   |  52   |  44.02  | 1.893e-08 |
 # |      **pH**      |   1   |  12   | 0.06041 |   0.81    |
-# |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  |
+# |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  | **
 # | **pH:Fed_Unfed** |   1   |  12   | 0.01714 |   0.898   |
 pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Chaet_LMEmod_0930))) %>%  # print a png of this table
@@ -1182,10 +1182,10 @@ for (i in 1:nrow(loop_1026)) {
 df_total.1026 <- df_total.1026  %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% 
   dplyr::mutate(random_fact = as.factor(paste(Replicate, pH, Fed_Unfed, sep = '_')))
-
+pCO2 
 
 Ply_CR_1026_Means <- df_total.1026 %>% 
-  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::group_by( Fed_Unfed) %>% 
   dplyr::filter(Ply_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
     Ply_meanCR = mean(Ply_mL.hr.mmlength),
@@ -1195,7 +1195,7 @@ Ply_CR_1026_Means <- df_total.1026 %>%
 print(Ply_CR_1026_Means)
 
 Chaet_CR_1026_Means <- df_total.1026 %>% 
-  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::group_by(Fed_Unfed) %>% 
   dplyr::filter(Chaet_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
     Chaet_meanCR = mean(Chaet_mL.hr.mmlength),
@@ -1206,7 +1206,7 @@ print(Chaet_CR_1026_Means)
 
 
 Seston_CR_1026_Means <- df_total.1026 %>% 
-  dplyr::group_by(pCO2, Fed_Unfed) %>% 
+  dplyr::group_by(Fed_Unfed) %>% 
   dplyr::filter(Seston_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
     Seston_meanCR = mean(Seston_mL.hr.mmlength),
