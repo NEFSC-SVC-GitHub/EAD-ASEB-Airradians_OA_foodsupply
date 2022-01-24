@@ -39,8 +39,8 @@ library(Rmisc)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
-  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+#   setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 Master_data       <- read.csv(file="Data/Feeding_rates/FeedingRates_MasterData.csv", header=T) # master data file
@@ -990,12 +990,16 @@ Ply_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, d
 # |  **Fed_Unfed**   |   1   |   6   |  1.365   |  0.287   |
 # | **pH:Fed_Unfed** |   1   |   6   |  0.1011  |  0.7612  |
 pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
+shapiro.test(resid(Ply_LMEmod_0930)) # 0.407
+qqnorm(resid(Ply_LMEmod_0930)) # normal
 kable(as.data.frame(anova(Ply_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_PLY_CR_LME_Table.png", zoom = 1.5)
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_PLY_CR_LME_Diagnostics.pdf"))
 check_model(Ply_LMEmod_0930) # print the model diagnostics 
 dev.off()
+
+
 
 
 # Chaet - Linear Mixed Effects Model
@@ -1007,12 +1011,30 @@ Chaet_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact,
 # |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  | **
 # | **pH:Fed_Unfed** |   1   |  12   | 0.01714 |   0.898   |
 pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
+shapiro.test(resid(Chaet_LMEmod_0930)) # 3.877e-10 non-normal
+qqnorm(resid(Chaet_LMEmod_0930)) # nonnonormal residuals
+hist(resid(Chaet_LMEmod_0930)) # right skew - log should resolve normality 
+
+Chaet_LMEmod_0930_LOG <-lme( log(CR_mL.hr.mmlength) ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df)
+pander(anova(Chaet_LMEmod_0930_LOG), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:---------:|
+# | **(Intercept)**  |   1   |  52   |  75.88   | 9.753e-12 |
+# |      **pH**      |   1   |  12   |  0.5087  |  0.4894   |
+# |  **Fed_Unfed**   |   1   |  12   |  7.169   |  0.02013  | # did not change the statistical outcome of the LME!
+# | **pH:Fed_Unfed** |   1   |  12   | 0.001205 |  0.9729   |
+shapiro.test(resid(Chaet_LMEmod_0930_LOG)) # 0.1789 - now it is normal
+qqnorm(resid(Chaet_LMEmod_0930_LOG)) # normal
+hist(resid(Chaet_LMEmod_0930_LOG)) # normality resolved using log (no longer right skew)
+
 kable(as.data.frame(anova(Chaet_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CHAET_CR_LME_Table.png", zoom = 1.5)
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CHAET_CR_LME_Diagnostics.pdf"))
 check_model(Chaet_LMEmod_0930) # print the model diagnostics 
 dev.off()
+
+
 
 
 # Seston - Linear Mixed Effects Model
@@ -1024,6 +1046,23 @@ Seston_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact
 # |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
 # | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
 pander(anova(Seston_LMEmod_0930), style='rmarkdown') # anova table of lmer
+shapiro.test(resid(Seston_LMEmod_0930)) # 2.236e-06 non-normal
+qqnorm(resid(Seston_LMEmod_0930)) # nonnonormal residuals
+hist(resid(Seston_LMEmod_0930)) #right skew - log should resolve normality 
+
+Seston_LMEmod_0930_LOG <-lme( log(CR_mL.hr.mmlength) ~ pH*Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df)
+pander(anova(Seston_LMEmod_0930_LOG), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  | # still no marginal  nor significant effects - normality did not change the statistical outcome of the model...
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  34   |  23.41  | 2.784e-05 |
+# |      **pH**      |   1   |  12   | 0.2759  |  0.6089   |
+# |  **Fed_Unfed**   |   1   |  12   | 0.6224  |  0.4455   |
+# | **pH:Fed_Unfed** |   1   |  12   |  2.677  |  0.1277   |
+shapiro.test(resid(Seston_LMEmod_0930_LOG)) # 0.8217 normal with log transformation
+qqnorm(resid(Seston_LMEmod_0930_LOG)) # normal residuals
+hist(resid(Seston_LMEmod_0930_LOG)) # normality resolved
+
+hist(resid(Chaet_LMEmod_0930)) # right skew - log should resolve normality 
 kable(as.data.frame(anova(Seston_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_SESTON_CR_LME_Table.png", zoom = 1.5)
@@ -1182,7 +1221,7 @@ for (i in 1:nrow(loop_1026)) {
 df_total.1026 <- df_total.1026  %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% 
   dplyr::mutate(random_fact = as.factor(paste(Replicate, pH, Fed_Unfed, sep = '_')))
-pCO2 
+ 
 
 Ply_CR_1026_Means <- df_total.1026 %>% 
   dplyr::group_by( Fed_Unfed) %>% 
@@ -1245,6 +1284,9 @@ Ply_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, d
 # |  **Fed_Unfed**   |   1   |  12   |  19.18   | 0.0008971 | ***
 # | **pH:Fed_Unfed** |   1   |  12   | 0.02747  |  0.8711   |
 pander(anova(Ply_LMEmod_1026), style='rmarkdown') # anova table of lmer
+shapiro.test(resid(Ply_LMEmod_1026)) # 0.06153 normal!
+qqnorm(resid(Ply_LMEmod_1026)) # qqnorm looks s-shaped but the residuals are normal via shapiro wilk test
+hist(resid(Ply_LMEmod_1026)) # histogram
 kable(as.data.frame(anova(Ply_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
@@ -1252,6 +1294,12 @@ pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airrad
 check_model(Ply_LMEmod_1026) # print the model diagnostics 
 dev.off()
 
+
+
+
+
+
+# still need to resolve normality in the model below (chaet 1026)
 
 # Chaet - Linear Mixed Effects Model
 Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df)
@@ -1262,12 +1310,18 @@ Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact,
 # |  **Fed_Unfed**   |   1   |  10   |  17.84  | 0.001763  | ***
 # | **pH:Fed_Unfed** |   1   |  10   | 0.5351  |  0.4813   |
 pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
+shapiro.test(resid(Chaet_LMEmod_1026)) # 9.188e-05 non-normal residuals
+qqnorm(resid(Chaet_LMEmod_1026)) # s-dhaped or left skew
+hist(resid(Chaet_LMEmod_1026)) # 
+
+
 kable(as.data.frame(anova(Chaet_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CHAET_CR_LME_Table.png", zoom = 1.5)
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CHAET_CR_LME_Diagnostics.pdf"))
 check_model(Chaet_LMEmod_1026) # print the model diagnostics 
 dev.off()
+
 
 
 # Seston - Linear Mixed Effects Model
@@ -1279,6 +1333,9 @@ Seston_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact
 # |  **Fed_Unfed**   |   1   |  11   |  19.33  | 0.001068  |
 # | **pH:Fed_Unfed** |   1   |  11   |  2.006  |  0.1843   |
 pander(anova(Seston_LMEmod_1026), style='rmarkdown') # anova table of lmer
+shapiro.test(resid(Seston_LMEmod_1026)) #0.1157 normal residuals
+qqnorm(resid(Seston_LMEmod_1026)) # normal
+hist(resid(Seston_LMEmod_1026)) #  normal
 kable(as.data.frame(anova(Seston_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_SESTON_CR_LME_Table.png", zoom = 1.5)
