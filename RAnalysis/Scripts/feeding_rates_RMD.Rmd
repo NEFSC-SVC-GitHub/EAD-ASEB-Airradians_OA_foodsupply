@@ -39,19 +39,19 @@ library(Rmisc)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
-#   setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-Master_data       <- read.csv(file="Data/Feeding_rates/FeedingRates_MasterData.csv", header=T) # master data file
+Master_data       <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T) # master data file
 
-feed.rate_914    <- Master_data  %>% dplyr::filter(Date %in% 20210914)  %>% 
+clearance.rate_914    <- Master_data  %>% dplyr::filter(Date %in% 20210914)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
 
-feed.rate_930    <- Master_data  %>% dplyr::filter(Date %in% 20210930)  %>% 
+clearance.rate_930    <- Master_data  %>% dplyr::filter(Date %in% 20210930)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
 
-feed.rate_1026    <- Master_data  %>% dplyr::filter(Date %in% 20211026)  %>% 
+clearance.rate_1026    <- Master_data  %>% dplyr::filter(Date %in% 20211026)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
 
 
@@ -64,7 +64,35 @@ length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),] %>%  d
                                                                                                'Chamber_tank', 'Number', 'Length_um','whole_Dry_weight'))
 
 ```
-## Merge to master file 'FeedRate_Master'
+```{r, calc ratio ChatB : PLY429 for CR trials}
+
+Av_Chaet_Tet_initial <- Master_data %>% 
+  dplyr::filter(!quality %in% '*') %>% # poor quality data marked with * due to pseudofeces in occasional measurements 
+  dplyr::filter(time %in% 0) %>%       # call the initial time point 
+ # dplyr::group_by(Date) %>% 
+  dplyr::summarise(
+    
+    meanChaetB = mean(Chaet_cell.ml),
+    sdChaetB   = sd(Chaet_cell.ml), 
+    
+    meanPLY429 = mean(PLY_cell.ml), 
+    sdPLY429   = sd(PLY_cell.ml), 
+    
+    n = n(),
+    seChaetB   = (sdChaetB / (sqrt(n))),
+    sePLY429   = (sdChaetB / (sqrt(n))),
+    
+    mean.Total_cellsmL = mean(Chaet_cell.ml + PLY_cell.ml),
+    sdTotal    = sd(Chaet_cell.ml + PLY_cell.ml), 
+    seTotal    = (sdTotal / (sqrt(n))),
+
+    meanRatio_Ply429.ChaetB = mean(Chaet_cell.ml/PLY_cell.ml)
+  )
+Av_Chaet_Tet_initial
+
+```
+
+## Merge to master file 'ClearanceRate_Master'
 
 Date from: 
 - 20210914
@@ -75,61 +103,61 @@ Date from:
 # 20210914 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # formatting for merge
 # call the 20210914 data and remove blanks
-feed.rate_914_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
-  (feed.rate_914),
+clearance.rate_914_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
+  (clearance.rate_914),
   (length.resp.feed %>% 
      dplyr::filter(Date %in% 20210914) %>% dplyr::mutate(Fed_Unfed = 'fed')) ) 
 
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # formatting for merge
 # call the 20210930 data and remove blanks
-feed.rate_930_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
-  (feed.rate_930),
+clearance.rate_930_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
+  (clearance.rate_930),
   (length.resp.feed %>% 
      dplyr::filter(Date %in% 20210930)) ) 
 
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # formatting for merge
 # call the 20210930 data and remove blanks
-feed.rate_1026_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
-  (feed.rate_1026),
+clearance.rate_1026_Scallops <- merge( # note - merging with th elengths removed the blanks from the clearance rate data (no lengths for them! )
+  (clearance.rate_1026),
   (length.resp.feed %>% 
      dplyr::filter(Date %in% 20211026)) ) 
 
 
-FeedRate_Master             <- rbind(feed.rate_914_Scallops, feed.rate_930_Scallops, feed.rate_1026_Scallops)
-# FeedRate_Master$tet.ply     <- (as.numeric(gsub(",", "", FeedRate_Master$tet.ply )))*(1000/33)
-# FeedRate_Master$chaet       <- (as.numeric(gsub(",", "", FeedRate_Master$chaet )))*(1000/33)
-# FeedRate_Master$total_algae <- (as.numeric(gsub(",", "", FeedRate_Master$total_algae )))*(1000/33)
-# FeedRate_Master$seston      <- (as.numeric(gsub(",", "", FeedRate_Master$seston )))*(1000/33)
+ClearanceRate_Master             <- rbind(clearance.rate_914_Scallops, clearance.rate_930_Scallops, clearance.rate_1026_Scallops)
+# ClearanceRate_Master$tet.ply     <- (as.numeric(gsub(",", "", ClearanceRate_Master$tet.ply )))*(1000/33)
+# ClearanceRate_Master$chaet       <- (as.numeric(gsub(",", "", ClearanceRate_Master$chaet )))*(1000/33)
+# ClearanceRate_Master$total_algae <- (as.numeric(gsub(",", "", ClearanceRate_Master$total_algae )))*(1000/33)
+# ClearanceRate_Master$seston      <- (as.numeric(gsub(",", "", ClearanceRate_Master$seston )))*(1000/33)
 
-print(head(FeedRate_Master))
+print(head(ClearanceRate_Master))
 ```
 
 
 
 ``` {r loops and  for statements - visualization of slope and calculation of CR, echo = TRUE}
 # Day 0 0914 
-FeedRate_Master.914 <- FeedRate_Master %>% 
+ClearanceRate_Master.914 <- ClearanceRate_Master %>% 
   dplyr::filter(Date %in% 20210914) %>% 
   dplyr::mutate(uniq_Identifier = paste(pH, "Run", Run, "Rep",Replicate, "Num", Number, sep='_'))
 
-loop_914 <- as.data.frame(unique(FeedRate_Master.914$uniq_Identifier)) %>% dplyr::rename(ID = "unique(FeedRate_Master.914$uniq_Identifier)")
+loop_914 <- as.data.frame(unique(ClearanceRate_Master.914$uniq_Identifier)) %>% dplyr::rename(ID = "unique(ClearanceRate_Master.914$uniq_Identifier)")
 
 # 64 DPF 0930 
-FeedRate_Master.930       <- FeedRate_Master %>% 
+ClearanceRate_Master.930       <- ClearanceRate_Master %>% 
   dplyr::filter(Date %in% 20210930) %>% 
   dplyr::mutate(uniq_Identifier = paste(pH, Fed_Unfed, "Run", Run, "Rep",Replicate, "Num", Number, sep='_'))
 
-loop_930 <- as.data.frame(unique(FeedRate_Master.930$uniq_Identifier)) %>% dplyr::rename(ID = "unique(FeedRate_Master.930$uniq_Identifier)")
+loop_930 <- as.data.frame(unique(ClearanceRate_Master.930$uniq_Identifier)) %>% dplyr::rename(ID = "unique(ClearanceRate_Master.930$uniq_Identifier)")
 
 # 92 DPF 1026
-FeedRate_Master.1026       <- FeedRate_Master %>% 
+ClearanceRate_Master.1026       <- ClearanceRate_Master %>% 
   dplyr::filter(Date %in% 20211026) %>% 
   dplyr::mutate(Run = case_when(Run == "1_B" ~ "1B", Run == "1" ~ "1", Run =='2' ~ '2', Run == '3' ~ '3')) %>% 
   dplyr::mutate(uniq_Identifier = paste(pH, Fed_Unfed, "Run", Run, "Rep",Replicate, "Num", Number, sep='_'))
 
-loop_1026 <- as.data.frame(unique(FeedRate_Master.1026$uniq_Identifier)) %>% dplyr::rename(ID = "unique(FeedRate_Master.1026$uniq_Identifier)")
+loop_1026 <- as.data.frame(unique(ClearanceRate_Master.1026$uniq_Identifier)) %>% dplyr::rename(ID = "unique(ClearanceRate_Master.1026$uniq_Identifier)")
 
 ```
 
@@ -147,8 +175,8 @@ loop_1026 <- as.data.frame(unique(FeedRate_Master.1026$uniq_Identifier)) %>% dpl
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
-# SlopePlots_914 <- FeedRate_Master[!is.na(FeedRate_Master$total_algae),] %>% 
-SlopePlots_914_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] %>% 
+# SlopePlots_914 <- ClearanceRate_Master[!is.na(ClearanceRate_Master$total_algae),] %>% 
+SlopePlots_914_chaet <- ClearanceRate_Master[!is.na(ClearanceRate_Master$Chaet_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210914") %>% 
   dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
@@ -166,7 +194,7 @@ SlopePlots_914_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] 
 SlopePlots_914_chaet
 
 
-SlopePlots_914_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>% 
+SlopePlots_914_ply <- ClearanceRate_Master[!is.na(ClearanceRate_Master$PLY_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210914") %>% 
   dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
@@ -184,7 +212,7 @@ SlopePlots_914_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>%
 SlopePlots_914_ply
 
 
-SlopePlots_914_lowchla <- FeedRate_Master[!is.na(FeedRate_Master$Low_chlorophyll_cell.ml),] %>% 
+SlopePlots_914_lowchla <- ClearanceRate_Master[!is.na(ClearanceRate_Master$Low_chlorophyll_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210914") %>% 
   dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
@@ -211,7 +239,7 @@ ggarrange(SlopePlots_914_chaet, SlopePlots_914_ply, SlopePlots_914_lowchla)
 
 SlopeTable_914 <- data.frame() # run this before the loop
 for(i in 1:nrow(loop_914)){
-  dat <- FeedRate_Master.914 %>%  filter(uniq_Identifier %in% loop_914[i,])
+  dat <- ClearanceRate_Master.914 %>%  filter(uniq_Identifier %in% loop_914[i,])
     slope<- summary(lm((dat$Chaet_cell.ml) ~ as.numeric(dat$time)))$coef[2,"Estimate"]
     SLOPE  <- summary(lm((dat$Chaet_cell.ml) ~ as.numeric(dat$time)))$r.squared
     pval <- summary(lm((dat$Chaet_cell.ml) ~ as.numeric(dat$time)))$coef[2,"Pr(>|t|)"]
@@ -279,7 +307,7 @@ SlopeFig914_geombox # 0.0531
 # 20210930 DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-SlopePlots_930_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] %>% 
+SlopePlots_930_chaet <- ClearanceRate_Master[!is.na(ClearanceRate_Master$Chaet_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210930") %>% 
   dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
@@ -298,7 +326,7 @@ SlopePlots_930_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] 
 SlopePlots_930_chaet
 
 
-SlopePlots_930_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>% 
+SlopePlots_930_ply <- ClearanceRate_Master[!is.na(ClearanceRate_Master$PLY_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210930") %>% 
   dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
@@ -317,7 +345,7 @@ SlopePlots_930_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>%
 SlopePlots_930_ply
 
 
-SlopePlots_930_lowchla <- FeedRate_Master[!is.na(FeedRate_Master$Low_chlorophyll_cell.ml),] %>% 
+SlopePlots_930_lowchla <- ClearanceRate_Master[!is.na(ClearanceRate_Master$Low_chlorophyll_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20210930") %>% 
   dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
@@ -347,7 +375,7 @@ ggarrange(SlopePlots_930_chaet, SlopePlots_930_ply, SlopePlots_930_lowchla)
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
-SlopePlots_1026_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),] %>% 
+SlopePlots_1026_chaet <- ClearanceRate_Master[!is.na(ClearanceRate_Master$Chaet_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20211026") %>% 
   dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
@@ -366,7 +394,7 @@ SlopePlots_1026_chaet <- FeedRate_Master[!is.na(FeedRate_Master$Chaet_cell.ml),]
 SlopePlots_1026_chaet
 
 
-SlopePlots_1026_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>% 
+SlopePlots_1026_ply <- ClearanceRate_Master[!is.na(ClearanceRate_Master$PLY_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20211026") %>% 
   dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
@@ -385,7 +413,7 @@ SlopePlots_1026_ply <- FeedRate_Master[!is.na(FeedRate_Master$PLY_cell.ml),] %>%
 SlopePlots_1026_ply
 
 
-SlopePlots_1026_lowchla <- FeedRate_Master[!is.na(FeedRate_Master$Low_chlorophyll_cell.ml),] %>% 
+SlopePlots_1026_lowchla <- ClearanceRate_Master[!is.na(ClearanceRate_Master$Low_chlorophyll_cell.ml),] %>% 
   dplyr::filter(!Replicate %in% 'blank') %>%
   dplyr::filter(Date %in% "20211026") %>% 
   dplyr::mutate(pH_food = paste(pH, Fed_Unfed, sep = '_')) %>% 
@@ -412,15 +440,15 @@ ggarrange(SlopePlots_1026_chaet, SlopePlots_1026_ply, SlopePlots_1026_lowchla, n
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_FlowCytometry_rawdata.pdf"))
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_FlowCytometry_rawdata.pdf"))
 ggarrange(SlopePlots_914_chaet, SlopePlots_914_ply, SlopePlots_914_lowchla, ncol = 1, nrow = 3)
 dev.off()
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"), height = 12)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"), height = 12)
 ggarrange(SlopePlots_930_chaet, SlopePlots_930_ply, SlopePlots_930_lowchla, ncol = 1, nrow = 3)
 dev.off()
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"), height = 12)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"), height = 12)
 ggarrange(SlopePlots_1026_chaet, SlopePlots_1026_ply, SlopePlots_1026_lowchla, ncol = 1, nrow = 3)
 dev.off()
 ```
@@ -556,7 +584,7 @@ meanBLANKS.Seson <- data.frame(meanBLANKS.Master) %>%
 meanBLANKS.Summary <- rbind(meanBLANKS.Chaet, meanBLANKS.Ply, meanBLANKS.Seson)
 
 
-write.csv(meanBLANKS.Summary, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/Blanks_Master.csv")
+write.csv(meanBLANKS.Summary, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Blanks_Master.csv")
 
 ```
 
@@ -590,7 +618,7 @@ V = 25 # V == Volume of the vessel (in mL as 25 ml)
 
 df_total.914<- data.frame() # start dataframe 
 for (i in 1:nrow(loop_914)) {
-  dat <- FeedRate_Master.914 %>% 
+  dat <- ClearanceRate_Master.914 %>% 
     dplyr::filter(uniq_Identifier == loop_914[i,]) %>% 
     dplyr::mutate(Date_pH = paste(Date, pH, sep = '_')) %>% 
     dplyr::arrange(time)
@@ -746,8 +774,8 @@ Ply_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ply_FR
 pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Ply_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_PLY_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_PLY_CR_LME_Diagnostics.pdf"))
 check_model(Ply_LMEmod_0914) # print the model diagnostics 
 dev.off()
 
@@ -761,8 +789,8 @@ Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Chae
 pander(anova(Chaet_LMEmod_0914), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_CHAET_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_CHAET_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CHAET_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CHAET_CR_LME_Diagnostics.pdf"))
 check_model(Chaet_LMEmod_0914) # print the model diagnostics 
 dev.off()
 
@@ -776,8 +804,8 @@ Seston_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ses
 pander(anova(Seston_LMEmod_0914), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_SESTON_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/20210914_SESTON_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_SESTON_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_SESTON_CR_LME_Diagnostics.pdf"))
 check_model(Seston_LMEmod_0914) # print the model diagnostics 
 dev.off()
 
@@ -811,7 +839,7 @@ CR_914_boxplot
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
 ggarrange(CR_914_boxplot)
 dev.off()
 
@@ -834,7 +862,7 @@ V = 25 # V == Volume of the vessel (in mL as 25 ml)
 
 df_total.930<- data.frame() # start dataframe 
 for (i in 1:nrow(loop_930)) {
-  dat <- FeedRate_Master.930 %>% 
+  dat <- ClearanceRate_Master.930 %>% 
     dplyr::filter(uniq_Identifier == loop_930[i,]) %>% 
     dplyr::mutate(Date_pH = paste(Date, pH, sep = '_')) %>% 
     dplyr::arrange(time)
@@ -994,8 +1022,8 @@ shapiro.test(resid(Ply_LMEmod_0930)) # 0.407
 qqnorm(resid(Ply_LMEmod_0930)) # normal
 kable(as.data.frame(anova(Ply_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_PLY_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_PLY_CR_LME_Diagnostics.pdf"))
 check_model(Ply_LMEmod_0930) # print the model diagnostics 
 dev.off()
 
@@ -1029,8 +1057,8 @@ hist(resid(Chaet_LMEmod_0930_LOG)) # normality resolved using log (no longer rig
 
 kable(as.data.frame(anova(Chaet_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CHAET_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CHAET_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CHAET_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CHAET_CR_LME_Diagnostics.pdf"))
 check_model(Chaet_LMEmod_0930) # print the model diagnostics 
 dev.off()
 
@@ -1065,8 +1093,8 @@ hist(resid(Seston_LMEmod_0930_LOG)) # normality resolved
 hist(resid(Chaet_LMEmod_0930)) # right skew - log should resolve normality 
 kable(as.data.frame(anova(Seston_LMEmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_SESTON_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_SESTON_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_SESTON_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_SESTON_CR_LME_Diagnostics.pdf"))
 check_model(Seston_LMEmod_0930) # print the model diagnostics 
 dev.off()
 
@@ -1099,7 +1127,7 @@ CR_930_boxplot
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/2010930_CR_Boxplots.pdf"), width = 10)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/2010930_CR_Boxplots.pdf"), width = 10)
 ggarrange(CR_930_boxplot)
 dev.off()
 
@@ -1129,7 +1157,7 @@ V = 25 # V == Volume of the vessel (in mL as 25 ml)
 
 df_total.1026<- data.frame() # start dataframe 
 for (i in 1:nrow(loop_1026)) {
-  dat <- FeedRate_Master.1026 %>% 
+  dat <- ClearanceRate_Master.1026 %>% 
     dplyr::filter(uniq_Identifier == loop_1026[i,]) %>% 
     dplyr::mutate(Date_pH = paste(Date, pH, sep = '_')) %>% 
     dplyr::arrange(time)
@@ -1289,8 +1317,8 @@ qqnorm(resid(Ply_LMEmod_1026)) # qqnorm looks s-shaped but the residuals are nor
 hist(resid(Ply_LMEmod_1026)) # histogram
 kable(as.data.frame(anova(Ply_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_PLY_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Diagnostics.pdf"))
 check_model(Ply_LMEmod_1026) # print the model diagnostics 
 dev.off()
 
@@ -1317,8 +1345,8 @@ hist(resid(Chaet_LMEmod_1026)) #
 
 kable(as.data.frame(anova(Chaet_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CHAET_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CHAET_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_LME_Diagnostics.pdf"))
 check_model(Chaet_LMEmod_1026) # print the model diagnostics 
 dev.off()
 
@@ -1338,8 +1366,8 @@ qqnorm(resid(Seston_LMEmod_1026)) # normal
 hist(resid(Seston_LMEmod_1026)) #  normal
 kable(as.data.frame(anova(Seston_LMEmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_SESTON_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_SESTON_CR_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_LME_Diagnostics.pdf"))
 check_model(Seston_LMEmod_1026) # print the model diagnostics 
 dev.off()
 
@@ -1372,7 +1400,7 @@ CR_1026_boxplot
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/2011026_CR_Boxplots.pdf"), width = 10)
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/2011026_CR_Boxplots.pdf"), width = 10)
 ggarrange(CR_1026_boxplot)
 dev.off()
 
@@ -1382,7 +1410,7 @@ dev.off()
 ```{r, master Clearance rate data }
 
 ClearanceRate_Master <- rbind(Master_1026_plotting, Master_914_plotting, Master_930_plotting)
-write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/ClearanceRate_Master.csv")
+write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/ClearanceRate_Master.csv")
 
 ```
 
@@ -1439,7 +1467,7 @@ density.plot_CR_CHAET_930 <-ggplot(p.box.data.CHAET) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_CHAET_930
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_CHAET_930 # print the model diagnostics 
 dev.off()
 
@@ -1484,7 +1512,7 @@ density.plot_CR_PLY_930 <-ggplot(p.box.data.PLY) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_PLY_930
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_PLY_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_PLY_930 # print the model diagnostics 
 dev.off()
 
@@ -1528,7 +1556,7 @@ density.plot_CR_SESTON_0930 <-ggplot(p.box.data.SESTON) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_SESTON_0930
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20210930_figs_tables/20210930_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_SESTON_0930 # print the model diagnostics 
 dev.off()
 
@@ -1586,7 +1614,7 @@ density.plot_CR_CHAET_1026 <-ggplot(p.box.data.CHAET) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_CHAET_1026
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_CHAET_1026 # print the model diagnostics 
 dev.off()
 
@@ -1631,7 +1659,7 @@ density.plot_CR_PLY_1026 <-ggplot(p.box.data.PLY) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_PLY_1026
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_PLY_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_PLY_1026 # print the model diagnostics 
 dev.off()
 
@@ -1675,7 +1703,7 @@ density.plot_CR_SESTON_1026 <-ggplot(p.box.data.SESTON) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_SESTON_1026
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/FeedingRates/20211026_figs_tables/20211026_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_SESTON_1026 # print the model diagnostics 
 dev.off()
 
