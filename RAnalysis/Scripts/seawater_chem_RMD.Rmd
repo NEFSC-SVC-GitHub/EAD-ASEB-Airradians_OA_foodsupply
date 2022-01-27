@@ -16,80 +16,125 @@ library(stringr)
 library(latex2exp)
 library(Rmisc)
 library(kableExtra)
-
+library(ggpubr)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
-# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
+  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 
 # LOAD & FORMAT THE DATA 
 # All data  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
-  dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) %>%  # ommit all occurances of 'checks' of the system
-  dplyr::rename(Date = ï..Date)
-chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
+# chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
+#   dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) %>%  # ommit all occurances of 'checks' of the system
+#   dplyr::rename(Date = ï..Date)
+# chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
 
 # FOOD  OA CHALLENGE ONLY  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-foodxOAchem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_FoodxOA_Challenge.csv", header=T))[,c(1:20)] %>%  
-  dplyr::filter(!(Date %in% "10/12/2021" & Food.Treatment %in% 'Low')) %>% # omit 10/12/2021 measurements for the 'Low' Food treatment (check notebook, I think CO2 turned off overnight?) 
-  dplyr::filter(!X %in% 'checking the system') %>%  # ommit all occurances of 'checks' of the system
-  na.omit()
+# foodxOAchem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_FoodxOA_Challenge.csv", header=T))[,c(1:20)] %>%  
+#   dplyr::filter(!(Date %in% "10/12/2021" & Food.Treatment %in% 'Low')) %>% # omit 10/12/2021 measurements for the 'Low' Food treatment (check notebook, I think CO2 turned off overnight?) 
+#   dplyr::filter(!X %in% 'checking the system') %>%  # ommit all occurances of 'checks' of the system
+#   na.omit()
+CarbChemfoodxOAchem    <- data.frame(read.csv(file="Data/Seawater_chemistry/MasterTable_FoodxOA.csv", header=T))
+
 ```
 
 # ALL CHEMISTRY DATA  
 
 ### Figure (mean SE)
 ```{r all chem - figure, echo=FALSE}
+Measured_values <- CarbChemfoodxOAchem[,c(1:6,10,12:14)] %>% dplyr::mutate(Calculation = 'Measured_values')
+
+CO2SYS_TA.DIC   <- CarbChemfoodxOAchem %>% dplyr::select(c('Date', 'Fed_Unfed', 'pH', 'OA.pCO2.treat.', (contains("CO2SYS_TA.DIC")))) %>% dplyr::mutate(Calculation = 'TA.DIC')
+colnames(CO2SYS_TA.DIC)[5:19] <- sub(".*DIC_", "", colnames(CO2SYS_TA.DIC)[5:19])
+
+CO2SYS_TA.pH    <- CarbChemfoodxOAchem %>% dplyr::select(c('Date', 'Fed_Unfed', 'pH', 'OA.pCO2.treat.', (contains("CO2SYS_TA.pH"))))  %>% dplyr::mutate(Calculation = 'TA.pH')
+colnames(CO2SYS_TA.pH)[5:19] <- sub(".*_TA.pH_", "", colnames(CO2SYS_TA.pH)[5:19])
+
+CO2SYS_DIC.pH   <- CarbChemfoodxOAchem %>% dplyr::select(c('Date', 'Fed_Unfed', 'pH', 'OA.pCO2.treat.', (contains("CO2SYS_DIC.pH")))) %>% dplyr::mutate(Calculation = 'DIC.pH')
+colnames(CO2SYS_DIC.pH)[5:19] <- sub(".*_DIC.pH_", "", colnames(CO2SYS_DIC.pH)[5:19])
+
+CO2SYS_Master_CarbChem <- rbind(CO2SYS_TA.DIC, CO2SYS_TA.pH, CO2SYS_DIC.pH)
+CO2SYS_Master_CarbChem <- CO2SYS_Master_CarbChem[!is.na(CO2SYS_Master_CarbChem$pH),] 
+
+for(i in 5:(ncol(CO2SYS_Master_CarbChem)-1)){
+
+columnName <- colnames(CO2SYS_Master_CarbChem)[i]
+
+dat_fed <- CO2SYS_Master_CarbChem[!is.na(columnName),] %>% 
+              dplyr::filter(!pH %in% 7) %>% 
+              dplyr::filter(Fed_Unfed %in% 'fed') %>% 
+              summarySE(measurevar=columnName, groupvars=c("Date","pH", "Calculation"))
+P_fed <- ggplot(dat_fed, aes(x=Date, y=dat_fed[,5], colour=as.factor(pH), group=as.factor(pH))) + 
+            geom_errorbar(aes(ymin=dat_fed[,5]-se, ymax=dat_fed[,5]+se), colour="black", width=.1, position=pd) +
+            geom_line(position=pd) +
+            theme_classic() +
+            theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+            labs(title=paste('HIGH food supply:', columnName, sep = ' '), y = columnName) +
+            geom_point(position=pd, size=3) +
+            facet_wrap(~Calculation)
+            #facet_wrap(~Calculation, scales = "free")
+
+
+
+dat_unfed <- CO2SYS_Master_CarbChem[!is.na(columnName),] %>% 
+              dplyr::filter(!pH %in% 7) %>% 
+              dplyr::filter(Fed_Unfed %in% 'unfed') %>% 
+              summarySE(measurevar=columnName, groupvars=c("Date","pH", "Calculation"))
+P_unfed <- ggplot(dat_unfed, aes(x=Date, y=dat_unfed[,5], colour=as.factor(pH), group=as.factor(pH))) + 
+            geom_errorbar(aes(ymin=dat_unfed[,5]-se, ymax=dat_unfed[,5]+se), colour="black", width=.1, position=pd) +
+            geom_line(position=pd) +
+            theme_classic() +
+            theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+            labs(title=paste('LOW food supply:', columnName, sep = ' '), y = columnName) +
+            geom_point(position=pd, size=3) +
+            facet_wrap(~Calculation)
+
+
+pdf(paste0( paste("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Water_Chemistry/plots/", columnName, ".pdf", sep = '')), width = 8, height = 10 )
+print(ggarrange(P_fed, P_unfed, ncol = 1, nrow = 2))
+dev.off()
+
+}
+
+
+
+
+
 
 # Total Alkalinity (Mean St Error)
-TA_MeanSE <-  chem[!is.na(chem$TA_.mmol.kgSW.),] %>% 
-  summarySE(measurevar="TA_.mmol.kgSW.", groupvars=c("Date","OA_Treatment")) %>% 
+TA_MeanSE <-  Measured_values[!is.na(Measured_values$TA_.mmol.kgSW.),] %>% 
+  dplyr::filter(!pH %in% 7) %>% 
+  summarySE(measurevar="TA_.mmol.kgSW.", groupvars=c("Date","pH", "Fed_Unfed")) %>% 
   dplyr::mutate(Measurement = 'TA_mmol.kgSW') %>% 
   dplyr::rename(value = TA_.mmol.kgSW.)
-TA_MeanSE <- TA_MeanSE[-(68),] # remove a single row - TA from 9/9/ 'High' has a HUGE standard error value!
 # Total CO2 (Mean St Error)
-TACO2_MeanSE <-  chem[!is.na(chem$TCO2_.mmol.kgSW.),] %>% 
-  summarySE(measurevar="TCO2_.mmol.kgSW.", groupvars=c("Date","OA_Treatment")) %>% 
+TACO2_MeanSE <-  Measured_values[!is.na(Measured_values$TCO2_.mmol.kgSW.),] %>% 
+  dplyr::filter(!pH %in% 7) %>% 
+  summarySE(measurevar="TCO2_.mmol.kgSW.", groupvars=c("Date","pH", "Fed_Unfed")) %>% 
   dplyr::mutate(Measurement = 'TCO2_mmol.kgSW') %>% 
   dplyr::rename(value = TCO2_.mmol.kgSW.)
 #  pH Chosen scale (Mean St Error)
-pChosenScale_MeanSE <-  chem[!is.na(chem$pH_Chosen_scale_.4_decimals.),] %>% 
-  summarySE(measurevar="pH_Chosen_scale_.4_decimals.", groupvars=c("Date","OA_Treatment")) %>% 
+pChosenScale_MeanSE <-  Measured_values[!is.na(Measured_values$pH_Chosen_scale_.4.decimals.),] %>% 
+  dplyr::filter(!pH %in% 7) %>% 
+  summarySE(measurevar="pH_Chosen_scale_.4.decimals.", groupvars=c("Date","pH", "Fed_Unfed")) %>% 
   dplyr::mutate(Measurement = 'pH_Chosen_scale') %>% 
-  dplyr::rename(value = pH_Chosen_scale_.4_decimals.)
-# pH out  (Mean St Error) - calculated at the measured temperature 
-pHout_MeanSE <-  chem[!is.na(chem$pH_out_MeasTemp),] %>% 
-  summarySE(measurevar="pH_out_MeasTemp", groupvars=c("Date","OA_Treatment")) %>% 
-  dplyr::mutate(Measurement = 'pH out') %>% 
-  dplyr::rename(value = pH_out_MeasTemp) 
-# pCO2  (Mean St Error) - calculated at the measured temperature 
-pCO2out_MeanSE <-  chem[!is.na(chem$pCO2_out_.matm._MeasTemp),] %>% 
-  summarySE(measurevar="pCO2_out_.matm._MeasTemp", groupvars=c("Date","OA_Treatment")) %>% 
-  dplyr::mutate(Measurement = 'pCO2 out') %>% 
-  dplyr::rename(value = pCO2_out_.matm._MeasTemp)
-# Temperature  (Mean St Error) 
-temperature_MeanSE <-  chem[!is.na(chem$t.oC._spec),] %>% 
-  summarySE(measurevar="t.oC._spec", groupvars=c("Date","OA_Treatment")) %>% 
-  dplyr::mutate(Measurement = 'Temperature (C)') %>% 
-  dplyr::rename(value = t.oC._spec)
+  dplyr::rename(value = pH_Chosen_scale_.4.decimals.)
 
-master <- rbind(TA_MeanSE, TACO2_MeanSE, pChosenScale_MeanSE, pHout_MeanSE, pCO2out_MeanSE, temperature_MeanSE)
+
+master <- rbind(TA_MeanSE, TACO2_MeanSE, pChosenScale_MeanSE)
 
 master$Date <- as.Date(master$Date,'%m/%d') # reformat the date here
 
 pd <- position_dodge(0.1) # adjust the jitter for the different treatments   
 
-Masterplot <- ggplot(master, aes(x=Date, y=value, colour=OA_Treatment, group=OA_Treatment)) + 
+Masterplot <- ggplot(master, aes(x=Date, y=value, colour=as.factor(pH), group=as.factor(pH))) + 
   geom_errorbar(aes(ymin=value-se, ymax=value+se), colour="black", width=.1, position=pd) +
   geom_line(position=pd) +
-  scale_color_manual(values = c("Ambient" = "steelblue",
-                                "Mid"="orange",
-                                "High"="red")) +
   theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   geom_point(position=pd, size=3) +
   facet_wrap(~Measurement, scales = "free")
-
 Masterplot
 
 pdf("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Water_Chemistry/CarbChem_MeanSE_Timeseries.pdf", width=12, height=8)
