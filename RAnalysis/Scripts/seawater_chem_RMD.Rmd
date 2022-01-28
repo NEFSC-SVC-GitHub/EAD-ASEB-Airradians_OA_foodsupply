@@ -7,6 +7,8 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 
+# NOTE (as of 1/28/2022): 9/28/2021 DIC data is reversed between 7.5 and 8 buckets - need to ping the team to fix 
+
 # LOAD PACKAGES
 library(dplyr)
 library(ggplot2)
@@ -35,7 +37,8 @@ library(ggpubr)
 #   dplyr::filter(!(Date %in% "10/12/2021" & Food.Treatment %in% 'Low')) %>% # omit 10/12/2021 measurements for the 'Low' Food treatment (check notebook, I think CO2 turned off overnight?) 
 #   dplyr::filter(!X %in% 'checking the system') %>%  # ommit all occurances of 'checks' of the system
 #   na.omit()
-CarbChemfoodxOAchem    <- data.frame(read.csv(file="Data/Seawater_chemistry/MasterTable_FoodxOA.csv", header=T))
+CarbChemfoodxOAchem    <- data.frame(read.csv(file="Data/Seawater_chemistry/MasterTable_FoodxOA.csv", header=T)) %>% 
+                             dplyr::filter(!Date %in% '9/24/2021') # two measurements on 9/24 for static depuration buckets - omit for our analysis 
 
 ```
 
@@ -56,8 +59,10 @@ colnames(CO2SYS_TA.pH)[5:19] <- sub(".*_TA.pH_", "", colnames(CO2SYS_TA.pH)[5:19
 CO2SYS_DIC.pH   <- CarbChemfoodxOAchem %>% dplyr::select(c('Date', 'Fed_Unfed', 'pH', 'OA.pCO2.treat.', (contains("CO2SYS_DIC.pH")))) %>% dplyr::mutate(Calculation = 'DIC.pH')
 colnames(CO2SYS_DIC.pH)[5:19] <- sub(".*_DIC.pH_", "", colnames(CO2SYS_DIC.pH)[5:19])# omit the column name with unique COSSYS string
 
+
+
 CO2SYS_Master_CarbChem <- rbind(CO2SYS_TA.DIC, CO2SYS_TA.pH, CO2SYS_DIC.pH) # now you can merge based on column name 
-CO2SYS_Master_CarbChem <- CO2SYS_Master_CarbChem[!is.na(CO2SYS_Master_CarbChem$pH),]  # omit rows where pH is 'NA'
+CO2SYS_Master_CarbChem <- CO2SYS_Master_CarbChem[!is.na(CO2SYS_Master_CarbChem$pH),] # omit rows where pH is 'NA'
 
 for(i in 5:(ncol(CO2SYS_Master_CarbChem)-1)){ # for loop for plotting all carbonate chemistry facetted by CO2SYS method...
 
@@ -99,18 +104,19 @@ dev.off()
 }
 
 
-# measured values (salinity, temperature, pH chosen scale)
-MeasuredValues_byDate <- as.data.frame(Measured_values %>% # means for all values (by CO2SYS calculation) and within day (mean of replicate A B C D for each pHxfood treatment)
-    dplyr::filter(!pH %in% 7) %>% 
-    group_by(Date, Fed_Unfed, pH) %>% # group by target variables
-    select(-c('OA.pCO2.treat.', 'Calculation')) %>%  # omit unnecessary factors and Si and P are 0 across the board...
-    na.omit() %>% # omit NA occurances in the values (occasionally no TA alue for that day...)
-    summarise_each(funs(mean)))# get means as mean per day per treatment 
-MeasuredValuesTable <- MeasuredValues_byDate %>% # shrink the previous dataset down to a single value - meaan for the whole experiment challenge (N = number of days)
-    dplyr::select(-(Date)) %>% 
-    group_by(Fed_Unfed, pH) %>% 
-    summarise_each(funs(mean,sd,se=sd(.)/sqrt(n())))
-MeasuredValuesTable_n <- as.data.frame(MeasuredValues_byDate %>%  # get n (# of days)
+# Question: Should we report a mean of ALL data points or take a 'mean of means' within day and then across day
+# Answer/Rationale: Below I report the total mean of the experiment. Our downweller tank replicates are sources from the same column (rotated every 1-2 weeks!) but 
+# bubbled with stripped-air/CO2 and fed algae individually - thus these are biological replicates and their individual values within treatment should not be averaged within sampling day
+
+# Measured values (salinity, temperature, pH chosen scale) 
+MeasuredValuesTable <- (Measured_values[!is.na(Measured_values$pH),]) %>% # shrink the previous data set down to a single value - mean for the whole experiment challenge (N = number of days)
+    dplyr::filter(!pH %in% 7) %>% # omit pH 7 - not reported in this study
+    dplyr::select(-c('Date', 'OA.pCO2.treat.', 'Calculation')) %>%  # omit unnecessary factors and Si and P are 0 across the board...
+    dplyr::group_by(Fed_Unfed, pH) %>% 
+    dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == 'fed' ~ "High", Fed_Unfed == 'unfed' ~ "Low")) %>% 
+    dplyr::summarise_each(funs(mean(., na.rm = T),sd(., na.rm = T),se=sd(., na.rm = T)/sqrt(n())))
+MeasuredValuesTable_n <- as.data.frame((Measured_values[!is.na(Measured_values$pH),]) %>%  # get n (# of days)
+     dplyr::filter(!pH %in% 7) %>% # omit pH 7 - not reported in this study
      dplyr::group_by(Fed_Unfed, pH) %>%
      dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == 'fed' ~ "High", Fed_Unfed == 'unfed' ~ "Low")) %>% 
      dplyr::summarise(n = n()))
@@ -123,20 +129,18 @@ for (i in 1:nrow(co2sys.loop)) {
 x <- co2sys.loop[i,]
 
 # Summary table chemistry
-chemTable_byDate <- as.data.frame(CO2SYS_Master_CarbChem %>% # means for all values (by CO2SYS calculation) and within day (mean of replicate A B C D for each pHxfood treatment)
+chemTable <- as.data.frame(CO2SYS_Master_CarbChem %>% # means for all values (by CO2SYS calculation) and within day (mean of replicate A B C D for each pHxfood treatment)
+    dplyr::select(-(Date)) %>% 
     dplyr::filter(!pH %in% 7) %>% 
     dplyr::filter(Calculation %in% x) %>% # call the co2sys row in the for loop
-    group_by(Date, Fed_Unfed, pH) %>% # group by target variables
+    group_by(Fed_Unfed, pH) %>% # group by target variables
     select(-c('OA.pCO2.treat.','Si_Alk_out_.mmol.kgSW.','P_Alk_out_.mmol.kgSW.', 'Calculation')) %>%  # omit unnecessary factors and Si and P are 0 across the board...
     na.omit() %>% # omit NA occurances in the values (occasionally no TA alue for that day...)
-    summarise_each(funs(mean)))# get means as mean per day per treatment 
-    # summarise_each(funs(mean,sd,se=sd(.)/sqrt(n())))
+    summarise_each(funs(mean,sd,se=sd(.)/sqrt(n()))))
 
-chemTable <- chemTable_byDate %>% # shrink the previous dataset down to a single value - meaan for the whole experiment challenge (N = number of days)
-    dplyr::select(-(Date)) %>% 
-    group_by(Fed_Unfed, pH) %>%
-    summarise_each(funs(mean,sd,se=sd(.)/sqrt(n())))
-chemTable_n <- as.data.frame(chemTable_byDate %>%  # get n (# of days)
+chemTable_n <- as.data.frame(CO2SYS_Master_CarbChem %>%  # get n (# of days)
+     dplyr::filter(!pH %in% 7) %>%   
+     dplyr::filter(Calculation %in% x) %>% # call the co2sys row in the for loop
      dplyr::group_by(Fed_Unfed, pH) %>%
      dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == 'fed' ~ "High", Fed_Unfed == 'unfed' ~ "Low")) %>% 
      dplyr::summarise(n = n()))
