@@ -21,16 +21,16 @@ library(kableExtra)
 library(ggpubr)
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
-  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+   setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+#  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 
 # LOAD & FORMAT THE DATA 
 # All data  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
-#   dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) %>%  # ommit all occurances of 'checks' of the system
-#   dplyr::rename(Date = ï..Date)
-# chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
+chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T, sep = '\t')) %>%
+   dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) # %>%  # ommit all occurances of 'checks' of the system
+   # dplyr::rename(Date = ï..Date)
+chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
 
 # FOOD  OA CHALLENGE ONLY  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # foodxOAchem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_FoodxOA_Challenge.csv", header=T))[,c(1:20)] %>%  
@@ -221,10 +221,13 @@ Masterplot
 ```
 
 ### Table (mean SE)
-```{r all chem table, echo=FALSE}
+```{r LArval period chemistry, echo=FALSE}
 names(chem)
 # Summary table chemistry
+
+
 chemTable_byDate <- as.data.frame(chem[,c(1,6:8,14:20)] %>% 
+    filter(Date %in%c("7/26", "7/28", "7/30", "8/19", "8/3", "8/5", "8/9", "9/1") ) %>% 
     group_by(Date, OA_Treatment) %>%
     summarise_each(funs(mean))) %>% 
   na.omit() # a few missing TA measurments?
