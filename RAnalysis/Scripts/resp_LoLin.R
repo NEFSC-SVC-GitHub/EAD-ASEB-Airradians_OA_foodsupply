@@ -15,7 +15,7 @@ library(rMR)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis")
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 # CHANGE THE FOLLOWING ..THEN CONTROL A + ENTER ::::::::::::::::::::::
 
@@ -112,8 +112,6 @@ for(i in 1:nrow(folder.names.table)) { # for every subfolder 'i' :::::::::::::::
                             }
             }# clean these column names to make things easier - first 3 characters
             
-
-  
               # inside 'j' loop - for each 'raw' txt file 'm', call each O2 sensor/resp chamber 'j' for analysis
               for(j in 4:(ncol(Resp.Data_15sec))){ # for each sensor column 'j' (..starting at column 4) :::::::::::::::::::::::::::::::
               
@@ -199,16 +197,17 @@ write.table(new_table,ouputNAME,sep=",", row.names=FALSE)  # write out to the pa
 # we have one positive Lpc alue from C1 RR_9.30.21_PM_Plate_1_Run_2.csv (check the plot to see! )
 # looks to have a great linear decline of O2 before the 15 minute mark before a jump in the data, the A1 - D1 were closest to the pump inflow to the waterbath so it is a possibility that water mayhave leaked in here.. 
 
-# load the data to run it 
-resp_rerun          <- read.csv(file = "Data/Respiration/20210930/RR_9.30.21_PM_Plate_1_Run_2.csv", header = TRUE,skip = 51)# %>% 
-                        dplyr::select(c("Relative.time..HH.MM.SS.", "C1..Oxygen.")) %>%  #reads in the data files
-                        dplyr::mutate(mgL =  C1..Oxygen.) 
+# for csv files
+# load the data to run it  
+resp_rerun          <- read.csv(file = "Data/Respiration/20210914/Run_1_restart.csv", header = TRUE,skip = 51) %>% 
+                        dplyr::select(c("Date..DD.MM.YYYY.", "Time..HH.MM.SS.", "D6..Oxygen.")) %>%  #reads in the data files
+                        dplyr::mutate(mgL =  D6..Oxygen.) 
 resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
 resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Time..HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
 resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
 resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series                        
 
-resp_rerun_LoLin <- resp_rerun %>% dplyr::select(c("minutes", "C1..Oxygen.")) %>% dplyr::filter(minutes < 20)
+resp_rerun_LoLin <- resp_rerun %>% dplyr::select(c("minutes", "D6..Oxygen.")) %>% dplyr::filter(minutes < 20)
 
 model <- rankLocReg(
   xall    = as.numeric(resp_rerun_LoLin[, 1]), 
@@ -216,4 +215,33 @@ model <- rankLocReg(
   alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
   method  = "pc", 
   verbose = TRUE) 
+dev.new()
 plot(model) # Lpc == -0.0296
+
+
+# fr text files 
+resp_rerun          <- read.delim2(file = "Data/Respiration/20210914/Run_1_restart_raw.txt", header = TRUE,skip = 37) %>% 
+                        dplyr::filter(!CH8.O2...air.sat..  %in% 'NaN') %>% 
+                        dplyr::mutate(mgL = (DO.unit.convert( CH8.O2...air.sat..,  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                             DO.units.in = "pct", DO.units.out ="mg/L", 
+                                             bar.units.in = "kPa", bar.press = (as.numeric(Barometric.pressure..hPa.[1]/10)), bar.units.out = "kpa",
+                                             temp.C = as.numeric(CH1.O2.input..phase.[1]) , 
+                                             salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+                        dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Time..HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series                        
+
+resp_rerun_LoLin <- resp_rerun %>% dplyr::select(c("minutes", "D6..Oxygen.")) %>% dplyr::filter(minutes < 20)
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+dev.new()
+plot(model) # Lpc == -0.0296
+
+read.delim2(file = paste(path.p,'/',folder.names.table[i,1], '/', file.names.table[m,1], sep=''), header = TRUE,skip = 37)
