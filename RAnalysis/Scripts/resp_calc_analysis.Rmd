@@ -28,15 +28,14 @@ library(data.table)
 library(stringr)
 library(latex2exp)
 library(Rmisc)
-library(devtools)
+# library(devtools)
 library(ggpubr)
 library(hrbrthemes)
 library(nlme)
-
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
-# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
-  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -84,16 +83,20 @@ kable(head(resp.data_merged))
 resp.data_merged[95,c(1:6)]  # 	C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq call better regression than Lpc
 resp.data_merged[111,c(1:6)] #  C5 RR_9.30.21_PM_Plate_2_Run_2.csv	0.029052351	-0.076034441	-0.076034441
 resp.data_merged[96,c(1:6)]  # 	C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0.011656487	0.011656487  - ommit this
+resp.data_merged[23,c(1:6)] # CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 - omit and change based on visual of the raw data - resp between 60-100 minuntss = -0.0275 (LoLin.R scrip tat the end - redo error data)
+
 
 resp.data_merged[95,4] <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq call better regression than Lpc
 resp.data_merged[111,4] <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq call better regression than Lpc
-resp.data_merged[96,4] <- -0.0296 # 20210930_Plate_1_Run_2_C1_regression - plot shows noise after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
+resp.data_merged[96,4] <- as.numeric(-0.0296) # 20210930_Plate_1_Run_2_C1_regression - plot shows noise after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
+resp.data_merged[23,4] <- as.numeric(-0.0275)
+
 
 resp.data_merged[95,c(1:6)] #-0.0608251
 resp.data_merged[111,c(1:6)] # -0.07603444
 resp.data_merged[96,c(1:6)] # -0.0296	
-
-View(resp.data_merged)
+resp.data_merged[23,c(1:6)]
+# View(resp.data_merged)
 ```
 
 #### Calculate blank rates, view means by day pH_treatment and instrument
@@ -187,6 +190,7 @@ Resp.Master_OM <- Resp.Master[!is.na(Resp.Master$Length_um),] %>% dplyr::filter(
   dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == 'F' ~ "High food", is.na(Fed_Unfed) ~ "High food", Fed_Unfed == 'U' ~ "Low food")) %>% 
   dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
 
+Resp.Master %>% dplyr::filter(resp_blankStand < 0) # 15 rows omitted 
 ```
 
 
@@ -266,7 +270,7 @@ P_Length_resp_facet <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %>
 ggarrange(P_Length_resp_all, P_Length_resp_facet,nrow = 2)
 # Export to pdf
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
-# pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
 ggarrange(P_Length_resp_all, P_Length_resp_facet,ncol = 2)
 dev.off()
 
@@ -304,8 +308,8 @@ P_WholeDW_resp_facet <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %
 # print in markdown file 
 ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2)
 # Export to pdf
-#pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/WholeDW_resp_raw.pdf"), width = 10, height = 6)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/WholeDW_resp_raw.pdf"), width = 10, height = 6)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/WholeDW_resp_raw.pdf"), width = 10, height = 6)
+#pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/WholeDW_resp_raw.pdf"), width = 10, height = 6)
 ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2) 
 dev.off()
 
@@ -413,8 +417,8 @@ Resp_DryWgtStand   <- ggplot(data=RespSumTab_DW, aes(x=Age, y=resp_µmol_mg_hr, 
 
 # Print assembled plot from previous chunks....  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # both shell length and whole dry weight used for standardizing respiration rate - view the diagnostic pots for this here (good visual!)
-#pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 8)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 8)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 8)
+# pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 8)
 ggarrange(P_Length_resp_all ,Length_time, Resp_LengthStand,
           P_WholeDW_resp_all, WholeDW_time, Resp_DryWgtStand, ncol = 3, nrow = 2, heights=c(1,1))
 dev.off()
@@ -432,7 +436,7 @@ dev.off()
 
 ```{r load master resp file, echo=FALSE}
 
-# Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personel computer 
+# Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personnel computer 
 Resp.Master_OM    <- read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # work computer
 
 ```
@@ -695,6 +699,7 @@ denisty_box_resp_64DPF <-ggplot(p.box.data) +
 denisty_box_resp_64DPF
 
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
 denisty_box_resp_64DPF # print the model diagnostics 
 dev.off()
 
@@ -743,31 +748,31 @@ Res1026_Length_reps
 
 # ANOVA (wihtout the random effect
 summary(aov(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, data=Resp_1026)) # 0.0392 * (pCO2) 0.0499 * (food) - without the random effect of tank)
-#             Df  Sum Sq Mean Sq F value   Pr(>F)    
-# pCO2         1 0.00019 0.00019   0.293    0.595    
-# Food         1 0.03557 0.03557  55.916 3.25e-07 ***
-# pCO2:Food    1 0.00045 0.00045   0.707    0.410    
-# Residuals   20 0.01272 0.00064  
+#             Df Sum Sq Mean Sq F value Pr(>F)  
+# pCO2         1 0.0089 0.00888   0.606 0.4428  
+# Food         1 0.0815 0.08148   5.562 0.0256 *
+# pCO2:Food    1 0.0056 0.00561   0.383 0.5410  
+# Residuals   28 0.4102 0.01465  
 
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
 LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|random_fact, data=Resp_1026)
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  12   |  81.85  | 1.045e-06 |
-# |    **pCO2**     |   1   |  12   | 0.5982  |  0.4542   |
-# |    **Food**     |   1   |  12   |  38.59  | 4.501e-05 |
-# |  **pCO2:Food**  |   1   |  12   | 0.2199  |  0.6475   |
+# | **(Intercept)** |   1   |  16   |  77.89  | 1.516e-07 |
+# |    **pCO2**     |   1   |  12   | 0.01125 |  0.9173   |
+# |    **Food**     |   1   |  12   |  25.58  | 0.0002811 |
+# |  **pCO2:Food**  |   1   |  12   |  0.227  |  0.6423   |
 pander(anova(LMEmod_1026_SL), style='rmarkdown')
 kable(as.data.frame(anova(LMEmod_1026_SL))) %>% 
   kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
 check_model(LMEmod_1026_SL) 
 dev.off()
 # tukey posthoc for lmer model
-require('lsmeans')
-lsmeans(LMEmod_1026_SL, pairwise~pCO2 * Food, adjust="tukey") # Compute least-squares means
+# require('lsmeans')
+# lsmeans(LMEmod_1026_SL, pairwise~pCO2 * Food, adjust="tukey") # Compute least-squares means
 # $contrasts
 #  contrast                         estimate       SE df t.ratio p.value
 #  500 µatm fed - 800 µatm fed     -5.74e-05 8.93e-06 12  -6.430  0.0002
