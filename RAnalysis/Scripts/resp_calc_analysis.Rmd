@@ -80,22 +80,22 @@ kable(head(resp.data_merged))
 - solution = we reran this at the end of the LoLin script  for 0-20 minutes and got an Lpc  -0.0296, insert this 
 
 ```{r IMPORTANT correct poor data, echo=TRUE, message = FALSE, warning = FALSE}
-resp.data_merged[95,c(1:6)]  # 	C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq call better regression than Lpc
+resp.data_merged[95 ,c(1:6)]  # 	C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq call better regression than Lpc
 resp.data_merged[111,c(1:6)] #  C5 RR_9.30.21_PM_Plate_2_Run_2.csv	0.029052351	-0.076034441	-0.076034441
-resp.data_merged[96,c(1:6)]  # 	C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0.011656487	0.011656487  - ommit this
-resp.data_merged[23,c(1:6)] # CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 - omit and change based on visual of the raw data - resp between 60-100 minuntss = -0.0275 (LoLin.R scrip tat the end - redo error data)
+resp.data_merged[96 ,c(1:6)]  # 	C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0.011656487	0.011656487  - ommit this
+resp.data_merged[23 ,c(1:6)] # CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 - omit and change based on visual of the raw data - resp between 60-100 minuntss = -0.0275 (LoLin.R scrip tat the end - redo error data)
 
 
-resp.data_merged[95,4] <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq call better regression than Lpc
-resp.data_merged[111,4] <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq call better regression than Lpc
-resp.data_merged[96,4] <- as.numeric(-0.0296) # 20210930_Plate_1_Run_2_C1_regression - plot shows noise after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
-resp.data_merged[23,4] <- as.numeric(-0.0275)
+resp.data_merged[95 ,4]  <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq call better regression than Lpc
+resp.data_merged[111,4]  <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq call better regression than Lpc
+resp.data_merged[96 ,4]  <- as.numeric(-0.0296) # 20210930_Plate_1_Run_2_C1_regression - plot shows noise after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
+resp.data_merged[23 ,4]  <- as.numeric(-0.0275)
 
 
-resp.data_merged[95,c(1:6)] #-0.0608251
+resp.data_merged[95 ,c(1:6)]  # -0.0608251
 resp.data_merged[111,c(1:6)] # -0.07603444
-resp.data_merged[96,c(1:6)] # -0.0296	
-resp.data_merged[23,c(1:6)]
+resp.data_merged[96 ,c(1:6)]  # -0.0296	
+resp.data_merged[23 ,c(1:6)]  # -0.0275
 # View(resp.data_merged)
 ```
 
