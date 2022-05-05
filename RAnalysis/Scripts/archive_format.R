@@ -46,5 +46,5 @@ Master.clearance <- read.csv(file="Output/ClearanceRates/ClearanceRate_Master.cs
 nrow(Master.clearance) # 128
 View(Master.clearance)
 
-x <- merge(Master.resp, Master.clearance, by = c('Date', 'pH', 'Food', 'Replicate', 'Number'))
-nrow(x)
+MasterRespClearnace <- merge(Master.resp, Master.clearance, by = c('Date', 'pH', 'Food', 'Replicate', 'Number'))
+write.csv(MasterRespClearnace, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Phys_Master_archive_format.csv")
