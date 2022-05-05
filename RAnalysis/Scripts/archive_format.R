@@ -26,6 +26,7 @@ Master.resp    <- read.csv(file="Output/Respiration/Calculated_Resp_Master.csv",
                                       'Respiration_umol.L.hr' = 'resp_umol_L_hr',
                                       'Respiration_umol.L.mm.hr' = 'resp_µmol_L_mm_Length_hr',
                                       'Respiration_umol.L.mgWholeDW.hr' = 'resp_µmol_mg_hr') %>% 
+                        dplyr::mutate(Food = replace_na(Food, 'fed')) %>% 
                         dplyr::arrange(mdy(Date))
 nrow(Master.resp) # 116
 
@@ -44,7 +45,6 @@ Master.clearance <- read.csv(file="Output/ClearanceRates/ClearanceRate_Master.cs
                                                       Date == '10/26/2021' ~ '10/26/2021'))
 
 nrow(Master.clearance) # 128
-View(Master.clearance)
 
 MasterRespClearnace <- merge(Master.resp, Master.clearance, by = c('Date', 'pH', 'Food', 'Replicate', 'Number'))
 write.csv(MasterRespClearnace, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Phys_Master_archive_format.csv")
