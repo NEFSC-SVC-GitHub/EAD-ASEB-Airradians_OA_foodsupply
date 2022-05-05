@@ -1,0 +1,28 @@
+---
+title: "Respiration Analysis F1 Scallops 2021"
+author: "Samuel Gurr"
+date: "10/6/2021"
+output:
+  html_document:
+    df_print: paged
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+```{r setup, include=FALSE}
+
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/")
+
+# LOAD PACKAGES :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+library(dplyr)
+
+# LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Master.resp    <- read.csv(file="Output/Respiration/Calculated_Resp_Master.csv", header=T) 
+
+```
+
+
+```
