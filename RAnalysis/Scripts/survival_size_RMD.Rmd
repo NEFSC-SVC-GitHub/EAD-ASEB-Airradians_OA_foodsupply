@@ -39,21 +39,23 @@ library(lmerTest)
 # using lme
 library(nlme)
 library(car)
- setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 ```
 
 ## Set Path
 ```{r setup, include=TRUE}
+ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length                     <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_50DPF_92DPF.csv", header = TRUE)
-len.dryweight.CI_1026      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
-len.dryweight.CI_1202      <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
+length                     <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_master.csv", header = TRUE)
+len.dryweight.CI_1026      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
+len.dryweight.CI_1202      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
 
 
-survival_juvenile          <-read.csv(file="C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_50DPF_92DPF.csv", header = TRUE)
+survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_master.csv", header = TRUE)
 
 # Structure of the data - to check that variables are properly assigned to factor or variable
 # str(length)
@@ -355,26 +357,26 @@ Survival_Means$pCO2 <- factor(Survival_Means$pCO2, c("500 μatm","800 μatm"))
 dodge <- position_dodge(.50)
 ## Use geom_line and geom_point to plot over time
 Survival_All_plot <- ggplot(data=Survival_Means, aes(x=Age_DPF, y=Survival, color=pCO2)) +
-  geom_line(aes(linetype = factor(Fed_Unfed)), size = c(0.2, 0.2,0.2, 
-                                                        1,1, 1,
-                                                        0.2, 0.2,0.2, 
-                                                        1,1, 1)) +
-  #geom_point(position = position_jitterdodge(jitter.width = 10)) +
-  geom_point(position = position_dodge(width=10)) +
-  #scale_color_manual(values=c("forestgreen","darkorange2")) +
-  scale_color_manual(values=c("black","black")) +
-  geom_errorbar(aes(ymin=Survival-se, ymax=Survival+se), width=.2,
-                position=position_dodge(width=10))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
-  scale_x_continuous(name ="Age (days)") +
-  scale_y_continuous(name ="Survival (%)")  + 
-  scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-  theme_classic() +
-  theme(legend.position="none") +
-  # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-  facet_wrap(~pCO2)
+                        geom_line(aes(linetype = factor(Fed_Unfed)), size = c(0.2, 0.2,0.2, 
+                                                                              1,1, 1,
+                                                                              0.2, 0.2,0.2, 
+                                                                              1,1, 1)) +
+                        #geom_point(position = position_jitterdodge(jitter.width = 10)) +
+                        geom_point(position = position_dodge(width=10)) +
+                        #scale_color_manual(values=c("forestgreen","darkorange2")) +
+                        scale_color_manual(values=c("black","black")) +
+                        geom_errorbar(aes(ymin=Survival-se, ymax=Survival+se), width=.2,
+                                      position=position_dodge(width=10))+
+                        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+                        scale_x_continuous(name ="Age (days)") +
+                        scale_y_continuous(name ="Survival (%)")  + 
+                        scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
+                        theme_classic() +
+                        theme(legend.position="none") +
+                        # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+                        facet_wrap(~pCO2)
 Survival_All_plot
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_survival_FoodxOA.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_survival_FoodxOA.pdf"))
 Survival_All_plot
 dev.off()
 
