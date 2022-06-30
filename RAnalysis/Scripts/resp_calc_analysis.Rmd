@@ -80,22 +80,55 @@ kable(head(resp.data_merged))
 - solution = we reran this at the end of the LoLin script  for 0-20 minutes and got an Lpc  -0.0296, insert this 
 
 ```{r IMPORTANT correct poor data, echo=TRUE, message = FALSE, warning = FALSE}
-resp.data_merged[95 ,c(1:6)]  # 	C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq call better regression than Lpc
-resp.data_merged[111,c(1:6)] #  C5 RR_9.30.21_PM_Plate_2_Run_2.csv	0.029052351	-0.076034441	-0.076034441
-resp.data_merged[96 ,c(1:6)]  # 	C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0.011656487	0.011656487  - ommit this
-resp.data_merged[23 ,c(1:6)] # CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 - omit and change based on visual of the raw data - resp between 60-100 minuntss = -0.0275 (LoLin.R scrip tat the end - redo error data)
+
+# visual inspection of 914 runs...
+resp.data_merged[48 ,c(1:6)]  # CH5	Run_2_raw.txt	-0.005252180	-0.004583581	-0.004583581
+resp.data_merged[44 ,c(1:6)]  #  CH3	Run_2_raw.txt	-0.010489214	-0.008507836	-0.008507836
+resp.data_merged[36 ,c(1:6)]  #  CH1	Run_2_raw.txt	0.000995514	0.002014487	0.002014487
+resp.data_merged[23 ,c(1:6)]  #  CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 
+resp.data_merged[37 ,c(1:6)]  #  CH1	Run_3_raw.txt	-0.01067604	-0.01067604	-0.01067604
+resp.data_merged[41 ,c(1:6)]  #  CH2	Run_3_raw.txt	-0.002221288	-0.00212516	-0.00212516
+resp.data_merged[45 ,c(1:6)]  #  CH3	Run_3_raw.txt	-0.001386829	-0.00246828	-0.00246828
+resp.data_merged[49 ,c(1:6)]  #  CH5	Run_3_raw.txt	-0.01019991	-0.01748781	-0.01748781
+
+# visual inspection of 930 runs...
+
+resp.data_merged[95 ,c(1:6)]  #  C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq  better 
+resp.data_merged[111,c(1:6)]  #  C5 RR_9.30.21_PM_Plate_2_Run_2.csv	0.029052351	-0.076034441	-0.076034441
+resp.data_merged[96 ,c(1:6)]  #  C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0.011656487	0.011656487 
+
+# 914 changes..
+
+resp.data_merged[48 ,4]  <- as.numeric(-0.0154) # RERUN
+resp.data_merged[44 ,4]  <- as.numeric(-0.0205) # RERUN
+resp.data_merged[36 ,4]  <- as.numeric(-0.0164) # RERUN
+resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
+resp.data_merged[37 ,4]  <- as.numeric(-0.00123) # RERUN
+resp.data_merged[41 ,4]  <- as.numeric(-0.0036)  # RERUN
+resp.data_merged[45 ,4]  <- as.numeric(-0.0034) # RERUN 
+resp.data_merged[49 ,4]  <- as.numeric(-0.0207)  # RERUN
+
+# 930 changes..
+resp.data_merged[95 ,4]  <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq regression than Lpc
+resp.data_merged[111,4]  <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq  regression than Lpc
+resp.data_merged[96 ,4]  <- as.numeric(-0.0296) # RERUN
+resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
 
 
-resp.data_merged[95 ,4]  <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq call better regression than Lpc
-resp.data_merged[111,4]  <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq call better regression than Lpc
-resp.data_merged[96 ,4]  <- as.numeric(-0.0296) # 20210930_Plate_1_Run_2_C1_regression - plot shows noise after the 20 minutes mark, we reran this at the end of the LoLin script, insert here!
-resp.data_merged[23 ,4]  <- as.numeric(-0.0275)
+# look at the data tas sanity check...
 
-
-resp.data_merged[95 ,c(1:6)]  # -0.0608251
+resp.data_merged[44 ,c(1:6)] # -0.0205
+resp.data_merged[36 ,c(1:6)] # -0.0164
+resp.data_merged[23 ,c(1:6)] # -0.0275
+resp.data_merged[23 ,c(1:6)] # -0.0275
+resp.data_merged[37 ,c(1:6)] # -0.00123 
+resp.data_merged[41 ,c(1:6)] # -0.0036  
+resp.data_merged[45 ,c(1:6)] # -0.0034
+resp.data_merged[49 ,c(1:6)] # -0.0207
+resp.data_merged[95 ,c(1:6)] # -0.0608251
 resp.data_merged[111,c(1:6)] # -0.07603444
-resp.data_merged[96 ,c(1:6)]  # -0.0296	
-resp.data_merged[23 ,c(1:6)]  # -0.0275
+resp.data_merged[96 ,c(1:6)] # -0.0296	
+
 # View(resp.data_merged)
 ```
 
@@ -220,10 +253,10 @@ Resp.Master_OM <- Resp.Master_OM %>% filter(!resp_umol_L_hr > (max(resp_umol_L_h
 ```{r Calculate Resp Rates , echo=TRUE, message = FALSE, warning = FALSE}
 # Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
 
-# (1)  umol O2 L-1 g dry tissue weight-1 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# (1)  umol O2 L-1 g mm shell length-1 ::::::::::::::::::::::::::::::::::::::::::::::::::
 # NORMALIZED for Shell length
 Resp.Master_OM$resp_µmol_L_mm_Length_hr <- (Resp.Master_OM$resp_umol_L_hr / # multiple by 1000 to convert mmol/ O2 to umol/L O2
-              (Resp.Master_OM$Length_um/1000)) # normalize by Dry tissue weight  as to mg O2 L-1 g dry tissue weight-1
+              (Resp.Master_OM$Length_um/1000)) # normalize by shell size as to mg O2 L-1 g mm-1
 
 # (2) mg O2 L-1 g dry tissue weight-1 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # NORMALIZED for Whole animal dry weight (g)
@@ -315,7 +348,6 @@ pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_O
 ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2) 
 dev.off()
 
-View(Resp.Master_OM)
 ```
 
 
@@ -473,7 +505,7 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 # 8_A	2	   *2 rep			
 # 8_B	3			
 # 8_C	3			
-# 8_D	1	   *1 rep
+# 8_D	2	   *2 rep
 
 Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pH")) %>% 
       dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
@@ -503,19 +535,19 @@ summary(Resp914_ANOVA) # summary mod
 kable(  data.frame(unclass(summary(Resp914_ANOVA)), check.names = FALSE, stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_OneWayANOVA_Table.png", zoom = 1.5)
-#              Df   Sum Sq   Mean Sq F value Pr(>F)
-# pCO2         1 0.000004 0.0000036   0.007  0.932
-# Residuals   19 0.009096 0.000478
-shapiro.test(residuals(Resp914_ANOVA)) # normal - 0.3276
-leveneTest(Resp914_ANOVA) # homogeneity of variance (equal variance - 0.4131
+#             Df   Sum Sq   Mean Sq F value Pr(>F)
+# pCO2         1 0.000027 0.0000267   0.061  0.807
+# Residuals   19 0.008241 0.0004337   
+shapiro.test(residuals(Resp914_ANOVA)) # normal - 0.7462
+leveneTest(Resp914_ANOVA) # homogeneity of variance (equal variance - 0.7901
 
 
 # Linear mixed effects model with random effect of Replicate 
 LMEmod_0914_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2, random=~1|Chamber_tank, data=Resp_0914) # with the random effect as an LME model
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  13   |  32.12  | 7.699e-05 |
-# |    **pCO2**     |   1   |   6   | 0.02054 |  0.8907   |
+# |     &nbsp;      | numDF | denDF | F-value  |  p-value  |
+# |:---------------:|:-----:|:-----:|:--------:|:---------:|
+# | **(Intercept)** |   1   |  13   |  43.61   | 1.706e-05 |
+# |    **pCO2**     |   1   |   6   | 0.001242 |   0.973   |
 pander(anova(LMEmod_0914_SL), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(LMEmod_0914_SL))) %>%  # print a png of this table
   kable_styling() %>%
@@ -523,6 +555,9 @@ kable(as.data.frame(anova(LMEmod_0914_SL))) %>%  # print a png of this table
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Diagnostics.pdf"))
 check_model(LMEmod_0914_SL) # print the model diagnostics 
 dev.off()
+# levene's test
+leveneTest(residuals(LMEmod_0914_SL) ~ Resp_0914$pCO2) # 0.06434 . PASS
+
 
 # call the results of LMER to add to boxplot below 
 DF   <- paste( (anova(LMEmod_0914_SL)[[1]])[2], (anova(LMEmod_0914_SL)[[2]])[2], sep = '/') # call DF
@@ -612,8 +647,6 @@ kable(  data.frame(unclass(summary(Resp930_ANOVA)), check.names = FALSE, strings
 shapiro.test(residuals(Resp930_ANOVA)) # NON normal - 0.009643
 leveneTest(Resp930_ANOVA) # homogeneity of variance (equal) variance - 0.2709
 
-
-
 # Linear mixed effects model with random effect of Replicate
 LMEmod_0930<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|random_fact, data=Resp_0930)
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
@@ -629,6 +662,14 @@ kable(as.data.frame(anova(LMEmod_0930))) %>%
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
 check_model(LMEmod_0930) 
 dev.off()
+# levene's test
+leveneTest(residuals(LMEmod_0930) ~ Resp_0930$pCO2*Resp_0930$Food) # 0.2745 PASS
+
+# food supply diff
+Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars="Food")
+perc_diff <- (0.04864072 - 0.02785341)/0.04864072*100
+perc_diff #42.7 %
+
 
 
 # plot
@@ -772,10 +813,16 @@ kable(as.data.frame(anova(LMEmod_1026_SL))) %>%
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
 check_model(LMEmod_1026_SL) 
 dev.off()
-shapiro.test(residuals(LMEmod_1026_SL)) # NON normal - 5.562e-09
 
+# shapiro wilk normality test
+shapiro.test(residuals(LMEmod_1026_SL)) #  normal - 0.9677
+# levene's test
+leveneTest(residuals(LMEmod_1026_SL) ~ Resp_1026$pCO2*Resp_1026$Food) # 2.08e-06 *** no pass
 
-
+# food supply diff
+Resp_1026 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars="Food")
+perc_diff <- (0.08566193 - 0.02248406)/0.08566193*100
+perc_diff #42.7 %
 
 # call the results of LMER to add to boxplot below 
 DF   <- paste( (anova(LMEmod_01026_SL)[[1]])[3], (anova(LMEmod_01026_SL)[[2]])[3], sep = '/') # call DF

@@ -194,15 +194,18 @@ write.table(new_table,ouputNAME,sep=",", row.names=FALSE)  # write out to the pa
 
 
 # AFTER VISUAL INSECTIN OF PLOTS....
+
+# call data here by the specific channel and file 
+
 # we have one positive Lpc alue from C1 RR_9.30.21_PM_Plate_1_Run_2.csv (check the plot to see! )
 # looks to have a great linear decline of O2 before the 15 minute mark before a jump in the data, the A1 - D1 were closest to the pump inflow to the waterbath so it is a possibility that water mayhave leaked in here.. 
 
 # for csv files
-# load the data to run it  
+# load the data to run it  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\
+
 resp_rerun          <- read.csv(file = "Data/Respiration/20210914/Run_1_restart.csv", header = TRUE,skip = 51) %>% 
                         dplyr::select(c("Date..DD.MM.YYYY.", "Time..HH.MM.SS.", "D6..Oxygen.")) %>%  #reads in the data files
                         dplyr::mutate(mgL =  D6..Oxygen.) 
-
 
 resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
 resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Time..HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
@@ -221,15 +224,261 @@ dev.new()
 plot(model) # Lpc == -0.0296
 
 
-# fr text files 
-resp_rerun          <- read.delim2(file = "Data/Respiration/20210914/Run_1_restart_raw.txt", header = TRUE,skip = 37) %>% 
-                        dplyr::filter(!CH8.O2...air.sat..  %in% 'NaN') %>% 
-                        dplyr::mutate(mgL = (DO.unit.convert( CH8.O2...air.sat..,  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
-                                             DO.units.in = "pct", DO.units.out ="mg/L", 
-                                             bar.units.in = "kPa", bar.press = (as.numeric(Barometric.pressure..hPa.[1]/10)), bar.units.out = "kpa",
-                                             temp.C = as.numeric(CH1.O2.input..phase.[1]) , 
-                                             salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
-                        dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+# for text files 
+
+
+
+
+# 20210914 - Run2 - Channel 1, call data between 5 - 60 minutes
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_2_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH1.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH1.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH1.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% 
+  dplyr::select(c("minutes", "mgL")) %>% 
+  dplyr::filter(minutes > 5 & minutes < 60) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0034
+
+
+
+
+# 20210914 - Run2 - Channel 3, call data between 5 - 60 minutes
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_2_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH3.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH3.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH3.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% 
+  dplyr::select(c("minutes", "mgL")) %>% 
+  dplyr::filter(minutes > 15 & minutes < 50) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0205
+
+
+
+# 20210914 - Run2 - Channel 5, call data between 20-75 minutes
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_2_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH5.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH5.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH5.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% 
+  dplyr::select(c("minutes", "mgL")) %>% 
+  dplyr::filter(minutes > 20 & minutes < 75) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0154
+
+
+# 20210914 - Run3 - Channel 5, call data between 25-50 minutes 
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_3_raw.txt", header = TRUE,skip = 37) %>% 
+                dplyr::filter(!CH5.O2...air.sat..  %in% 'NaN') %>% 
+                dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH5.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                                     DO.units.in = "pct", DO.units.out ="mg/L", 
+                                                     bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                                     bar.units.out = "kpa",
+                                                     temp.C = as.numeric(CH5.O2.input..phase.[1]) , 
+                                                     salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+                dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% dplyr::select(c("minutes", "mgL")) %>% dplyr::filter(minutes > 25 & minutes < 50) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0164
+
+
+
+
+
+
+# 20210914 - Run3 - Channel 5, call data between 25-50 minutes 
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_3_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH5.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH5.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH5.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% dplyr::select(c("minutes", "mgL")) %>% dplyr::filter(minutes > 25 & minutes < 50) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0164
+
+
+# 20210914 - Run3 - Channel 2, call data between 10-70 minutes 
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_3_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH2.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH2.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH2.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% 
+                        dplyr::select(c("minutes", "mgL")) %>% 
+                        dplyr::filter(minutes > 10 & minutes < 70) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0036
+
+
+
+
+
+
+# 20210914 - Run3 - Channel 1, call data between 10-70 minutes 
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_3_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH1.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH1.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH1.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% 
+  dplyr::select(c("minutes", "mgL")) %>% 
+  dplyr::filter(minutes > 10 & minutes < 70) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.00123
+
+
+
+
+
+# 20210914 - Run3 - Channel 3, call data between 10-70 minutes 
+resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_3_raw.txt", header = TRUE,skip = 37) %>% 
+  dplyr::filter(!CH3.O2...air.sat..  %in% 'NaN') %>% 
+  dplyr::mutate(mgL = (DO.unit.convert(as.numeric(CH3.O2...air.sat..),  # DO in percent air sat to be converted to mgL - uses an R package from loligo rMR
+                                       DO.units.in = "pct", DO.units.out ="mg/L", 
+                                       bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), 
+                                       bar.units.out = "kpa",
+                                       temp.C = as.numeric(CH3.O2.input..phase.[1]) , 
+                                       salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
+  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series   
+resp_rerun_15sec     <-  resp_rerun[seq(1, nrow(resp_rerun), 15), ]
+
+resp_rerun_LoLin     <- resp_rerun_15sec %>% 
+  dplyr::select(c("minutes", "mgL")) %>% 
+  dplyr::filter(minutes > 25 & minutes < 75) # CRITICAL TO CHANGE THIS PART ACCORDING TO THE VISUAL INSECTION OF RAW PLOT
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+
+plot(model) # Lpc == -0.0034
+
+
 
 # ch 5 run 1 20211026 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 resp_rerun          <- read.delim2(file = "Data/Respiration/20211026/Run_1_raw.txt", header = TRUE,skip = 37) %>% 
@@ -239,7 +488,7 @@ resp_rerun          <- read.delim2(file = "Data/Respiration/20211026/Run_1_raw.t
                                         bar.units.in = "kPa", bar.press = ((as.numeric(Barometric.pressure..hPa.[1]))/10), bar.units.out = "kpa",
                                         temp.C = as.numeric(CH1.O2.input..phase.[1]) , 
                                         salinity.units = "pp.thou", salinity = as.numeric(Salinity....[1]))) ) %>% 
-  dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
+                                        dplyr::select(c("Date..Time..DD.MM.YYYY.HH.MM.SS.", "mgL"))  #reads in the data files
 resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
 resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Date..Time..DD.MM.YYYY.HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
 resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
