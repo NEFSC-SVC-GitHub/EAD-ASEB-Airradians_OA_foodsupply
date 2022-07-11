@@ -81,8 +81,9 @@ kable(head(resp.data_merged))
 
 ```{r IMPORTANT correct poor data, echo=TRUE, message = FALSE, warning = FALSE}
 
-# visual inspection of 914 runs...
-resp.data_merged[48 ,c(1:6)]  # CH5	Run_2_raw.txt	-0.005252180	-0.004583581	-0.004583581
+# VISAUL INSPECCTION:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  914 runs...
+resp.data_merged[48 ,c(1:6)]  #  CH5	Run_2_raw.txt	-0.005252180	-0.004583581	-0.004583581
 resp.data_merged[44 ,c(1:6)]  #  CH3	Run_2_raw.txt	-0.010489214	-0.008507836	-0.008507836
 resp.data_merged[36 ,c(1:6)]  #  CH1	Run_2_raw.txt	0.000995514	0.002014487	0.002014487
 resp.data_merged[23 ,c(1:6)]  #  CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 
@@ -91,11 +92,15 @@ resp.data_merged[41 ,c(1:6)]  #  CH2	Run_3_raw.txt	-0.002221288	-0.00212516	-0.0
 resp.data_merged[45 ,c(1:6)]  #  CH3	Run_3_raw.txt	-0.001386829	-0.00246828	-0.00246828
 resp.data_merged[49 ,c(1:6)]  #  CH5	Run_3_raw.txt	-0.01019991	-0.01748781	-0.01748781
 
-# visual inspection of 930 runs...
+# 930 runs...
 
+resp.data_merged[71 ,c(1:6)]  # A5	RR_9.30.21_AM_Plate_1_Run_1.csv	-0.002463294	-0.003383279	-0.003383279
 resp.data_merged[95 ,c(1:6)]  #  C1 RR_9.30.21_AM_Plate_2_Run_1.csv # -0.02890813	-0.0608251	-0.0608251 - Lz and Leq  better 
 resp.data_merged[111,c(1:6)]  #  C5 RR_9.30.21_PM_Plate_2_Run_2.csv	0.029052351	-0.076034441	-0.076034441
 resp.data_merged[96 ,c(1:6)]  #  C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	0.011656487	0.011656487 
+
+
+# CHANGES (based on rerun or whether Lz/Leq better explains) :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # 914 changes..
 
@@ -105,17 +110,19 @@ resp.data_merged[36 ,4]  <- as.numeric(-0.0164) # RERUN
 resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
 resp.data_merged[37 ,4]  <- as.numeric(-0.00123) # RERUN
 resp.data_merged[41 ,4]  <- as.numeric(-0.0036)  # RERUN
-resp.data_merged[45 ,4]  <- as.numeric(-0.0034) # RERUN 
+resp.data_merged[45 ,4]  <- as.numeric(-0.0034)  # RERUN 
 resp.data_merged[49 ,4]  <- as.numeric(-0.0207)  # RERUN
 
 # 930 changes..
+
+resp.data_merged[71 ,4]  <- as.numeric(-0.0128) # RERUN
 resp.data_merged[95 ,4]  <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq regression than Lpc
 resp.data_merged[111,4]  <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq  regression than Lpc
 resp.data_merged[96 ,4]  <- as.numeric(-0.0296) # RERUN
 resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
 
 
-# look at the data tas sanity check...
+# look at the data for sanity check...
 
 resp.data_merged[44 ,c(1:6)] # -0.0205
 resp.data_merged[36 ,c(1:6)] # -0.0164
@@ -649,12 +656,12 @@ leveneTest(Resp930_ANOVA) # homogeneity of variance (equal) variance - 0.2709
 
 # Linear mixed effects model with random effect of Replicate
 LMEmod_0930<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|random_fact, data=Resp_0930)
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  48   |  133.9  | 1.776e-15 |
-# |    **pCO2**     |   1   |  12   |  2.021  |  0.1806   |
-# |    **Food**     |   1   |  12   |  8.888  |  0.01146  |
-# |  **pCO2:Food**  |   1   |  12   |  1.032  |  0.3298   |
+# |     &nbsp;      | numDF | denDF | F-value | p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:--------:|
+# | **(Intercept)** |   1   |  49   |  112.3  | 2.82e-14 |
+# |    **pCO2**     |   1   |   12   |  1.487  |  0.2461  |
+# |    **Food**     |   1   |  12   |  7.219  | 0.01979  |
+# |  **pCO2:Food**  |   1   |  12   | 0.6779  |  0.4264  |
 pander(anova(LMEmod_0930), style='rmarkdown')
 kable(as.data.frame(anova(LMEmod_0930))) %>% 
   kable_styling() %>%
@@ -699,7 +706,7 @@ ggarrange(Resp930_Length,Resp930_Length_reps,nrow = 2) %>%
 
 # density plot - Day 64
 
-```{r, Day 92 density respiration plot }
+```{r, Day 64 density respiration plot }
 library(dplyr)
 library(tidyr)
 Resp_0930$pHxFood <- as.factor(Resp_0930$pHxFood)

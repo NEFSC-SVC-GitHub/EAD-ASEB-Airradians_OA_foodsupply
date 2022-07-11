@@ -15,7 +15,7 @@ library(rMR)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis")
-setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 # CHANGE THE FOLLOWING ..THEN CONTROL A + ENTER ::::::::::::::::::::::
 
@@ -201,6 +201,7 @@ write.table(new_table,ouputNAME,sep=",", row.names=FALSE)  # write out to the pa
 # looks to have a great linear decline of O2 before the 15 minute mark before a jump in the data, the A1 - D1 were closest to the pump inflow to the waterbath so it is a possibility that water mayhave leaked in here.. 
 
 # for csv files
+
 # load the data to run it  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::\
 
 resp_rerun          <- read.csv(file = "Data/Respiration/20210914/Run_1_restart.csv", header = TRUE,skip = 51) %>% 
@@ -224,10 +225,36 @@ dev.new()
 plot(model) # Lpc == -0.0296
 
 
+
+# 9.30.21 CH A 5 plate 1 Run 1
+
+resp_rerun          <- read.csv(file = "Data/Respiration/20210930/RR_9.30.21_AM_Plate_1_Run_1.csv", header = TRUE,skip = 51) %>% 
+  dplyr::select(c("Date..DD.MM.YYYY.", "Time..HH.MM.SS.", "A5..Oxygen.")) %>%  #reads in the data files
+  dplyr::mutate(mgL =  A5..Oxygen.) 
+
+resp_rerun$date      <- paste((sub("2021.*", "", resp_rerun$Date..DD.MM.YYYY.)), '2021', sep='') #  date - use 'sub' to call everything before 2021, add back 2021 using paste
+resp_rerun$time_Sec  <- period_to_seconds(hms(substr((strptime(sub(".*2021/", "", resp_rerun$Time..HH.MM.SS.), "%I:%M:%S %p")) , 12,19))) # time - use 'sub' to call target time of the raw date time after 'year/' + strptime' convert to 24 hr clock + 'period_to_seconds' converts the hms to seconds  
+resp_rerun$seconds   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])    # secs - calc the sec time series
+resp_rerun$minutes   <- (resp_rerun$time_Sec - resp_rerun$time_Sec[1])/60 # mins - calc the minute time series                        
+
+resp_rerun_LoLin <- resp_rerun %>% dplyr::select(c("minutes", "A5..Oxygen.")) %>% dplyr::filter(minutes > 5 & minutes < 75)
+
+model <- rankLocReg(
+  xall    = as.numeric(resp_rerun_LoLin[, 1]), 
+  yall    = as.numeric(resp_rerun_LoLin[, 2]), # call x as the minute timeseries and y as the mg L-1 O2 
+  alpha   = 0.4,  # alpha was assigned earlier as 0.4 by the authors default suggestions - review Olito et al. and their github page for details
+  method  = "pc", 
+  verbose = TRUE) 
+plot(model) # Lpc == -0.0128
+
+
+
+
+
+
+
+
 # for text files 
-
-
-
 
 # 20210914 - Run2 - Channel 1, call data between 5 - 60 minutes
 resp_rerun  <- read.delim2(file = "Data/Respiration/20210914/Run_2_raw.txt", header = TRUE,skip = 37) %>% 
