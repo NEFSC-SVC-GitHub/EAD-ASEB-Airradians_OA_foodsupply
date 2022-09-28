@@ -1416,7 +1416,6 @@ write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositor
 
 ## Density plots
 
-
 ```{r, 20210930 Density plots }
 library(dplyr)
 library(tidyr)
@@ -1561,8 +1560,6 @@ density.plot_CR_SESTON_0930 # print the model diagnostics
 dev.off()
 
 ```
-
-
 
 ```{r, 20211026 Density plots }
 library(dplyr)

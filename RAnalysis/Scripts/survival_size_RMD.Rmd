@@ -46,13 +46,13 @@ library(car)
 
 ## Set Path
 ```{r setup, include=TRUE}
- setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 # setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-length                     <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Lengths_master.csv", header = TRUE)
-len.dryweight.CI_1026      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
-len.dryweight.CI_1202      <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
+length                     <-read.csv(file="Data/Survival_Size/Lengths_master.csv", header = TRUE)
+len.dryweight.CI_1026      <-read.csv(file="Data/Survival_Size/20211026_lengths_dryweights.csv", header = TRUE) 
+# len.dryweight.CI_1202      <-read.csv(file="Data/Survival_Size/20211202_lengths_dryweights.csv", header = TRUE)
 
 
 survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Survival_Size/Survival_master.csv", header = TRUE)
@@ -275,7 +275,7 @@ REGRESSION_Length.Drytissue
 
 REGRESSION_Length.Dryshell<- dryweight_CI %>% 
   dplyr::filter(shell.or.tissue %in% "shell") %>%
-    ggplot(aes(x=Shell.Length, y=weight, color=as.factor(pH))) +
+    ggplot(aes(x=Shell.Length, y=weight/Shell.Length, color=as.factor(pH))) +
     geom_point()+ 
     theme_classic() +  
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
@@ -283,7 +283,36 @@ REGRESSION_Length.Dryshell<- dryweight_CI %>%
     scale_y_continuous(name ="Shell weight (g)")
 REGRESSION_Length.Dryshell
 
+
+Shell_weight_bylength <- dryweight_CI %>% 
+  dplyr::filter(shell.or.tissue %in% "shell") %>%
+  dplyr::mutate(Shell_weight_by_length = weight/Shell.Length) %>% 
+  ggplot(aes(x = factor(pH, level = c(8.0, 7.5)), 
+             y = Shell_weight_by_length , 
+             fill = factor(pH))) +
+                    theme(panel.grid=element_blank()) +
+                    geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=factor(pH))) +
+                    scale_fill_manual(values=c("grey50","white")) +
+                    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                    theme_classic() +
+                    scale_x_discrete(labels= c('~500 μatm', '~800 μatm'))
+Shell_weight_bylength
+
+
+dryweight_shell_test <- dryweight_CI %>% 
+  dplyr::filter(shell.or.tissue %in% "shell") %>%
+  dplyr::mutate(Shell_weight_by_length = weight/Shell.Length)
+
+mod_shellwt_length <- lm(sqrt(Shell_weight_by_length) ~ as.factor(pH), data = dryweight_shell_test)
+summary(aov(mod_shellwt_length))
+hist(resid(mod_shellwt_length))
+qqnorm((resid(mod_shellwt_length)))
+shapiro.test(resid(mod_shellwt_length))
+leveneTest(mod_shellwt_length)
+
 ```
+
+
 # Larvae survival - Low, Mod, High pCO2  (0 - 18 dpf)
 
 ```{r, Survival plot Mean SE}

@@ -1,4 +1,4 @@
-# title: "Water Chemistry"
+# title: "seawater_chem"
 # author: "Sam GUrr"
 # date: "11/22/2021"
 
@@ -26,7 +26,7 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # 
 
 chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
   dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) %>%  # ommit all occurances of 'checks' of the system
-  dplyr::rename(Date = ï..Date)
+  dplyr::rename(Date = ?..Date)
 chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
 
 
@@ -105,15 +105,15 @@ ChemTable_MeanSE$pCO2_level   <-  c('High','High','Low','Low')
 ChemTable_MeanSE$Food_supply  <-  c('High','Low','High','Low')
 ChemTable_MeanSE$pHXfood <- paste(chemTable$pH,chemTable$Food.Treatment, sep = '*')
 ChemTable_MeanSE$N <- c(21,16,21,16)
-ChemTable_MeanSE$Salinity <- paste(signif(chemTable$Salinity_mean,digits=3), signif(chemTable$Salinity_se,digits=3), sep="± ")
-ChemTable_MeanSE$Temperature <- paste(signif(chemTable$t.oC..of.bucket_mean,digits=3), signif(chemTable$t.oC..of.bucket_se,digits=3), sep=" ± ")
-ChemTable_MeanSE$DO <- paste(signif(chemTable$DO.mg.L_mean,digits=3), signif(chemTable$DO.mg.L_se,digits=3), sep=" ± ")
-ChemTable_MeanSE$pH <- paste(signif(chemTable$pH.out_mean,digits=3), signif(chemTable$pH.out_se,digits=3), sep=" ± ")
-ChemTable_MeanSE$pCO2 <- paste(signif(chemTable$pCO2.out..matm._mean,digits=3), signif(chemTable$pCO2.out..matm._se,digits=3), sep=" ± ")
+ChemTable_MeanSE$Salinity <- paste(signif(chemTable$Salinity_mean,digits=3), signif(chemTable$Salinity_se,digits=3), sep="? ")
+ChemTable_MeanSE$Temperature <- paste(signif(chemTable$t.oC..of.bucket_mean,digits=3), signif(chemTable$t.oC..of.bucket_se,digits=3), sep=" ? ")
+ChemTable_MeanSE$DO <- paste(signif(chemTable$DO.mg.L_mean,digits=3), signif(chemTable$DO.mg.L_se,digits=3), sep=" ? ")
+ChemTable_MeanSE$pH <- paste(signif(chemTable$pH.out_mean,digits=3), signif(chemTable$pH.out_se,digits=3), sep=" ? ")
+ChemTable_MeanSE$pCO2 <- paste(signif(chemTable$pCO2.out..matm._mean,digits=3), signif(chemTable$pCO2.out..matm._se,digits=3), sep=" ? ")
 # ChemTable_MeanSE$DIC <- paste(chemTable$mean.DIC, chemTable$sem.DIC, sep=" Â± ")
-ChemTable_MeanSE$TA <- paste(signif(chemTable$TA..mmol.kgSW._mean,digits=3), signif(chemTable$TA..mmol.kgSW._se,digits=3), sep=" ± ")
-ChemTable_MeanSE$Aragonite.Sat <- paste(signif(chemTable$WAr.out_mean,digits=3), signif(chemTable$WAr.out_se,digits=3), sep=" ± ")
-ChemTable_MeanSE$Calcite.Sat <- paste(signif(chemTable$WCa.out_mean,digits=3), signif(chemTable$WCa.out_se,digits=3), sep=" ± ")
+ChemTable_MeanSE$TA <- paste(signif(chemTable$TA..mmol.kgSW._mean,digits=3), signif(chemTable$TA..mmol.kgSW._se,digits=3), sep=" ? ")
+ChemTable_MeanSE$Aragonite.Sat <- paste(signif(chemTable$WAr.out_mean,digits=3), signif(chemTable$WAr.out_se,digits=3), sep=" ? ")
+ChemTable_MeanSE$Calcite.Sat <- paste(signif(chemTable$WCa.out_mean,digits=3), signif(chemTable$WCa.out_se,digits=3), sep=" ? ")
 ChemTable_MeanSE <- ChemTable_MeanSE[,-1] # view table
 View(ChemTable_MeanSE)
 
