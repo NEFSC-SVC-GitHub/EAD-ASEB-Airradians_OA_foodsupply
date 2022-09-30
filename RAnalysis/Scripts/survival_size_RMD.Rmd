@@ -39,7 +39,7 @@ library(lmerTest)
 # using lme
 library(nlme)
 library(car)
- setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 ```
@@ -301,13 +301,20 @@ Shell_weight_bylength
 
 dryweight_shell_test <- dryweight_CI %>% 
   dplyr::filter(shell.or.tissue %in% "shell") %>%
-  dplyr::mutate(Shell_weight_by_length = weight/Shell.Length)
+  dplyr::mutate(random_fact = as.factor(paste(pH,Rep, sep = "_"))) %>% 
+  dplyr::mutate(Shell_weight_by_length = weight/Shell.Length) %>% 
+  dplyr::mutate(pH = as.factor(pH)) %>% 
+  dplyr::filter(!Shell_weight_by_length %in% NA)
 
-mod_shellwt_length <- lm(sqrt(Shell_weight_by_length) ~ as.factor(pH), data = dryweight_shell_test)
-summary(aov(mod_shellwt_length))
+mod_shellwt_length <- lme(Shell_weight_by_length ~ pH, random=~1|random_fact, data = dryweight_shell_test)
+pander(anova(mod_shellwt_length), style='rmarkdown')
+# |     &nbsp;      | numDF | denDF | F-value | p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:--------:|
+# | **(Intercept)** |   1   |  83   |  104.4  | 2.22e-16 |
+# |     **pH**      |   1   |   6   |  7.589  | 0.03308  |
 hist(resid(mod_shellwt_length))
 qqnorm((resid(mod_shellwt_length)))
-shapiro.test(resid(mod_shellwt_length))
+shapiro.test(resid(mod_shellwt_length)) #  p-value = 0.1
 leveneTest(mod_shellwt_length)
 
 ```
