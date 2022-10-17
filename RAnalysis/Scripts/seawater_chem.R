@@ -93,27 +93,6 @@ chem
 
 
 
-# Summary table chemistry - BY DATE
-chemTable <- as.data.table(chem[,c(1, 3,4,6,11,13:14,16:20)] %>% 
-  group_by(Date,pH,Food.Treatment) %>%
-  summarise_each(funs(mean,sd,se=sd(.)/sqrt(n()))) %>% 
-  mutate(pH_food= paste(pH, Food.Treatment, sep = "_")) %>% 
-  na.omit())
-modpCO2 <- (lm(pCO2.out..matm._mean ~pH_food, data = chemTable))
-shapiro.test(resid(aov(lm(pCO2.out..matm._mean ~pH_food, data = chemTable)))) # p-value = 0.07265 - normal! 
-emmeans(modpCO2, ~ pH_food)
-TukeyHSD(aov(modpCO2))
-# $pH_food
-#                   diff       lwr        upr      p adj
-# 7.5_Low-7.5_High -136.11500 -311.5340   39.30396 0.1563058
-# 8_High-7.5_High  -275.56000 -440.9466 -110.17342 0.0013171 ** pCO2 8 < 7.5 wihtin high food
-# 8_Low-7.5_High   -333.32125 -508.7402 -157.90229 0.0003875 ** pCO2 8 < 7.5 across food
-# 8_High-7.5_Low   -139.44500 -314.8640   35.97396 0.1426774
-# 8_Low-7.5_Low    -197.20625 -382.1141  -12.29843 0.0349779 ** # pCO2 8 < 7.5 within low food
-# 8_Low-8_High      -57.76125 -233.1802  117.65771 0.7752134
-library(reshape2)
-
-
 # PLOTTING ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # mean plot for all data within Date
 wideCHEM.MEANS <- as.data.table(chem[,c(1, 3,4,6,11,13:14,16:20)] %>% 
@@ -150,13 +129,88 @@ CHEM_MEANSEPLOT
 
 
 # save plot 
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_multigen_OA/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
-ggarrange(CHEM_DOTPLOT, CHEM_MEANSEPLOT,nrow = 2)
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Water_Chemistry/MeanStError_plot.pdf"), width = 10, height = 6)
+print(CHEM_MEANSEPLOT)
 dev.off()
 
-library(ggarrange)
 
-# Summary table chemistry
+# STATISTICAL TESTING ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# ANOVA tests of chemistry data 
+chemTable <- as.data.table(chem[,c(1, 3,4,6,11,13:14,16:20)] %>% 
+                             group_by(Date,pH,Food.Treatment) %>%
+                             summarise_each(funs(mean,sd,se=sd(.)/sqrt(n()))) %>% 
+                             mutate(pH_food= paste(pH, Food.Treatment, sep = "_")) %>% 
+                             na.omit())
+# pCO2
+modpCO2 <- (lm(pCO2.out..matm._mean ~as.factor(pH)*Food.Treatment, data = chemTable))
+# pH and food significant, no interaction 
+modpCO2 <- (lm(pCO2.out..matm._mean ~pH_food, data = chemTable))
+summary(aov(modpCO2)) # 0.000248 sig effect
+shapiro.test(resid(aov(modpCO2))) # p-value = 0.07265 - normal! 
+emmeans(modpCO2, ~ pH_food)
+TukeyHSD(aov(modpCO2))
+# $pH_food
+#                   diff       lwr        upr      p adj
+# 7.5_Low-7.5_High -136.11500 -311.5340   39.30396 0.1563058
+# 8_High-7.5_High  -275.56000 -440.9466 -110.17342 0.0013171 ** pCO2 8 < 7.5 wihtin high food
+# 8_Low-7.5_High   -333.32125 -508.7402 -157.90229 0.0003875 ** pCO2 8 < 7.5 across food
+# 8_High-7.5_Low   -139.44500 -314.8640   35.97396 0.1426774
+# 8_Low-7.5_Low    -197.20625 -382.1141  -12.29843 0.0349779 ** # pCO2 8 < 7.5 within low food
+# 8_Low-8_High      -57.76125 -233.1802  117.65771 0.7752134
+
+
+# Aragonite sat ------------------------------------------------------ #
+modARAG <- (lm(WAr.out_mean ~as.factor(pH)*Food.Treatment, data = chemTable))
+# pH is significant but NOT food 
+modARAG <- (lm(WAr.out_mean ~pH_food, data = chemTable))
+summary(aov(modARAG)) # 0.000248 sig effect
+shapiro.test(resid(aov(modARAG))) # p-value = 0.003882 - non-normal! 
+emmeans(modARAG, ~ pH_food)
+TukeyHSD(aov(modARAG))
+# $pH_food
+# diff         lwr       upr     p adj
+# 7.5_Low-7.5_High 0.065300 -0.03004637 0.1606464 0.2375499
+# 8_High-7.5_High  0.146850  0.05695658 0.2367434 0.0015677 **
+# 8_Low-7.5_High   0.183175  0.08782863 0.2785214 0.0003481 **
+# 8_High-7.5_Low   0.081550 -0.01379637 0.1768964 0.1059281
+# 8_Low-7.5_Low    0.117875  0.01737110 0.2183789 0.0195736 **
+# 8_Low-8_High     0.036325 -0.05902137 0.1316714 0.6910534
+
+# pH ------------------------------------------------------ #
+modpH <- (lm(pH.out_mean ~as.factor(pH)*Food.Treatment, data = chemTable))
+# pH and food significant, no interaction 
+modpH <- (lm(pH.out_mean ~pH_food, data = chemTable))
+summary(aov(modpH)) # 0.000248 sig effect
+shapiro.test(resid(aov(lm(pH.out_mean ~pH_food, data = chemTable)))) # p-value = 0.5409 - normal! 
+emmeans(modpH, ~ pH_food)
+TukeyHSD(aov(modpH))
+# $pH_food
+# diff         lwr       upr     p adj
+# 7.5_Low-7.5_High 0.065300 -0.03004637 0.1606464 0.2375499
+# 8_High-7.5_High  0.146850  0.05695658 0.2367434 0.0015677 **
+# 8_Low-7.5_High   0.183175  0.08782863 0.2785214 0.0003481 **
+# 8_High-7.5_Low   0.081550 -0.01379637 0.1768964 0.1059281
+# 8_Low-7.5_Low    0.117875  0.01737110 0.2183789 0.0195736 **
+# 8_Low-8_High     0.036325 -0.05902137 0.1316714 0.6910534
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Summary table chemistry ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 chemTable <- chem[,c(3,4,6,11,13:14,16:20)] %>% 
     group_by(pH,Food.Treatment) %>%
     summarise_each(funs(mean,sd,se=sd(.)/sqrt(n())))
