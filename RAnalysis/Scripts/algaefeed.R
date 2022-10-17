@@ -12,12 +12,12 @@ library(stringr)
 library(latex2exp)
 library(Rmisc)
 library(aggregate)
-
+library(car)
 
 
 # SET WORKING DIRECTORY ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
-# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
 
 # LOAD DATA  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -48,6 +48,98 @@ Means_Master_plotting <- rbind(High_chla_MeanSE_date, Low_chla_MeanSE_date) %>%
                           dplyr::filter(!(Cell_type == 'High_Chl_cell_mL' & Fed_unfed == 'unfed' & value > 2000))
 
 
+# ANOVA to test the differences in feeding treatments 
+
+# (1) First, run anova within date for all records (for looped!)
+ANOVA_Dates <- as.data.table(unique(algaefeed$Date)) # call a list to loop in 
+AOVdf_total             <- data.frame() # start dataframe, this will be the master output
+DF_MODHIGH           <- data.frame(matrix(nrow = 1, ncol = 12)) # create dataframe to save during for loop
+colnames(DF_MODHIGH) <- c('Date', 'Cell_type', 'model', 'DF.num' , 'DF.denom', 'F_val','P_val', 'SigDif', 'ShapiroWilk', 'ResidNorm', 'Levenes', 'HomogVar') # names for comuns in the for loop
+DF_MODLOW           <- data.frame(matrix(nrow = 1, ncol = 12)) # create dataframe to save  during for loop
+colnames(DF_MODLOW) <- c('Date', 'Cell_type', 'model', 'DF.num' , 'DF.denom', 'F_val','P_val', 'SigDif','ShapiroWilk', 'ResidNorm', 'Levenes', 'HomogVar') # names for comuns in the for loop
+
+for (i in 1:nrow(ANOVA_Dates)) {
+  
+    LOOPDATE <- ANOVA_Dates$V1[i] 
+    # high cholorphyll model
+    datMODHIGH    <- aov(lm(High_Chl_cell_mL ~Fed_unfed, data = (algaefeed %>% dplyr::filter(Date == LOOPDATE))))
+      DF_MODHIGH$Date        <- LOOPDATE
+      DF_MODHIGH$Cell_type   <- 'HIGH_chl_cells'
+      DF_MODHIGH$model       <- 'one-way AOV; High_Chl_cell_mL ~ Fed_unfed'
+      DF_MODHIGH$DF.num      <- summary(datMODHIGH)[[1]][["Df"]][1]
+      DF_MODHIGH$DF.denom    <- summary(datMODHIGH)[[1]][["Df"]][2]
+      DF_MODHIGH$F_val       <- summary(datMODHIGH)[[1]][["F value"]][1]
+      DF_MODHIGH$P_val       <- summary(datMODHIGH)[[1]][["Pr(>F)"]][1]
+      DF_MODHIGH$SigDif      <- if( (summary(datMODHIGH)[[1]][["Pr(>F)"]][1]) > 0.05) {
+                                'NO'} else {'YES'}
+      DF_MODHIGH$ShapiroWilk <- shapiro.test(resid(datMODHIGH))[[2]]
+      DF_MODHIGH$ResidNorm   <- if( shapiro.test(resid(datMODHIGH))[[2]] > 0.05) {
+        'YES'} else {'NO'}
+      DF_MODHIGH$Levenes     <- leveneTest(datMODHIGH)[[3]][[1]]
+      DF_MODHIGH$HomogVar    <- if( leveneTest(datMODHIGH)[[3]][[1]] > 0.05) {
+        'YES'} else {'NO'}
+      
+    #low cholorphyll model
+    datMODLOW    <- aov(lm(Low_Chl_cell_mL ~Fed_unfed, data = (algaefeed %>% dplyr::filter(Date == LOOPDATE))))
+      DF_MODLOW$Date        <- LOOPDATE
+      DF_MODLOW$Cell_type   <- 'LOW_chl_cells'
+      DF_MODLOW$model       <- 'one-way AOV; LOW_Chl_cell_mL ~ Fed_unfed'
+      DF_MODLOW$DF.num      <- summary(datMODLOW)[[1]][["Df"]][1]
+      DF_MODLOW$DF.denom    <- summary(datMODLOW)[[1]][["Df"]][2]
+      DF_MODLOW$F_val       <- summary(datMODLOW)[[1]][["F value"]][1]
+      DF_MODLOW$P_val       <- summary(datMODLOW)[[1]][["Pr(>F)"]][1]
+      DF_MODLOW$SigDif      <- if( (summary(datMODLOW)[[1]][["Pr(>F)"]][1]) > 0.05) {
+                                  'NO'} else {'YES'}  
+      DF_MODLOW$ShapiroWilk <- shapiro.test(resid(datMODLOW))[[2]]
+      DF_MODLOW$ResidNorm  <- if( shapiro.test(resid(datMODLOW))[[2]] > 0.05) {
+        'NO'} else {'YES'}
+      DF_MODLOW$Levenes     <- leveneTest(datMODLOW)[[3]][[1]]
+      DF_MODLOW$HomogVar    <- if( leveneTest(datMODLOW)[[3]][[1]] > 0.05) {
+        'YES'} else {'NO'}
+
+      # asign loop and cumulative output table
+      df       <- data.frame(rbind(DF_MODHIGH,DF_MODLOW)) # name dataframe for this single row
+      AOVdf_total <- rbind(AOVdf_total,df) #bind to a cumulative list dataframe
+      print(AOVdf_total) # print to monitor progress
+      
+}
+View(AOVdf_total) # view all the anova tests within data 
+
+# (2) Run anova tests for ALL data, averged for each date 
+# High Chlorophyll cells by pH & food treatment
+High_chla_MeanSE <-  algaefeed %>% 
+  summarySE(measurevar="High_Chl_cell_mL", groupvars=c("Date","Fed_unfed")) %>% 
+  dplyr::mutate(Cell_type = 'High_Chl_cell_mL') %>% 
+  dplyr::rename(value = High_Chl_cell_mL)
+summary(aov(lm(value ~Fed_unfed, data = High_chla_MeanSE)))
+#              Df     Sum Sq      Mean Sq   F value  Pr(>F)    
+# Fed_unfed     1     8887257     8887257   30.11    4e-06 ***
+# Residuals     34    10036568    295193 
+shapiro.test(resid(aov(lm(value ~Fed_unfed, data = High_chla_MeanSE)))) # p-value = 0.07265 - normal! 
+qqnorm(resid(aov(lm(value ~Fed_unfed, data = High_chla_MeanSE)))) # qq nrom plot of model residuals
+leveneTest(aov(lm(value ~Fed_unfed, data = High_chla_MeanSE))) # 0.004876 ** - variance is unequal
+hist(resid(aov(lm(value ~Fed_unfed, data = High_chla_MeanSE))))
+
+
+# Low Chlorophyll cells by pH & food treatment
+Low_chla_MeanSE <-  algaefeed %>% 
+  summarySE(measurevar="Low_Chl_cell_mL", groupvars=c("Date","Fed_unfed")) %>% 
+  dplyr::mutate(Cell_type = 'Low_Chl_cell_mL') %>% 
+  dplyr::rename(value = Low_Chl_cell_mL)
+summary(aov(lm(value ~Fed_unfed, data = Low_chla_MeanSE)))
+#              Df     Sum Sq      Mean Sq     F value  Pr(>F)    
+# Fed_unfed     1     1.051e+09   1.051e+09   0.441    0.511
+# Residuals     34    8.105e+10   2.384e+09    
+shapiro.test(resid(aov(lm(value ~Fed_unfed, data = Low_chla_MeanSE)))) # p-value = 0.02404 - not normal! 
+qqnorm(resid(aov(lm(value ~Fed_unfed, data = Low_chla_MeanSE)))) # qq nrom plot of model residuals
+leveneTest(aov(lm(value ~Fed_unfed, data = Low_chla_MeanSE))) # 0.1996 ** - variance is unequal
+hist(resid(aov(lm(value ~Fed_unfed, data = Low_chla_MeanSE))))
+
+#NOTE: in each case above, the log model 'log(value)' resolves either normality (low chl model) 
+# or homogeneity of variance (the high chl model) BUT DOES NOT CHANGE THE MODEL OUTCOME 
+# outcome = high chl a cells significantly different between treaments 
+# outcome = low ch l cells NOT significnatly different between treatments
+
 
 # Averages by food and OA treatment (high v. low chl a cells)  :::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -58,7 +150,7 @@ High_chla_MeanSE <-  algaefeed %>%
   dplyr::mutate(Cell_type = 'High_Chl_cell_mL') %>% 
   dplyr::rename(value = High_Chl_cell_mL)
 
-# Loe Chlorophyll cells by pH & food treatment
+# Low Chlorophyll cells by pH & food treatment
 Low_chla_MeanSE <-  algaefeed %>% 
   summarySE(measurevar="Low_Chl_cell_mL", groupvars=c("pH_treatment","Fed_unfed")) %>% 
   dplyr::mutate(Cell_type = 'Low_Chl_cell_mL') %>% 

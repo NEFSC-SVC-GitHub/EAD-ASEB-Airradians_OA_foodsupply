@@ -16,15 +16,15 @@ library(aggregate)
 
 
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # personal computer
-# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
-# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+# setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 # ALL CHEMISTRY DATA  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # LOAD DATA 
 
-chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
+chem    <- data.frame(read.delim(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
   dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) %>%  # ommit all occurances of 'checks' of the system
   dplyr::rename(Date = ?..Date)
 chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
@@ -92,10 +92,75 @@ chem    <- data.frame(read.csv(file="Data/Seawater_chemistry/Water_Chemistry_Foo
 chem
 
 
+
+# Summary table chemistry - BY DATE
+chemTable <- as.data.table(chem[,c(1, 3,4,6,11,13:14,16:20)] %>% 
+  group_by(Date,pH,Food.Treatment) %>%
+  summarise_each(funs(mean,sd,se=sd(.)/sqrt(n()))) %>% 
+  mutate(pH_food= paste(pH, Food.Treatment, sep = "_")) %>% 
+  na.omit())
+modpCO2 <- (lm(pCO2.out..matm._mean ~pH_food, data = chemTable))
+shapiro.test(resid(aov(lm(pCO2.out..matm._mean ~pH_food, data = chemTable)))) # p-value = 0.07265 - normal! 
+emmeans(modpCO2, ~ pH_food)
+TukeyHSD(aov(modpCO2))
+# $pH_food
+#                   diff       lwr        upr      p adj
+# 7.5_Low-7.5_High -136.11500 -311.5340   39.30396 0.1563058
+# 8_High-7.5_High  -275.56000 -440.9466 -110.17342 0.0013171 ** pCO2 8 < 7.5 wihtin high food
+# 8_Low-7.5_High   -333.32125 -508.7402 -157.90229 0.0003875 ** pCO2 8 < 7.5 across food
+# 8_High-7.5_Low   -139.44500 -314.8640   35.97396 0.1426774
+# 8_Low-7.5_Low    -197.20625 -382.1141  -12.29843 0.0349779 ** # pCO2 8 < 7.5 within low food
+# 8_Low-8_High      -57.76125 -233.1802  117.65771 0.7752134
+library(reshape2)
+
+
+# PLOTTING ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# mean plot for all data within Date
+wideCHEM.MEANS <- as.data.table(chem[,c(1, 3,4,6,11,13:14,16:20)] %>% 
+                                 group_by(Date,pH,Food.Treatment) %>%
+                                 summarise_each(funs(mean)))
+longHCHEM.MEANS <- melt(setDT(wideCHEM.MEANS %>% dplyr::select(-Date)), 
+                        id.vars = c("pH", "Food.Treatment"), 
+                        variable.name = "measurement") %>% 
+                        dplyr::rename(MEAN = value)
+CHEM_DOTPLOT <- longHCHEM.MEANS %>% 
+                    dplyr::mutate(pH_food= paste(pH, Food.Treatment, sep = "_")) %>% 
+                    ggplot(aes(x = Food.Treatment, y = MEAN, shape = as.factor(pH))) +
+                    geom_point()+
+                    theme_classic() +
+                    facet_wrap(~measurement, scales = "free")
+CHEM_DOTPLOT
+
+
+# mean ST error plot
+# furtehr average the data across dates and by the four treatments 
+longHCHEM.MEANS.SUMMARY <- as.data.table(longHCHEM.MEANS %>% 
+                                           group_by(pH,Food.Treatment,measurement) %>%
+                                           summarise_each(funs(mean,se=sd(.)/sqrt(n()))))
+
+CHEM_MEANSEPLOT <- longHCHEM.MEANS.SUMMARY %>% 
+  dplyr::mutate(pH_food= paste(pH, Food.Treatment, sep = "_")) %>% 
+  ggplot(aes(x = Food.Treatment, y = mean, shape = as.factor(pH))) +
+  geom_point() +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se), width=.2,
+                position=position_dodge(0.05)) +
+  theme_classic()+
+  facet_wrap(~measurement, scales = "free")
+CHEM_MEANSEPLOT
+
+
+# save plot 
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_multigen_OA/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
+ggarrange(CHEM_DOTPLOT, CHEM_MEANSEPLOT,nrow = 2)
+dev.off()
+
+library(ggarrange)
+
 # Summary table chemistry
 chemTable <- chem[,c(3,4,6,11,13:14,16:20)] %>% 
     group_by(pH,Food.Treatment) %>%
     summarise_each(funs(mean,sd,se=sd(.)/sqrt(n())))
+
 chemTable_n <- chem[,c(3,4,6,11,13:14,16:20)] %>% 
   group_by(pH,Food.Treatment)  %>% 
   dplyr::summarise(n = n())
