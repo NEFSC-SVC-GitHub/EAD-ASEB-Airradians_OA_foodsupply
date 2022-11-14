@@ -40,10 +40,12 @@ library(Rmisc)
 # SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
 
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
-  setwd("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-Master_data       <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T) # master data file
+# Master_data       <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T) # master data file
+Master_data         <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T, fileEncoding = "latin1") # master data file
+
 
 clearance.rate_914    <- Master_data  %>% dplyr::filter(Date %in% 20210914)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
@@ -64,9 +66,12 @@ length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),] %>%  d
                                                                                                'Chamber_tank', 'Number', 'Length_um','whole_Dry_weight'))
 
 ```
+
+
+
 ```{r, calc ratio ChatB : PLY429 for CR trials}
 
-Av_Chaet_Tet_initial <- Master_data %>% 
+Av_Chaet_Tet_initial <- Master_calculated %>% 
   dplyr::filter(!quality %in% '*') %>% # poor quality data marked with * due to pseudofeces in occasional measurements 
   dplyr::filter(time %in% 0) %>%       # call the initial time point 
  # dplyr::group_by(Date) %>% 
@@ -1407,12 +1412,65 @@ dev.off()
 
 ```
 
+```{r, Chaet ClearanceRate Figure All} 
+
+
+chaet_clearance_master <- rbind(Chaet_FR_914_df,Chaet_FR_930_df, Chaet_FR_1026_df)
+
+
+
+# Length_um
+SumTable_ChaetClear <- chaet_clearance_master[!is.na(chaet_clearance_master$CR_mL.hr.mmlength),] %>%  
+            summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
+            dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, Date == '20210930' ~ 66, Date == '20211026' ~ 92)) 
+SumTable_ChaetClear$pCO2 <- factor(SumTable_ChaetClear$pCO2, c("500 μatm","800 μatm"))
+## Use geom_line and geom_point to plot over time
+ChaetClear_time    <- ggplot(data=SumTable_ChaetClear, aes(x=Age, y=CR_mL.hr.mmlength, color=pCO2)) +
+            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+            geom_point()+ 
+            scale_color_manual(values=c("forestgreen","darkorange2"))+
+            geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
+                          position=position_dodge(.1))+
+            theme_bw() +  
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(), 
+                  plot.title = element_text(size=10)) + 
+            labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
+            scale_x_continuous(name ="Age (d)") +
+            labs(title =  "Clearance of Chaetocerous over time..", 
+                 y = "Shell length (mm)") +
+            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
+            theme(legend.position="none") +
+            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+            facet_wrap(~pCO2)
+ChaetClear_time
+
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Chaet_ClearanceRate_length.pdf"), width = 8, height = 6)
+ChaetClear_time
+dev.off()
+```
+
+
+
+# save data
 ```{r, master Clearance rate data }
 
 ClearanceRate_Master <- rbind(Master_1026_plotting, Master_914_plotting, Master_930_plotting)
 write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/ClearanceRate_Master.csv")
 
 ```
+
+
+# upload data
+```{r, master Clearance rate data }
+
+# LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+Master_calculated <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T)
+
+```
+
 
 ## Density plots
 

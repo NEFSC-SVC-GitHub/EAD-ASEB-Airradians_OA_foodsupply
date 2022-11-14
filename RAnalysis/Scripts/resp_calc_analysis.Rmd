@@ -369,7 +369,7 @@ dev.off()
 SumTab_Len      <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),] %>%  
             mutate(Length_mm = Length_um/1000) %>% 
             summarySE(measurevar="Length_mm", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-SumTab_Len$pCO2 <- factor(SumTab_Len$pCO2, c("500 μatm","800 μatm"))
+SumTab_Len$pCO2 <- factor(SumTab_Len$pCO2, c("500 µatm","800 µatm"))
 ## Use geom_line and geom_point to plot over time
 Length_time    <- ggplot(data=SumTab_Len, aes(x=Age, y=Length_mm, color=pCO2)) +
             geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
@@ -392,7 +392,7 @@ Length_time
 # resp_µmol_L_mm_Length_hr
 RespSumTab_Len      <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_µmol_L_mm_Length_hr),] %>%  
             summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-RespSumTab_Len$pCO2 <- factor(RespSumTab_Len$pCO2, c("500 μatm","800 μatm"))
+RespSumTab_Len$pCO2 <- factor(RespSumTab_Len$pCO2, c("500 µatm","800 µatm"))
 ## Use geom_line and geom_point to plot over time
 Resp_LengthStand    <- ggplot(data=RespSumTab_Len, aes(x=Age, y=resp_µmol_L_mm_Length_hr, color=pCO2)) +
             geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
@@ -409,6 +409,9 @@ Resp_LengthStand    <- ggplot(data=RespSumTab_Len, aes(x=Age, y=resp_µmol_L_mm_
             theme(legend.position="none") +
             # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
             facet_wrap(~pCO2)
+Resp_LengthStand
+
+
 
 
 # Whole dry weight :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -416,7 +419,7 @@ Resp_LengthStand    <- ggplot(data=RespSumTab_Len, aes(x=Age, y=resp_µmol_L_mm_
 # resp_µmol_mg_hr
 SumTab_WholeDW      <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_µmol_mg_hr),] %>%  
             summarySE(measurevar="whole_Dry_weight", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-SumTab_WholeDW$pCO2 <- factor(SumTab_WholeDW$pCO2, c("500 μatm","800 μatm"))
+SumTab_WholeDW$pCO2 <- factor(SumTab_WholeDW$pCO2, c("500 µatm","800 µatm"))
 ## Use geom_line and geom_point to plot over time
 WholeDW_time    <- ggplot(data=SumTab_WholeDW, aes(x=Age, y=whole_Dry_weight, color=pCO2)) +
             geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
@@ -436,7 +439,7 @@ WholeDW_time    <- ggplot(data=SumTab_WholeDW, aes(x=Age, y=whole_Dry_weight, co
 
 RespSumTab_DW      <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_µmol_mg_hr),] %>%  
           summarySE(measurevar="resp_µmol_mg_hr", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-RespSumTab_DW$pCO2 <- factor(RespSumTab_DW$pCO2, c("500 μatm","800 μatm"))
+RespSumTab_DW$pCO2 <- factor(RespSumTab_DW$pCO2, c("500 µatm","800 µatm"))
 ## Use geom_line and geom_point to plot over time
 Resp_DryWgtStand   <- ggplot(data=RespSumTab_DW, aes(x=Age, y=resp_µmol_mg_hr, color=pCO2)) +
           geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
@@ -465,6 +468,10 @@ ggarrange(P_Length_resp_all ,Length_time, Resp_LengthStand,
 dev.off()
 
 
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_length.pdf"), width = 8, height = 6)
+Resp_LengthStand
+dev.off()
+
 
 ```
 
@@ -478,7 +485,7 @@ dev.off()
 ```{r load master resp file, echo=FALSE}
 
 # Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personnel computer 
-Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # work computer
+Resp.Master_OM  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T, fileEncoding = "latin1") # work computer
 
 ```
 
@@ -564,6 +571,97 @@ check_model(LMEmod_0914_SL) # print the model diagnostics
 dev.off()
 # levene's test
 leveneTest(residuals(LMEmod_0914_SL) ~ Resp_0914$pCO2) # 0.06434 . PASS
+
+
+# test linear mixed model
+library('HLMdiag')
+# REML == Residual maximum likelihood (REML)
+# technique for estimating variance components in multi-classified data.
+
+#compute a model where the effect of pCO2 is estimated
+fm1 <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ 
+                    pCO2 + 
+                    (1 | Chamber_tank), 
+                  data=Resp_0914, 
+                  REML = FALSE)#because we want to compare models on likelihood; you cannot compare models that differ in fixed effects if they are fitted by REML thus FALSE
+#next, compute a model where the effect of status is not estimated
+fm2 <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ 
+                   (1 | Chamber_tank), 
+                  data=Resp_0914, 
+                  REML = FALSE)#because we want to compare models on likelihood; you cannot compare models that differ in fixed effects if they are fitted by REML thus FALSE
+#compute the AIC-corrected log-base-2 likelihood ratio (a.k.a. "bits" of evidence)
+(AIC(fm2)-AIC(fm1))*log2(exp(1)) # -2.880164
+(AIC(fm2)-AIC(fm1)) # -1.996378
+# simple anova on the unrestricted 
+anova(lmer(resp_µmol_L_mm_Length_hr ~ 
+                    pCO2 + 
+                    (1 | Chamber_tank), 
+                  data=Resp_0914, 
+                  REML = T)) #  0.9533
+
+
+fm1_resid <- hlm_resid(fm1)
+resid1_fm1<- hlm_resid(fm1, standardize = TRUE, include.ls = FALSE)
+
+
+ggplot(data = resid1_fm1, 
+       aes(x = resp_µmol_L_mm_Length_hr, y = .std.resid)) + 
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "loess", se = FALSE) + 
+  labs(y = "LS level-1 residuals", 
+       title = "LS residuals against standardized LRT score")
+# look for linear realtionship 
+fm1b <- update(fm1, .~. + I(resp_µmol_L_mm_Length_hr^2) 
+               + I(resp_µmol_L_mm_Length_hr^3))
+resid1_fm1b <- hlm_resid(fm1b, level = 1, standardize = TRUE)
+ggplot(data = resid1_fm1b, 
+       aes(x = resp_µmol_L_mm_Length_hr, y = .std.resid)) + 
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "loess", se = FALSE) + 
+  labs(y = "LS level-1 residuals", 
+       title = "LS residuals against standardized LRT score")
+
+# random effect
+resid2_fm1b <- hlm_resid(fm1, level = "Chamber_tank", include.ls = FALSE)
+ggplot(data = resid2_fm1b, aes(x = Chamber_tank, y = .ranef.intercept)) + 
+  geom_point() +
+  labs(y = "Random effects - intercept", 
+       title = "Intercept random effects against Chamber_tank") + 
+  coord_flip()
+
+
+fm1     <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ pCO2 
+                  + (1 | Chamber_tank), data=Resp_0914, REML = FALSE)
+shapiro.test(resid(fm1)) # 0.9627
+shapiro.test(pull_resid(fm1, level = "Chamber_tank")) # 0.2039
+shapiro.test(pull_resid(fm1, level = "pCO2")) # 0.2039
+qqnorm(resid(fm1))
+qqnorm(pull_resid(fm1, level = "pCO2"))
+
+
+
+fm1.aug <- hlm_augment(fm1)
+shapiro.test(fm1.aug$.ls.resid)# 0.2039
+qqnorm(fm1.aug$.ls.resid)
+tibble::glimpse(fm1.aug)
+
+fm1_resid  <- hlm_resid(fm1)
+shapiro.test(fm1_resid$.resid) #0.9627
+qqnorm(fm1_resid$.resid)
+
+fm1_resid2 <- hlm_resid(fm1, standardize = TRUE, include.ls = FALSE)
+shapiro.test(fm1_resid2$.std.resid) # 0.9627
+shapiro.test(fm1_resid2$.chol.mar.resid) # 0.9221
+qqnorm(fm1_resid2$.std.resid)
+
+
+fm1_resid
+qqnorm(fm1_resid$.resid)
+shapiro.test(fm1_resid$.resid)
+
+mdffits(fm1)
+pull_resid(fm1)
+
 
 
 # call the results of LMER to add to boxplot below 
