@@ -1,5 +1,5 @@
 ---
-title: "FeedingRate_F1Scallops"
+title: "ClearanceRate_calculate rates foodxOA_experiment"
 author: "Samuel Gurr"
 date: "10/12/2021"
 output: pdf_document
@@ -9,7 +9,7 @@ output: pdf_document
 # Purpose: Bay Scallop Project - Feeding Rates
 # analysis of respiration rate data
 
-# Written by: Sam J Gurr (last edit 10/12/2021)
+# Written by: Sam J Gurr (last edit 11/17/2022)
 
 # Review Riisgard 2001 defining the clearance rate of bivalves 
 # NOTE: clearance rate is defined as the volume of water cleared of suspended particles per unit time, and only equals filtration rate when 
@@ -71,7 +71,7 @@ length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),] %>%  d
 
 ```{r, calc ratio ChatB : PLY429 for CR trials}
 
-Av_Chaet_Tet_initial <- Master_calculated %>% 
+Av_Chaet_Tet_initial <- Master_data %>% 
   dplyr::filter(!quality %in% '*') %>% # poor quality data marked with * due to pseudofeces in occasional measurements 
   dplyr::filter(time %in% 0) %>%       # call the initial time point 
  # dplyr::group_by(Date) %>% 
@@ -445,15 +445,15 @@ ggarrange(SlopePlots_1026_chaet, SlopePlots_1026_ply, SlopePlots_1026_lowchla, n
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_FlowCytometry_rawdata.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_FlowCytometry_rawdata.pdf"))
 ggarrange(SlopePlots_914_chaet, SlopePlots_914_ply, SlopePlots_914_lowchla, ncol = 1, nrow = 3)
 dev.off()
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"), height = 12)
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_FlowCytometry_rawdata.pdf"), height = 12)
 ggarrange(SlopePlots_930_chaet, SlopePlots_930_ply, SlopePlots_930_lowchla, ncol = 1, nrow = 3)
 dev.off()
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"), height = 12)
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_FlowCytometry_rawdata.pdf"), height = 12)
 ggarrange(SlopePlots_1026_chaet, SlopePlots_1026_ply, SlopePlots_1026_lowchla, ncol = 1, nrow = 3)
 dev.off()
 ```
@@ -589,7 +589,7 @@ meanBLANKS.Seson <- data.frame(meanBLANKS.Master) %>%
 meanBLANKS.Summary <- rbind(meanBLANKS.Chaet, meanBLANKS.Ply, meanBLANKS.Seson)
 
 
-write.csv(meanBLANKS.Summary, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Blanks_Master.csv")
+write.csv(meanBLANKS.Summary, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Blanks_Master.csv")
 
 ```
 
@@ -612,7 +612,7 @@ write.csv(meanBLANKS.Summary, "C:/Users/samuel.gurr/Documents/Github_repositorie
 
 ## 20210914 Clearance Rate data 
 
-```{r 20210914 FR, echo = T}
+```{r 20210914 CR calc, echo = T}
 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # Clearance Rate for loop     ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -749,114 +749,15 @@ Seston_CR_914_Means <- df_total.914 %>%
     n = n())
 print(Seston_CR_914_Means)
 
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-# Data
-Ply_FR_914_df      <- df_total.914 %>% filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))
-Chaet_FR_914_df    <- df_total.914 %>% filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))
-Seston_FR_914_df   <- df_total.914 %>% filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))
-
-# library
-require(nlme)
-
-# Ply - Linear Mixed Effects Model
-Ply_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ply_FR_914_df)
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |   8   |  61.6   | 5.011e-05 |
-# |     **pH**      |   1   |   6   | 0.1432  |  0.7181   |
-pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(Ply_LMEmod_0914))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_PLY_CR_LME_Diagnostics.pdf"))
-check_model(Ply_LMEmod_0914) # print the model diagnostics 
-dev.off()
-
-
-# Chaet - Linear Mixed Effects Model
-Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Chaet_FR_914_df)
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  15   |  64.57  | 8.153e-07 |
-# |     **pH**      |   1   |   6   |  4.102  |  0.08924  |
-pander(anova(Chaet_LMEmod_0914), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CHAET_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CHAET_CR_LME_Diagnostics.pdf"))
-check_model(Chaet_LMEmod_0914) # print the model diagnostics 
-dev.off()
-
-
-# Seston - Linear Mixed Effects Model
-Seston_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Seston_FR_914_df)
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  15   |  48.89  | 4.339e-06 |
-# |     **pH**      |   1   |   6   |  1.496  |  0.2672   |
-pander(anova(Seston_LMEmod_0914), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(Chaet_LMEmod_0914))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_SESTON_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_SESTON_CR_LME_Diagnostics.pdf"))
-check_model(Seston_LMEmod_0914) # print the model diagnostics 
-dev.off()
-
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-Master_914_plotting      <- rbind(Chaet_FR_914_df, Ply_FR_914_df, Seston_FR_914_df)
-Master_914_plotting$pHxfood <- paste(Master_914_plotting$pH, Master_914_plotting$Fed_Unfed, sep = '_')
-
-CR_914_boxplot <- Master_914_plotting %>% 
-  ggplot(aes(pCO2 , CR_mL.hr.mmlength , fill = pCO2)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
-  scale_fill_manual(values=c("white","grey50")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=10)) +
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance rate, F1 Scallops 20210914") +
-  facet_wrap(~type)
-CR_914_boxplot
-
-
-# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
-ggarrange(CR_914_boxplot)
-dev.off()
-
-
 ```
+
 
 
 
 
 ## 20210930 Clearance Rate data 
 
-```{r 20210930 FR, echo = T}
+```{r 20210930 CR, echo = T}
 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # Clearance Rate for loop     ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -994,149 +895,8 @@ Seston_CR_930_Means <- df_total.930 %>%
 print(Seston_CR_930_Means)
 
 
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-# Data
-Ply_FR_930_df      <- df_total.930 %>% filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))
-Chaet_FR_930_df    <- df_total.930 %>% filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))
-Seston_FR_930_df   <- df_total.930 %>% filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))
-
-# library
-require(nlme)
-
-# Ply - Linear Mixed Effects Model
-Ply_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Ply_FR_930_df)
-# |      &nbsp;      | numDF | denDF | F-value  | p-value  |
-# |:----------------:|:-----:|:-----:|:--------:|:--------:|
-# | **(Intercept)**  |   1   |  10   |  10.95   | 0.007887 |
-# |      **pH**      |   1   |   6   | 0.004046 |  0.9513  |
-# |  **Fed_Unfed**   |   1   |   6   |  1.365   |  0.287   |
-# | **pH:Fed_Unfed** |   1   |   6   |  0.1011  |  0.7612  |
-pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
-shapiro.test(resid(Ply_LMEmod_0930)) # 0.407
-qqnorm(resid(Ply_LMEmod_0930)) # normal
-kable(as.data.frame(anova(Ply_LMEmod_0930))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_PLY_CR_LME_Diagnostics.pdf"))
-check_model(Ply_LMEmod_0930) # print the model diagnostics 
-dev.off()
-
-
-
-
-# Chaet - Linear Mixed Effects Model
-Chaet_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df)
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  52   |  44.02  | 1.893e-08 |
-# |      **pH**      |   1   |  12   | 0.06041 |   0.81    |
-# |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  | **
-# | **pH:Fed_Unfed** |   1   |  12   | 0.01714 |   0.898   |
-pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
-shapiro.test(resid(Chaet_LMEmod_0930)) # 3.877e-10 non-normal
-qqnorm(resid(Chaet_LMEmod_0930)) # nonnonormal residuals
-hist(resid(Chaet_LMEmod_0930)) # right skew - log should resolve normality 
-
-Chaet_LMEmod_0930_LOG <-lme( log(CR_mL.hr.mmlength) ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df)
-pander(anova(Chaet_LMEmod_0930_LOG), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
-# |:----------------:|:-----:|:-----:|:--------:|:---------:|
-# | **(Intercept)**  |   1   |  52   |  75.88   | 9.753e-12 |
-# |      **pH**      |   1   |  12   |  0.5087  |  0.4894   |
-# |  **Fed_Unfed**   |   1   |  12   |  7.169   |  0.02013  | # did not change the statistical outcome of the LME!
-# | **pH:Fed_Unfed** |   1   |  12   | 0.001205 |  0.9729   |
-shapiro.test(resid(Chaet_LMEmod_0930_LOG)) # 0.1789 - now it is normal
-qqnorm(resid(Chaet_LMEmod_0930_LOG)) # normal
-hist(resid(Chaet_LMEmod_0930_LOG)) # normality resolved using log (no longer right skew)
-
-kable(as.data.frame(anova(Chaet_LMEmod_0930))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CHAET_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CHAET_CR_LME_Diagnostics.pdf"))
-check_model(Chaet_LMEmod_0930) # print the model diagnostics 
-dev.off()
-
-
-
-
-# Seston - Linear Mixed Effects Model
-Seston_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df)
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  34   |  33.37  | 1.682e-06 |
-# |      **pH**      |   1   |  12   | 0.05125 |  0.8247   |
-# |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
-# | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
-pander(anova(Seston_LMEmod_0930), style='rmarkdown') # anova table of lmer
-shapiro.test(resid(Seston_LMEmod_0930)) # 2.236e-06 non-normal
-qqnorm(resid(Seston_LMEmod_0930)) # nonnonormal residuals
-hist(resid(Seston_LMEmod_0930)) #right skew - log should resolve normality 
-
-Seston_LMEmod_0930_LOG <-lme( log(CR_mL.hr.mmlength) ~ pH*Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df)
-pander(anova(Seston_LMEmod_0930_LOG), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  | # still no marginal  nor significant effects - normality did not change the statistical outcome of the model...
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  34   |  23.41  | 2.784e-05 |
-# |      **pH**      |   1   |  12   | 0.2759  |  0.6089   |
-# |  **Fed_Unfed**   |   1   |  12   | 0.6224  |  0.4455   |
-# | **pH:Fed_Unfed** |   1   |  12   |  2.677  |  0.1277   |
-shapiro.test(resid(Seston_LMEmod_0930_LOG)) # 0.8217 normal with log transformation
-qqnorm(resid(Seston_LMEmod_0930_LOG)) # normal residuals
-hist(resid(Seston_LMEmod_0930_LOG)) # normality resolved
-
-hist(resid(Chaet_LMEmod_0930)) # right skew - log should resolve normality 
-kable(as.data.frame(anova(Seston_LMEmod_0930))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_SESTON_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_SESTON_CR_LME_Diagnostics.pdf"))
-check_model(Seston_LMEmod_0930) # print the model diagnostics 
-dev.off()
-
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-Master_930_plotting         <- rbind(Chaet_FR_930_df, Ply_FR_930_df, Seston_FR_930_df)
-Master_930_plotting$pHxfood <- paste(Master_930_plotting$pH, Master_930_plotting$Fed_Unfed, sep = '_')
-CR_930_boxplot <- Master_930_plotting %>% 
-  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
-  scale_fill_manual(values=c("grey50","grey50","white","white")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=10)) +
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance rate, F1 Scallops 20210930") +
-  facet_wrap(~type)
-CR_930_boxplot
-
-
-# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/2010930_CR_Boxplots.pdf"), width = 10)
-ggarrange(CR_930_boxplot)
-dev.off()
-
 ```
+
 
 
 
@@ -1149,7 +909,7 @@ thus I wrote a conditional statement (if else) for these negative values - makin
 the alternative can be to call the nearest non-zero value in line
 
 
-```{r 20211026 FR, echo = T}
+```{r 20211026 CR, echo = T}
 
 
 
@@ -1287,177 +1047,14 @@ Seston_CR_1026_Means <- df_total.1026 %>%
     n = n())
 print(Seston_CR_1026_Means)
 
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-# Data
-Ply_FR_1026_df      <- df_total.1026 %>% filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))
-Chaet_FR_1026_df    <- df_total.1026 %>% filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))
-Seston_FR_1026_df   <- df_total.1026 %>% filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))
-
-# library
-require(nlme)
-
-# Ply - Linear Mixed Effects Model
-Ply_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Ply_FR_1026_df)
-# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
-# |:----------------:|:-----:|:-----:|:--------:|:---------:|
-# | **(Intercept)**  |   1   |  15   |  36.13   | 2.384e-05 |
-# |      **pH**      |   1   |  12   | 4.12e-07 |  0.9995   |
-# |  **Fed_Unfed**   |   1   |  12   |  19.18   | 0.0008971 | ***
-# | **pH:Fed_Unfed** |   1   |  12   | 0.02747  |  0.8711   |
-pander(anova(Ply_LMEmod_1026), style='rmarkdown') # anova table of lmer
-shapiro.test(resid(Ply_LMEmod_1026)) # 0.06153 normal!
-qqnorm(resid(Ply_LMEmod_1026)) # qqnorm looks s-shaped but the residuals are normal via shapiro wilk test
-hist(resid(Ply_LMEmod_1026)) # histogram
-kable(as.data.frame(anova(Ply_LMEmod_1026))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Diagnostics.pdf"))
-check_model(Ply_LMEmod_1026) # print the model diagnostics 
-dev.off()
-
-
-
-
-
-
-# still need to resolve normality in the model below (chaet 1026)
-
-# Chaet - Linear Mixed Effects Model
-Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df)
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  14   |  45.77  | 9.091e-06 |
-# |      **pH**      |   1   |  10   | 0.2495  |  0.6282   |
-# |  **Fed_Unfed**   |   1   |  10   |  17.84  | 0.001763  | ***
-# | **pH:Fed_Unfed** |   1   |  10   | 0.5351  |  0.4813   |
-pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
-shapiro.test(resid(Chaet_LMEmod_1026)) # 9.188e-05 non-normal residuals
-qqnorm(resid(Chaet_LMEmod_1026)) # s-dhaped or left skew
-hist(resid(Chaet_LMEmod_1026)) # 
-
-
-kable(as.data.frame(anova(Chaet_LMEmod_1026))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_LME_Diagnostics.pdf"))
-check_model(Chaet_LMEmod_1026) # print the model diagnostics 
-dev.off()
-
-
-
-# Seston - Linear Mixed Effects Model
-Seston_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH*Fed_Unfed, random=~1|random_fact, data=Seston_FR_1026_df)
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  14   |  61.2   | 1.775e-06 |
-# |      **pH**      |   1   |  11   |  1.138  |  0.3089   |
-# |  **Fed_Unfed**   |   1   |  11   |  19.33  | 0.001068  |
-# | **pH:Fed_Unfed** |   1   |  11   |  2.006  |  0.1843   |
-pander(anova(Seston_LMEmod_1026), style='rmarkdown') # anova table of lmer
-shapiro.test(resid(Seston_LMEmod_1026)) #0.1157 normal residuals
-qqnorm(resid(Seston_LMEmod_1026)) # normal
-hist(resid(Seston_LMEmod_1026)) #  normal
-kable(as.data.frame(anova(Seston_LMEmod_1026))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_LME_Diagnostics.pdf"))
-check_model(Seston_LMEmod_1026) # print the model diagnostics 
-dev.off()
-
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-Master_1026_plotting         <- rbind(Chaet_FR_1026_df, Ply_FR_1026_df, Seston_FR_1026_df)
-Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pH, Master_1026_plotting$Fed_Unfed, sep = '_')
-CR_1026_boxplot <- Master_1026_plotting %>% 
-  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
-  scale_fill_manual(values=c("grey50","grey50","white","white")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=10)) +
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance rate, F1 Scallops 20211026") +
-  facet_wrap(~type)
-CR_1026_boxplot
-
-
-# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/2011026_CR_Boxplots.pdf"), width = 10)
-ggarrange(CR_1026_boxplot)
-dev.off()
-
-
 ```
-
-```{r, Chaet ClearanceRate Figure All} 
-
-
-chaet_clearance_master <- rbind(Chaet_FR_914_df,Chaet_FR_930_df, Chaet_FR_1026_df)
-
-
-
-# Length_um
-SumTable_ChaetClear <- chaet_clearance_master[!is.na(chaet_clearance_master$CR_mL.hr.mmlength),] %>%  
-            summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
-            dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, Date == '20210930' ~ 66, Date == '20211026' ~ 92)) 
-SumTable_ChaetClear$pCO2 <- factor(SumTable_ChaetClear$pCO2, c("500 μatm","800 μatm"))
-## Use geom_line and geom_point to plot over time
-ChaetClear_time    <- ggplot(data=SumTable_ChaetClear, aes(x=Age, y=CR_mL.hr.mmlength, color=pCO2)) +
-            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-            geom_point()+ 
-            scale_color_manual(values=c("forestgreen","darkorange2"))+
-            geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
-                          position=position_dodge(.1))+
-            theme_bw() +  
-            theme(panel.grid.major = element_blank(), 
-                  panel.grid.minor = element_blank(), 
-                  plot.title = element_text(size=10)) + 
-            labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
-            scale_x_continuous(name ="Age (d)") +
-            labs(title =  "Clearance of Chaetocerous over time..", 
-                 y = "Shell length (mm)") +
-            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
-            theme(legend.position="none") +
-            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-            facet_wrap(~pCO2)
-ChaetClear_time
-
-
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Chaet_ClearanceRate_length.pdf"), width = 8, height = 6)
-ChaetClear_time
-dev.off()
-```
-
 
 
 # save data
 ```{r, master Clearance rate data }
 
-ClearanceRate_Master <- rbind(Master_1026_plotting, Master_914_plotting, Master_930_plotting)
-write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/ClearanceRate_Master.csv")
+ClearanceRate_Calc <- rbind(df_total.914, df_total.930, df_total.1026)
+write.csv(ClearanceRate_Calc, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/ClearanceRate_Calc.csv")
 
 ```
 
@@ -1467,7 +1064,7 @@ write.csv(ClearanceRate_Master, "C:/Users/samuel.gurr/Documents/Github_repositor
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
-Master_calculated <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T)
+Master_calculated <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T, fileEncoding = "latin1")
 
 ```
 
