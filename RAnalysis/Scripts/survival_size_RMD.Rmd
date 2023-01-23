@@ -393,14 +393,13 @@ Survival_Means$pCO2 <- factor(Survival_Means$pCO2, c("500 μatm","800 μatm"))
 dodge <- position_dodge(.50)
 ## Use geom_line and geom_point to plot over time
 Survival_All_plot <- ggplot(data=Survival_Means, aes(x=Age_DPF, y=Survival, color=pCO2)) +
-                        geom_line(aes(linetype = factor(Fed_Unfed)), size = c(0.2, 0.2,0.2, 
-                                                                              1,1, 1,
-                                                                              0.2, 0.2,0.2, 
-                                                                              1,1, 1)) +
+                        #geom_line(aes(linetype = factor(Fed_Unfed)), size = c(0.2, 0.2,0.2, 1,1, 1, 0.2, 0.2,0.2,1,1, 1)) +
+                        geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
                         #geom_point(position = position_jitterdodge(jitter.width = 10)) +
                         geom_point(position = position_dodge(width=10)) +
                         #scale_color_manual(values=c("forestgreen","darkorange2")) +
-                        scale_color_manual(values=c("black","black")) +
+                        #scale_color_manual(values=c("black","black")) +
+                        scale_color_manual(values=c("forestgreen","darkorange2"))+
                         geom_errorbar(aes(ymin=Survival-se, ymax=Survival+se), width=.2,
                                       position=position_dodge(width=10))+
                         theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
@@ -412,7 +411,7 @@ Survival_All_plot <- ggplot(data=Survival_Means, aes(x=Age_DPF, y=Survival, colo
                         # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
                         facet_wrap(~pCO2)
 Survival_All_plot
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_survival_FoodxOA.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_survival_FoodxOA.pdf"), width = 8, height = 6)
 Survival_All_plot
 dev.off()
 

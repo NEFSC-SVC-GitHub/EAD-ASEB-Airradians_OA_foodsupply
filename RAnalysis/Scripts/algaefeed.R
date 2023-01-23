@@ -52,11 +52,11 @@ Means_Master_plotting <- rbind(High_chla_MeanSE_date, Low_chla_MeanSE_date) %>%
 
 # (1) First, run anova within date for all records (for looped!)
 ANOVA_Dates <- as.data.table(unique(algaefeed$Date)) # call a list to loop in 
-AOVdf_total             <- data.frame() # start dataframe, this will be the master output
+AOVdf_total          <- data.frame() # start dataframe, this will be the master output
 DF_MODHIGH           <- data.frame(matrix(nrow = 1, ncol = 12)) # create dataframe to save during for loop
 colnames(DF_MODHIGH) <- c('Date', 'Cell_type', 'model', 'DF.num' , 'DF.denom', 'F_val','P_val', 'SigDif', 'ShapiroWilk', 'ResidNorm', 'Levenes', 'HomogVar') # names for comuns in the for loop
-DF_MODLOW           <- data.frame(matrix(nrow = 1, ncol = 12)) # create dataframe to save  during for loop
-colnames(DF_MODLOW) <- c('Date', 'Cell_type', 'model', 'DF.num' , 'DF.denom', 'F_val','P_val', 'SigDif','ShapiroWilk', 'ResidNorm', 'Levenes', 'HomogVar') # names for comuns in the for loop
+DF_MODLOW            <- data.frame(matrix(nrow = 1, ncol = 12)) # create dataframe to save  during for loop
+colnames(DF_MODLOW)  <- c('Date', 'Cell_type', 'model', 'DF.num' , 'DF.denom', 'F_val','P_val', 'SigDif','ShapiroWilk', 'ResidNorm', 'Levenes', 'HomogVar') # names for comuns in the for loop
 
 for (i in 1:nrow(ANOVA_Dates)) {
   

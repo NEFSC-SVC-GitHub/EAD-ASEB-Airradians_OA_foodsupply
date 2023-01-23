@@ -1,0 +1,1263 @@
+---
+title: "ClearanceRate_Analysis foodxOA_experiment"
+author: "Samuel Gurr"
+date: "11/17/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+# Purpose: Bay Scallop Project - Feeding Rates
+# analysis of respiration rate data
+
+# Written by: Sam J Gurr (last edit 11/17/2022)
+
+# Review Riisgard 2001 defining the clearance rate of bivalves 
+# NOTE: clearance rate is defined as the volume of water cleared of suspended particles per unit time, and only equals filtration rate when 
+# 100% of suspended particles are efficiently retained
+
+# LOAD PACKAGES :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+library(dplyr)
+library(ggplot2)
+library(forcats)
+library(lme4)
+library(lmerTest)
+library(see)
+library(performance)
+library(car)
+library(reshape2)
+library(lubridate)
+library(SciViews)
+library(reshape2)
+library(SciViews)
+library(kableExtra)
+library(latex2exp)
+library(pander)
+library(performance)
+library(ggpubr)
+library(Rmisc)
+library(nlme)
+library(AICcmodavg)
+
+
+
+# SET WORKING DIRECTORY :::::::::::::::::::::::::::::::::::::::::::::::
+
+# setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
+setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
+
+# LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Master_data       <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T) # master data file
+ClearancRates_calc      <- read.csv(file="Output/ClearanceRates/ClearanceRate_Calc.csv", header=T) # master data file
+
+```
+
+
+
+
+
+
+
+
+
+
+
+## 20210914 Clearance Rate data 
+
+```{r 20210914 CR analysis, echo = T}
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# Data
+Ply_FR_914_df      <- ClearancRates_calc %>% 
+  filter(Date %in% '20210914') %>%   
+  filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+Chaet_FR_914_df    <-  ClearancRates_calc %>% 
+  filter(Date %in% '20210914') %>%   
+  filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+Seston_FR_914_df   <-  ClearancRates_calc %>% 
+  filter(Date %in% '20210914') %>%   
+  filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+
+
+
+
+
+# ply ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment 
+
+# Ply - Linear Mixed Effects Model
+Ply_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ply_FR_914_df) #nlme
+shapiro.test(resid(Ply_LMEmod_0914)) # 0.1025
+pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lmer
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |   8   |  61.6   | 5.011e-05 |
+# |     **pH**      |   1   |   6   | 0.1432  |  0.7181   |
+Ply_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Ply_FR_914_df, REML = FALSE) # lme4 (can run leenes test with this package output)
+leveneTest(residuals(Ply_LMERmod_0914) ~ Ply_FR_914_df$pH) # 0.7556
+shapiro.test(resid(Ply_LMERmod_0914)) # 0.1025
+summary(Ply_LMERmod_0914) # random factor accounts fo 0 percent of the variance
+pander(anova(Ply_LMERmod_0914), style='rmarkdown') # anova table of lmer
+# | &nbsp; | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F) |
+# |:------:|:------:|:-------:|:-----:|:-----:|:-------:|:------:|
+# | **pH** | 0.8132 | 0.8132  |   1   |  14   | 0.1432  | 0.7108 |
+
+# Ply - one-way anova
+Ply_ANOVAmod_0914 <-aov(CR_mL.hr.mmlength ~ pH, data=Ply_FR_914_df)
+leveneTest(Ply_ANOVAmod_0914) # 0.7556
+shapiro.test(resid(Ply_ANOVAmod_0914)) # 0.1025
+summary(Ply_ANOVAmod_0914)
+#            Df Sum Sq Mean Sq F value Pr(>F)
+# pH           1   0.81   0.813   0.143  0.711
+# Residuals   14  79.50   5.678
+
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Ply_ANOVAmod_0914, Ply_LMERmod_0914) # the one way anova is the better fit model
+
+
+kable(as.data.frame(anova(Ply_ANOVAmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_PLY_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_PLY_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Ply_ANOVAmod_0914) # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+
+# chaet  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment (marginal effect < 0.1)
+
+# chaet - Linear Mixed Effects Model
+Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Chaet_FR_914_df) #nlme
+shapiro.test(resid(Chaet_LMEmod_0914)) # 0.1672
+pander(anova(Chaet_LMEmod_0914), style='rmarkdown') # anova table of lmer
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  15   |  64.57  | 8.153e-07 |
+# |     **pH**      |   1   |   6   |  4.102  |  0.08924  |
+Chaet_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Chaet_FR_914_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Chaet_LMERmod_0914) ~ Chaet_FR_914_df$pH) # 0.1234
+shapiro.test(resid(Chaet_LMERmod_0914)) # 0.1672
+summary(Chaet_LMERmod_0914) # random factor accounts fo 0 percent of the variance
+pander(anova(Chaet_LMERmod_0914), style='rmarkdown') # anova table of lmer
+# | &nbsp; | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F)  |
+# |:------:|:------:|:-------:|:-----:|:-----:|:-------:|:-------:|
+# | **pH** | 21.08  |  21.08  |   1   |  21   |  4.102  | 0.05573 | # marginal effect!
+
+# Chaet - one-way anova
+Chaet_ANOVAmod_0914 <-aov(CR_mL.hr.mmlength ~ pH, data=Chaet_FR_914_df)
+leveneTest(Chaet_ANOVAmod_0914) # 0.1234
+shapiro.test(resid(Ply_ANOVAmod_0914)) # 0.1025
+summary(Ply_ANOVAmod_0914)
+#             Df Sum Sq Mean Sq F value Pr(>F)
+# pH           1   0.81   0.813   0.143  0.711
+# Residuals   14  79.50   5.678 
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Chaet_ANOVAmod_0914, Chaet_LMERmod_0914) # the one way anova is the better fit model
+
+kable(as.data.frame(anova(Chaet_ANOVAmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CHAET_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CHAET_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Chaet_ANOVAmod_0914) # print the model diagnostics 
+dev.off()
+
+
+# seston  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment (marginal effect < 0.1)
+
+
+
+
+# Seston - Linear Mixed Effects Model
+Seston_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Seston_FR_914_df) #nlme
+shapiro.test(resid(Seston_LMEmod_0914)) # 0.6937
+pander(anova(Seston_LMEmod_0914), style='rmarkdown') # anova table of lmer
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  15   |  48.89  | 4.339e-06 |
+# |     **pH**      |   1   |   6   |  1.496  |  0.2672   |
+Seston_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Seston_FR_914_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Seston_LMERmod_0914) ~ Seston_FR_914_df$pH) # 0.1319
+shapiro.test(resid(Seston_LMERmod_0914)) # 0.797
+summary(Seston_LMERmod_0914) # view for the portion of random effecting the variance
+(0.1186   /(0.1186   + 2.9818   ) )* 100 # random factor accounts fo 3.825313 percent of the variance
+pander(anova(Seston_LMERmod_0914), style='rmarkdown') # anova table of lmer
+# | &nbsp; | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F) |
+# |:------:|:------:|:-------:|:-----:|:-----:|:-------:|:------:|
+# | **pH** |  5.75  |  5.75   |   1   | 8.03  |  1.928  | 0.2022 |
+
+# Seston - one-way anova
+Seston_ANOVAmod_0914 <-aov(CR_mL.hr.mmlength ~ pH, data=Seston_FR_914_df)
+leveneTest(Seston_ANOVAmod_0914) # 0.1058
+shapiro.test(resid(Seston_ANOVAmod_0914)) # 0.8013
+summary(Seston_ANOVAmod_0914)
+#             Df Sum Sq Mean Sq F value Pr(>F)
+# pH           1   6.32   6.324   1.862  0.187
+# Residuals   21  71.31   3.396
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Seston_ANOVAmod_0914, Seston_LMERmod_0914) # the one way anova is the better fit model
+
+kable(as.data.frame(anova(Seston_ANOVAmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_SESTON_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_SESTON_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Seston_ANOVAmod_0914) # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+Master_914_plotting      <- rbind(Chaet_FR_914_df, Ply_FR_914_df, Seston_FR_914_df)
+Master_914_plotting$pHxfood <- paste(Master_914_plotting$pH, Master_914_plotting$Fed_Unfed, sep = '_')
+
+CR_914_boxplot <- Master_914_plotting %>% 
+  ggplot(aes(pCO2 , CR_mL.hr.mmlength , fill = pCO2)) +
+  theme(panel.grid=element_blank()) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pCO2)) +
+  scale_fill_manual(values=c("white","grey50")) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+  theme_classic() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=10)) +
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  ggtitle("Clearance rate, F1 Scallops 20210914") +
+  facet_wrap(~type)
+CR_914_boxplot
+
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
+ggarrange(CR_914_boxplot)
+dev.off()
+
+
+```
+
+
+
+
+## 20210930 Clearance Rate data 
+
+
+```{r 20210930 CR analysis, echo = T}
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# Data
+Ply_FR_930_df      <- ClearancRates_calc %>% 
+  filter(Date %in% '20210930') %>%  
+  filter(Ply_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'ply') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+Chaet_FR_930_df    <- ClearancRates_calc %>% 
+  filter(Date %in% '20210930') %>%   
+  filter(Chaet_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'chaet') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+Seston_FR_930_df   <- ClearancRates_calc %>% 
+  filter(Date %in% '20210930') %>%  
+  filter(Seston_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'seston') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+# library
+require(nlme)
+
+
+
+
+
+
+
+
+# ply ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment 
+
+# Ply - Linear Mixed Effects Model
+Ply_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Ply_FR_930_df) #nlme
+shapiro.test(resid(Ply_LMEmod_0930)) # 0.407
+pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value  | p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:--------:|
+# | **(Intercept)**  |   1   |  10   |  10.95   | 0.007887 |
+# |      **pH**      |   1   |   6   | 0.004046 |  0.9513  |
+# |  **Fed_Unfed**   |   1   |   6   |  1.365   |  0.287   |
+# | **pH:Fed_Unfed** |   1   |   6   |  0.1011  |  0.7612  |
+Ply_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Ply_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output)
+leveneTest(residuals(Ply_LMERmod_0930) ~ Ply_FR_930_df$pH) # 0.2448
+shapiro.test(resid(Ply_LMERmod_0930)) # 0.2007
+summary(Ply_LMERmod_0930) # view for the portion of random effecting the variance
+(11.50       /(11.50       + 12.26       ) )* 100 # random factor accounts fo 48.40067 percent of the variance
+pander(anova(Ply_LMERmod_0930), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F) |
+# |:----------------:|:------:|:-------:|:-----:|:-----:|:-------:|:------:|
+# |      **pH**      | 0.1831 | 0.1831  |   1   | 13.39 | 0.01494 | 0.9045 |
+# |  **Fed_Unfed**   | 14.37  |  14.37  |   1   | 13.39 |  1.172  | 0.2981 |
+# | **pH:Fed_Unfed** | 1.872  |  1.872  |   1   | 13.39 | 0.1527  | 0.7022 |
+
+# Ply - two-way anova
+Ply_ANOVAmod_0930 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Ply_FR_930_df)
+leveneTest(Ply_ANOVAmod_0930) # 0.6025
+shapiro.test(resid(Ply_ANOVAmod_0930)) # 0.008883  NON MORMAL
+hist(resid(Ply_ANOVAmod_0930)) # left skew
+Ply_ANOVAmod_0930_TRANSFORMED <-aov(sqrt(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Ply_FR_930_df)
+leveneTest(Ply_ANOVAmod_0930_TRANSFORMED) # 0.544
+shapiro.test(resid(Ply_ANOVAmod_0930_TRANSFORMED)) # 0.5117
+summary(Ply_ANOVAmod_0930_TRANSFORMED)
+#              Df Sum Sq Mean Sq F value Pr(>F)
+# pH            1  0.000   0.000   0.000  0.994
+# Fed_Unfed     1  3.427   3.427   2.848  0.111
+# pH:Fed_Unfed  1  0.775   0.775   0.644  0.434
+
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Ply_ANOVAmod_0930_TRANSFORMED, Ply_LMERmod_0930) # the LME model is 1 point lower  in explaining the variance 
+
+
+kable(as.data.frame(anova(Ply_ANOVAmod_0930_TRANSFORMED))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_PLY_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_PLY_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Ply_ANOVAmod_0930_TRANSFORMED) # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+
+# chaet  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment (marginal effect < 0.1)
+
+# chaet - Linear Mixed Effects Model
+Chaet_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df) #nlme
+shapiro.test(resid(Chaet_LMEmod_0930)) #3.877e-10
+pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  52   |  44.02  | 1.893e-08 |
+# |      **pH**      |   1   |  12   | 0.06041 |   0.81    |
+# |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  | * 
+# | **pH:Fed_Unfed** |   1   |  12   | 0.01714 |   0.898   |
+Chaet_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Chaet_LMERmod_0930) ~ Chaet_FR_930_df$pH) # 0.5066
+shapiro.test(resid(Chaet_LMERmod_0930)) # 3.877e-10 - NON NORMAL
+hist(resid(Chaet_LMERmod_0930)) # positive skew 
+Chaet_LMERmod_0930_TRANSFORMED <- lmer(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Chaet_LMERmod_0930_TRANSFORMED) ~ Chaet_FR_930_df$pH) # 0.1524
+shapiro.test(resid(Chaet_LMERmod_0930_TRANSFORMED)) # 0.1789
+summary(Chaet_LMERmod_0930_TRANSFORMED) # random factor accounts fo 0 percent of the variance
+pander(anova(Chaet_LMERmod_0930), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value  |  Pr(>F)  |
+# |:----------------:|:------:|:-------:|:-----:|:-----:|:--------:|:--------:|
+# |      **pH**      | 0.1305 | 0.1305  |   1   |  68   | 0.004056 |  0.9494  |
+# |  **Fed_Unfed**   | 236.4  |  236.4  |   1   |  68   |  7.348   | 0.008493 |
+# | **pH:Fed_Unfed** | 0.5861 | 0.5861  |   1   |  68   | 0.01821  |  0.893   |
+
+# Chaet - two-way anova
+Chaet_ANOVAmod_0930 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Chaet_FR_930_df)
+leveneTest(Chaet_ANOVAmod_0930) # 0.06993 
+shapiro.test(resid(Chaet_ANOVAmod_0930)) # 3.877e-10
+hist(resid(Chaet_ANOVAmod_0930)) # positive skew
+Chaet_ANOVAmod_0930_TRANSFORMED <-aov(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Chaet_FR_930_df)
+leveneTest(Chaet_ANOVAmod_0930_TRANSFORMED) # 0.05982  
+shapiro.test(resid(Chaet_ANOVAmod_0930_TRANSFORMED)) # 0.1789
+summary(Chaet_ANOVAmod_0930_TRANSFORMED)
+#              Df Sum Sq Mean Sq F value  Pr(>F)   
+# pH            1   0.49   0.489   0.509 0.47830   
+# Fed_Unfed     1   6.89   6.890   7.169 0.00941 **
+# pH:Fed_Unfed  1   0.00   0.001   0.001 0.97241   
+# Residuals    64  61.51   0.961 
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Chaet_ANOVAmod_0930_TRANSFORMED, Chaet_LMERmod_0930) # the one way anova is the better fit model - NOTE: meet with team regarding this, may want to report the LME since values are so close
+
+kable(as.data.frame(anova(Chaet_ANOVAmod_0930))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CHAET_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CHAET_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Chaet_ANOVAmod_0930) # print the model diagnostics 
+dev.off()
+
+
+# seston  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment (marginal effect < 0.1)
+
+
+
+
+# Seston - Linear Mixed Effects Model
+Seston_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df) #nlme
+shapiro.test(resid(Seston_LMEmod_0930)) #  2.236e-06
+pander(anova(Seston_LMEmod_0930), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  34   |  33.37  | 1.682e-06 |
+# |      **pH**      |   1   |  12   | 0.05125 |  0.8247   |
+# |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
+# | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
+Seston_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Seston_LMERmod_0930) ~ Seston_FR_930_df$pH) # 0.3292
+shapiro.test(resid(Seston_LMERmod_0930)) # 3.709e-07 - NON NORMAL
+hist(resid(Seston_LMERmod_0930)) # strongly positive skew
+Seston_LMERmod_0930_TRANSFORMED <- lmer(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Seston_LMERmod_0930_TRANSFORMED) ~ Seston_FR_930_df$pH) # 0.0726 
+shapiro.test(resid(Seston_LMERmod_0930_TRANSFORMED)) #0.9171
+summary(Seston_LMERmod_0930_TRANSFORMED) # view for the portion of random effecting the variance
+(0.002531   /(0.002531   + 1.128288   ) )* 100 # random factor accounts fo 0.2238201 percent of the variance
+pander(anova(Seston_LMERmod_0930_TRANSFORMED), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F)  |
+# |:----------------:|:------:|:-------:|:-----:|:-----:|:-------:|:-------:|
+# |      **pH**      | 0.7943 | 0.7943  |   1   | 13.67 |  0.704  | 0.4159  |
+# |  **Fed_Unfed**   | 0.8955 | 0.8955  |   1   | 13.67 | 0.7936  | 0.3884  |
+# | **pH:Fed_Unfed** | 4.295  |  4.295  |   1   | 13.67 |  3.806  | 0.07186 |
+
+# Seston - one-way anova
+Seston_ANOVAmod_0930 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Seston_FR_930_df)
+leveneTest(Seston_ANOVAmod_0930) # 0.7281
+shapiro.test(resid(Seston_ANOVAmod_0930)) # 3.709e-07 - NON NORMAL
+hist(resid(Seston_ANOVAmod_0930)) # positive skew
+Seston_ANOVAmod_0930_TRANSFORMED <-aov(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Seston_FR_930_df)
+leveneTest(Seston_ANOVAmod_0930_TRANSFORMED) # 0.1502
+shapiro.test(resid(Seston_ANOVAmod_0930_TRANSFORMED)) # 0.9191
+summary(Seston_ANOVAmod_0930_TRANSFORMED)
+#              Df Sum Sq Mean Sq F value Pr(>F)  
+# pH            1   0.51   0.512   0.416 0.5219  
+# Fed_Unfed     1   1.03   1.033   0.840 0.3642  
+# pH:Fed_Unfed  1   4.33   4.330   3.522 0.0669 .
+# Residuals    46  56.54   1.229 
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Seston_ANOVAmod_0930_TRANSFORMED, Seston_LMERmod_0930) # the one way anova is the better fit model
+
+kable(as.data.frame(anova(Seston_ANOVAmod_0930))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_SESTON_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_SESTON_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Seston_ANOVAmod_0930) # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+Master_930_plotting         <- rbind(Chaet_FR_930_df, Ply_FR_930_df, Seston_FR_930_df)
+Master_930_plotting$pHxfood <- paste(Master_930_plotting$pH, Master_930_plotting$Fed_Unfed, sep = '_')
+CR_930_boxplot <- Master_930_plotting %>% 
+  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
+  theme(panel.grid=element_blank()) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
+  scale_fill_manual(values=c("grey50","grey50","white","white")) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+  theme_classic() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=10)) +
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  ggtitle("Clearance rate, F1 Scallops 20210930") +
+  facet_wrap(~type)
+CR_930_boxplot
+
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# summary - (1) sig effect on clearance of chaet cells (low under low food
+#           (2) marginal interaction food * OA on seston clearance rate
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/2010930_CR_Boxplots.pdf"), width = 10)
+ggarrange(CR_930_boxplot)
+dev.off()
+
+```
+
+
+
+
+## 20211026 Clearance Rate data 
+
+
+```{r 20211026 CR analysis, echo = T}
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Linear mixed-effects models ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# Data
+Ply_FR_1026_df      <- ClearancRates_calc %>% 
+  filter(Date %in% '20211026') %>% 
+  filter(Ply_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'ply') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+Chaet_FR_1026_df    <- ClearancRates_calc %>% 
+  filter(Date %in% '20211026') %>% 
+  filter(Chaet_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'chaet') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+Seston_FR_1026_df   <- ClearancRates_calc %>% 
+  filter(Date %in% '20211026') %>% 
+  filter(Seston_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'seston') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+
+
+
+
+
+
+
+
+# ply ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment 
+
+# Ply - Linear Mixed Effects Model
+Ply_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Ply_FR_1026_df) #nlme
+shapiro.test(resid(Ply_LMEmod_1026)) # 0.06153
+pander(anova(Ply_LMEmod_1026), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:---------:|
+# | **(Intercept)**  |   1   |  15   |  36.13   | 2.384e-05 |
+# |      **pH**      |   1   |  12   | 4.12e-07 |  0.9995   |
+# |  **Fed_Unfed**   |   1   |  12   |  19.18   | 0.0008971 |
+# | **pH:Fed_Unfed** |   1   |  12   | 0.02747  |  0.8711   |
+Ply_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Ply_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output)
+leveneTest(residuals(Ply_LMERmod_1026) ~ Ply_FR_1026_df$pH) # 0.05927 
+shapiro.test(resid(Ply_LMERmod_1026)) # 0.06153
+summary(Ply_LMERmod_1026) # view for the portion of random effecting the variance - zero
+pander(anova(Ply_LMERmod_1026), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value |  Pr(>F)   |
+# |:----------------:|:------:|:-------:|:-----:|:-----:|:-------:|:---------:|
+# |      **pH**      | 5.684  |  5.684  |   1   |  31   | 0.01151 |  0.9152   |
+# |  **Fed_Unfed**   | 10705  |  10705  |   1   |  31   |  21.69  | 5.729e-05 | *
+# | **pH:Fed_Unfed** | 15.57  |  15.57  |   1   |  31   | 0.03155 |  0.8602   |
+
+# Ply - two-way anova
+Ply_ANOVAmod_1026 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Ply_FR_1026_df)
+leveneTest(Ply_ANOVAmod_1026) # 3.311e-06 ***
+shapiro.test(resid(Ply_ANOVAmod_1026)) # 0.06153
+hist(resid(Ply_ANOVAmod_1026)) #  looks normal but the variance  tho...
+Ply_ANOVAmod_1026_TRANSFORMED <-aov(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Ply_FR_1026_df)
+leveneTest(Ply_ANOVAmod_1026_TRANSFORMED) # 0.254 - resolved!
+shapiro.test(resid(Ply_ANOVAmod_1026_TRANSFORMED)) # 0.00239 - but not we arent normal...
+summary(Ply_ANOVAmod_1026_TRANSFORMED)
+#              Df Sum Sq Mean Sq F value Pr(>F)
+# pH            1  0.000   0.000   0.000  0.994
+# Fed_Unfed     1  3.427   3.427   2.848  0.111
+# pH:Fed_Unfed  1  0.775   0.775   0.644  0.434
+
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Ply_ANOVAmod_1026, Ply_LMERmod_1026) # the LME model is 1 point lower  in explaining the variance 
+
+
+kable(as.data.frame(anova(Ply_LMERmod_1026))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Diagnostics.pdf"))
+check_model(Ply_LMERmod_1026) # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+
+# chaet  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment (marginal effect < 0.1)
+
+# chaet - Linear Mixed Effects Model
+Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df) #nlme
+shapiro.test(resid(Chaet_LMEmod_1026)) #9.188e-05
+pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  14   |  45.77  | 9.091e-06 |
+# |      **pH**      |   1   |  10   | 0.2495  |  0.6282   |
+# |  **Fed_Unfed**   |   1   |  10   |  17.84  | 0.001763  |
+# | **pH:Fed_Unfed** |   1   |  10   | 0.5351  |  0.4813   | 
+Chaet_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Chaet_LMERmod_1026) ~ Chaet_FR_1026_df$pH) # 0.1017
+shapiro.test(resid(Chaet_LMERmod_1026)) # 9.188e-05 - NON NORMAL
+hist(resid(Chaet_LMERmod_1026)) # positive skew 
+summary(Chaet_LMERmod_1026)
+Chaet_LMERmod_1026_TRANSFORMED <- lmer(sqrt(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Chaet_LMERmod_1026_TRANSFORMED) ~ Chaet_FR_1026_df$pH) # 0.1069
+shapiro.test(resid(Chaet_LMERmod_1026_TRANSFORMED)) # 0.0003287
+# perhaps an outlier> there is a value over twice greater than the second highest 
+max(Chaet_FR_1026_df$CR_mL.hr.mmlength) # 47.66838 
+Chaet_FR_1026_df_OM <- Chaet_FR_1026_df %>% dplyr::filter(CR_mL.hr.mmlength < (47.66838 - 0.001)) 
+Chaet_LMERmod_1026_OM <- lmer((CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df_OM, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Chaet_LMERmod_1026_OM) ~ Chaet_FR_1026_df_OM$pH) # 0.1279
+shapiro.test(resid(Chaet_LMERmod_1026_OM)) # 0.002004 - NON NORMAL
+qqnorm(resid(Chaet_LMERmod_1026_OM))
+summary(Chaet_LMERmod_1026_TRANSFORMED) # random factor accounts fo 0 percent of the variance
+pander(anova(Chaet_LMERmod_1026), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value  |  Pr(>F)  |
+# |:----------------:|:------:|:-------:|:-----:|:-----:|:--------:|:--------:|
+# |      **pH**      | 0.1305 | 0.1305  |   1   |  68   | 0.004056 |  0.9494  |
+# |  **Fed_Unfed**   | 236.4  |  236.4  |   1   |  68   |  7.348   | 0.008493 |
+# | **pH:Fed_Unfed** | 0.5861 | 0.5861  |   1   |  68   | 0.01821  |  0.893   |
+
+# Chaet - two-way anova
+Chaet_ANOVAmod_1026 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Chaet_FR_1026_df)
+leveneTest(Chaet_ANOVAmod_1026) # 0.06993 
+shapiro.test(resid(Chaet_ANOVAmod_1026)) # 3.877e-10
+hist(resid(Chaet_ANOVAmod_1026)) # positive skew
+Chaet_ANOVAmod_1026_TRANSFORMED <-aov(sqrt(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Chaet_FR_1026_df)
+leveneTest(Chaet_ANOVAmod_1026_TRANSFORMED) # 0.3323  
+shapiro.test(resid(Chaet_ANOVAmod_1026_TRANSFORMED)) # 0.0003287
+summary(Chaet_ANOVAmod_1026_TRANSFORMED)
+#              Df Sum Sq Mean Sq F value  Pr(>F)   
+# pH            1   0.49   0.489   0.509 0.47830   
+# Fed_Unfed     1   6.89   6.890   7.169 0.00941 **
+# pH:Fed_Unfed  1   0.00   0.001   0.001 0.97241   
+# Residuals    64  61.51   0.961 
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Chaet_ANOVAmod_1026, Chaet_LMERmod_1026) # the one way anova is the better fit model - NOTE: meet with team regarding this, may want to report the LME since values are so close
+
+kable(as.data.frame(anova(Chaet_ANOVAmod_1026))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Chaet_ANOVAmod_1026) # print the model diagnostics 
+dev.off()
+
+
+# seston  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
+# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
+# no effect of pH treatment (marginal effect < 0.1)
+
+
+
+
+# Seston - Linear Mixed Effects Model
+Seston_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Seston_FR_1026_df) #nlme
+shapiro.test(resid(Seston_LMEmod_1026)) #  2.236e-06
+pander(anova(Seston_LMEmod_1026), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  34   |  33.37  | 1.682e-06 |
+# |      **pH**      |   1   |  12   | 0.05125 |  0.8247   |
+# |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
+# | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
+Seston_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Seston_LMERmod_1026) ~ Seston_FR_1026_df$pH) # 0.3292
+shapiro.test(resid(Seston_LMERmod_1026)) # 3.709e-07 - NON NORMAL
+hist(resid(Seston_LMERmod_1026)) # strongly positive skew
+Seston_LMERmod_1026_TRANSFORMED <- lmer(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+leveneTest(residuals(Seston_LMERmod_1026_TRANSFORMED) ~ Seston_FR_1026_df$pH) # 0.0726 
+shapiro.test(resid(Seston_LMERmod_1026_TRANSFORMED)) #0.9171
+summary(Seston_LMERmod_1026_TRANSFORMED) # view for the portion of random effecting the variance
+(0.002531   /(0.002531   + 1.128288   ) )* 100 # random factor accounts fo 0.2238201 percent of the variance
+pander(anova(Seston_LMERmod_1026_TRANSFORMED), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F)  |
+# |:----------------:|:------:|:-------:|:-----:|:-----:|:-------:|:-------:|
+# |      **pH**      | 0.7943 | 0.7943  |   1   | 13.67 |  0.704  | 0.4159  |
+# |  **Fed_Unfed**   | 0.8955 | 0.8955  |   1   | 13.67 | 0.7936  | 0.3884  |
+# | **pH:Fed_Unfed** | 4.295  |  4.295  |   1   | 13.67 |  3.806  | 0.07186 |
+
+# Seston - one-way anova
+Seston_ANOVAmod_1026 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Seston_FR_1026_df)
+leveneTest(Seston_ANOVAmod_1026) # 0.7281
+shapiro.test(resid(Seston_ANOVAmod_1026)) # 3.709e-07 - NON NORMAL
+hist(resid(Seston_ANOVAmod_1026)) # positive skew
+Seston_ANOVAmod_1026_TRANSFORMED <-aov(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Seston_FR_1026_df)
+leveneTest(Seston_ANOVAmod_1026_TRANSFORMED) # 0.1502
+shapiro.test(resid(Seston_ANOVAmod_1026_TRANSFORMED)) # 0.9191
+summary(Seston_ANOVAmod_1026_TRANSFORMED)
+#              Df Sum Sq Mean Sq F value Pr(>F)  
+# pH            1   0.51   0.512   0.416 0.5219  
+# Fed_Unfed     1   1.03   1.033   0.840 0.3642  
+# pH:Fed_Unfed  1   4.33   4.330   3.522 0.0669 .
+# Residuals    46  56.54   1.229 
+
+# AIC - determine the use of the random factor in the linear mixed effects model
+AIC(Seston_ANOVAmod_1026, Seston_LMERmod_1026) # the one way anova is the better fit model
+
+kable(as.data.frame(anova(Seston_ANOVAmod_1026))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_OneWayANOVA_Table.png", zoom = 1.5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_OneWayANOVA_Diagnostics.pdf"))
+check_model(Seston_ANOVAmod_1026) # print the model diagnostics 
+dev.off()
+
+
+
+
+
+
+
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+Master_1026_plotting         <- rbind(Chaet_FR_1026_df, Ply_FR_1026_df, Seston_FR_1026_df)
+Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pH, Master_1026_plotting$Fed_Unfed, sep = '_')
+CR_1026_boxplot <- Master_1026_plotting %>% 
+  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
+  theme(panel.grid=element_blank()) +
+  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
+  scale_fill_manual(values=c("grey50","grey50","white","white")) +
+  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+  theme_classic() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=10)) +
+  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+  ggtitle("Clearance rate, F1 Scallops 20211026") +
+  facet_wrap(~type)
+CR_1026_boxplot
+
+
+# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/2011026_CR_Boxplots.pdf"), width = 10)
+ggarrange(CR_1026_boxplot)
+dev.off()
+
+
+```
+
+
+
+
+```{r, Chaet ClearanceRate Figure All} 
+
+
+chaet_clearance_master <- rbind(Chaet_FR_914_df,Chaet_FR_930_df, Chaet_FR_1026_df)
+
+
+
+# Length_um
+SumTable_ChaetClear <- chaet_clearance_master[!is.na(chaet_clearance_master$CR_mL.hr.mmlength),] %>%  
+            summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
+            dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, Date == '20210930' ~ 66, Date == '20211026' ~ 92)) 
+SumTable_ChaetClear$pCO2 <- factor(SumTable_ChaetClear$pCO2, c("500 μatm","800 μatm"))
+## Use geom_line and geom_point to plot over time
+ChaetClear_time    <- ggplot(data=SumTable_ChaetClear, aes(x=Age, y=CR_mL.hr.mmlength, color=pCO2)) +
+            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+            geom_point()+ 
+            scale_color_manual(values=c("forestgreen","darkorange2"))+
+            geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
+                          position=position_dodge(.1))+
+            theme_bw() +  
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(), 
+                  plot.title = element_text(size=10)) + 
+            labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
+            scale_x_continuous(name ="Age (d)") +
+            labs(title =  "Clearance of Chaetocerous over time..", 
+                 y = "Shell length (mm)") +
+            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
+            theme(legend.position="none") +
+            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+            facet_wrap(~pCO2)
+ChaetClear_time
+
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Chaet_ClearanceRate_length.pdf"), width = 8, height = 6)
+ChaetClear_time
+dev.off()
+```
+
+
+
+```{r, Ply ClearanceRate Figure All} 
+
+
+Ply_clearance_master <- rbind(Ply_FR_914_df,Ply_FR_930_df, Ply_FR_1026_df)
+
+
+
+# Length_um
+SumTable_PlyClear <- Ply_clearance_master[!is.na(Ply_clearance_master$CR_mL.hr.mmlength),] %>%  
+            summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
+            dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, Date == '20210930' ~ 66, Date == '20211026' ~ 92)) 
+SumTable_PlyClear$pCO2 <- factor(SumTable_PlyClear$pCO2, c("500 μatm","800 μatm"))
+## Use geom_line and geom_point to plot over time
+PlyClear_time    <- ggplot(data=SumTable_PlyClear, aes(x=Age, y=CR_mL.hr.mmlength, color=pCO2)) +
+            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+            geom_point()+ 
+            scale_color_manual(values=c("forestgreen","darkorange2"))+
+            geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
+                          position=position_dodge(.1))+
+            theme_bw() +  
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(), 
+                  plot.title = element_text(size=10)) + 
+            labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
+            scale_x_continuous(name ="Age (d)") +
+            labs(title =  "Clearance of Plyocerous over time..", 
+                 y = "Shell length (mm)") +
+            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
+            theme(legend.position="none") +
+            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+            facet_wrap(~pCO2)
+PlyClear_time
+
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Ply_ClearanceRate_length.pdf"), width = 8, height = 6)
+PlyClear_time
+dev.off()
+```
+
+
+```{r, Seston ClearanceRate Figure All} 
+
+
+Seston_clearance_master <- rbind(Seston_FR_914_df,Seston_FR_930_df, Seston_FR_1026_df)
+
+
+
+# Length_um
+SumTable_SestonClear <- Seston_clearance_master[!is.na(Seston_clearance_master$CR_mL.hr.mmlength),] %>%  
+            summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
+            dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, Date == '20210930' ~ 66, Date == '20211026' ~ 92)) 
+SumTable_SestonClear$pCO2 <- factor(SumTable_SestonClear$pCO2, c("500 μatm","800 μatm"))
+## Use geom_line and geom_point to plot over time
+SestonClear_time    <- ggplot(data=SumTable_SestonClear, aes(x=Age, y=CR_mL.hr.mmlength, color=pCO2)) +
+            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+            geom_point()+ 
+            scale_color_manual(values=c("forestgreen","darkorange2"))+
+            geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
+                          position=position_dodge(.1))+
+            theme_bw() +  
+            theme(panel.grid.major = element_blank(), 
+                  panel.grid.minor = element_blank(), 
+                  plot.title = element_text(size=10)) + 
+            labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
+            scale_x_continuous(name ="Age (d)") +
+            labs(title =  "Clearance of Sestonocerous over time..", 
+                 y = "Shell length (mm)") +
+            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
+            theme(legend.position="none") +
+            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+            facet_wrap(~pCO2)
+SestonClear_time
+
+
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/Seston_ClearanceRate_length.pdf"), width = 8, height = 6)
+SestonClear_time
+dev.off()
+```
+
+
+## Density plots
+
+```{r, 20210930 Density plots }
+library(dplyr)
+library(tidyr)
+
+Master_930_plotting <- ClearancRates_calc %>% dplyr::filter(Date %in% '20210930') %>% mutate(pHxfood = paste(pH, Fed_Unfed, sep = "_"))
+CHAET_plotting      <- Master_930_plotting %>% dplyr::filter(type %in% 'chaet')
+PLY_plotting        <- Master_930_plotting %>% dplyr::filter(type %in% 'ply')
+SESTON_plotting     <- Master_930_plotting %>% dplyr::filter(type %in% 'seston')
+
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Chaetoceros                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+df_mean_CHAET <- CHAET_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_CHAET <- ggplot(CHAET_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(CHAET_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.CHAET %>% unnest(outliers)
+
+
+density.plot_CR_CHAET_930 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = CHAET_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_CHAET_930
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_CHAET_930 # print the model diagnostics 
+dev.off()
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Tetraselmis (Ply)                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_PLY <- PLY_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.PLY <- layer_data(p.box_PLY) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_PLY$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(PLY_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.PLY %>% unnest(outliers)
+
+
+density.plot_CR_PLY_930 <-ggplot(p.box.data.PLY) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = PLY_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Tetraselmis/PLY) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Tetraselmis~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_PLY_930
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_PLY_930 # print the model diagnostics 
+dev.off()
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Seston                             ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_SESTON <- SESTON_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.SESTON <- layer_data(p.box_SESTON) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_SESTON$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(SESTON_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.SESTON %>% unnest(outliers)
+
+
+density.plot_CR_SESTON_0930 <-ggplot(p.box.data.SESTON) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = SESTON_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (seston) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~SESTONoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_SESTON_0930
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_SESTON_0930 # print the model diagnostics 
+dev.off()
+
+```
+
+```{r, 20211026 Density plots }
+library(dplyr)
+library(tidyr)
+
+Master_1026_plotting$pHxfood <- as.factor(Master_1026_plotting$pHxfood)
+CHAET_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'chaet')
+PLY_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'ply')
+SESTON_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'seston')
+
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Chaetoceros                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+df_mean_CHAET <- CHAET_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_CHAET <- ggplot(CHAET_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(CHAET_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.CHAET %>% unnest(outliers)
+
+
+density.plot_CR_CHAET_1026 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = CHAET_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_CHAET_1026
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_CHAET_1026 # print the model diagnostics 
+dev.off()
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Tetraselmis (Ply)                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_PLY <- PLY_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.PLY <- layer_data(p.box_PLY) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_PLY$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(PLY_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.PLY %>% unnest(outliers)
+
+
+density.plot_CR_PLY_1026 <-ggplot(p.box.data.PLY) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = PLY_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Tetraselmis/PLY) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Tetraselmis~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_PLY_1026
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_PLY_1026 # print the model diagnostics 
+dev.off()
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Seston                             ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+df_mean_SESTON <- SESTON_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::ungroup()
+p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.SESTON <- layer_data(p.box_SESTON) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_SESTON$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(SESTON_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.SESTON %>% unnest(outliers)
+
+
+density.plot_CR_SESTON_1026 <-ggplot(p.box.data.SESTON) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = SESTON_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (seston) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~SESTONoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_SESTON_1026
+
+pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_SESTON_1026 # print the model diagnostics 
+dev.off()
+
+```
