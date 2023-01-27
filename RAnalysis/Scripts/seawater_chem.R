@@ -23,11 +23,220 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 # ALL CHEMISTRY DATA  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # LOAD DATA 
+chem <- F1_water_chemistry_lowfood_raw
 
-chem    <- data.frame(read.delim(file="Data/Seawater_chemistry/Water_Chemistry_Scallops_2021.csv", header=T)) %>%  
-  dplyr::filter(!X  %in% c('Checking the system', 'RESPO', 'Tank Farm', 'Blue bucket check')) %>%  # ommit all occurances of 'checks' of the system
-  dplyr::rename(Date = ?..Date)
-chem$Date <- as.factor(gsub("/2021.*","", chem$Date))
+# LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note these data have carbonate chemistry calculated thorugh use of DIC and pH 
+chem_lowfood <- read.csv(file="Data/Seawater_chemistry/raw_data/F1_water_chemistry_lowfood_raw.csv", header=TRUE) # load the chem data
+chem_highfood <- read.csv(file="Data/Seawater_chemistry/raw_data/F1_water_chemistry_raw.csv", header=TRUE)  # load the chem data
+
+# EDIT DATA & MERGE :::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: the experiment occured between 9/1/2021 and 10/26/2021
+
+unique(chem_lowfood$Date)# "9/23/2021"  "9/24/2021"  "9/28/2021"  "10/6/2021"  "10/12/2021" "10/13/2021" "10/14/2021" "10/15/2021" "10/20/2021" "10/27/2021"
+
+listDates <- as.data.frame(unique(chem_lowfood$Date))
+
+chem_highfoodFILT <- chem_highfood %>% # chem_highfood has ALL data to current upload (uploaded in Jan 2023!)
+  dplyr::filter(Date %in% listDates[,1]) %>%  # call only target dates overlapped with the low food data
+  dplyr::filter(!xCO2_out._dry_at._1_atm_.ppm_.DIC_pH %in% NA) %>% # filter out NAs where full carb chemistry was not completed
+  dplyr::mutate(Food = 'High') # all new categorical var for the food treatment
+
+chem_lowfood_2 <- chem_lowfood %>% 
+  dplyr::mutate(Food = 'Low') # all new categorical var for the food treatment
+
+chemMaster     <- rbind(chem_highfoodFILT, chem_lowfood_2)
+chemMaster_2   <- subset(chemMaster, !(TCO2_mmol_kgSW > TA_mmol_kgSW)) %>% # DIC>TA omit
+  dplyr::filter(War_out_DIC_pH < 3) %>% # omit these odd aragonite points
+  dplyr::mutate(pCO2_treatment = # create a pCO2 cart variable
+                  case_when(Treatment == 8 ~ 'Low',
+                            Treatment == 7.5 ~ 'Moderate',
+                            Treatment == 7 ~ 'Severe')) %>% 
+  dplyr::filter(!pCO2_treatment %in% 'Severe') # this pCO2 treatment nt part of the experiment
+
+write.csv(chemMaster_2, 
+          "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Seawater_chemistry/CarbChem_master.csv")
+
+
+
+
+
+
+
+
+# change to long format to properly facet
+carbchem.MASTER_long <- chemMaster_2 %>% 
+  dplyr::select(!(c('Type', 'Treatment', 'Replicate'))) %>% # omit the categorical colums we dont need
+  melt(id.vars=c('Date', 'Food', 'pCO2_treatment')) # clal al lthe others to melt everything by
+
+
+
+# PLOT!
+carbchem.MASTER_long$value <- as.numeric(carbchem.MASTER_long$value) # make numeric
+# acquire means by group for mean SE plotting by Date and treatment
+carbchem.MASTER_meanDate <- carbchem.MASTER_long %>% # calc means and standard error
+  na.omit() %>% 
+  dplyr::group_by(Date, Food, pCO2_treatment, variable) %>% # groups with Date (for plotting!)
+  dplyr::summarise(mean = mean(value),
+                   sd   = sd(value),
+                   se   = sd/(sqrt(n())) )
+colnames(carbchem.MASTER) # target select
+pd <- position_dodge(0.1) # adjust the jitter for the different treatments   
+chemPLot <- carbchem.MASTER_MEANS %>% 
+                          dplyr::filter(variable %in% (c('Temperature_bucket_C',
+                                                         'Salinity',
+                                                         'DO_mg_l',
+                                                         'pH',
+                                                         'pH_out',
+                                                         'TCO2_mmol_kgSW',
+                                                         'TA_mmol_kgSW',
+                                                         'War_out_DIC_pH',
+                                                         'Wca_out'))) %>% 
+                          ggplot(aes(x=Date, y=mean, shape=Food, colour=factor(pCO2_treatment))) + 
+                          geom_errorbar(aes(ymin=mean-se, ymax=mean+se), colour="black", width=.1, position=pd) +
+                          geom_line(position=pd) +
+                          scale_colour_manual(values = c("Low" = "green",
+                                                         "Moderate"="orange")) +
+                          theme_classic() +
+                          geom_point(position=pd, size=2) +
+                          theme(axis.text.x = element_text(angle = 45, hjust=1, size = 5)) +
+                          #scale_y_continuous(expand = c(0, 0), limits = c(0, 300000)) +
+                          facet_wrap(~variable, scales = "free")
+
+# TABLE!
+carbchem.MASTER_meanALL <- carbchem.MASTER_long %>% 
+  na.omit() %>% 
+  dplyr::filter(!variable %in% c('P_Alk_out_mmol_kgSW', 'Si_Alk_out_mmol_kgSW')) %>% # we dont need these
+  dplyr::group_by(Food, pCO2_treatment, variable) %>% # without Date for chem table!
+  dplyr::summarise(mean = mean(value),
+                   sd   = sd(value),
+                   se   = sd/(sqrt(n())) ,
+                   n = n())
+
+carbchem.MASTER_wideMEANS <- reshape2::dcast(carbchem.MASTER_meanALL, Food*pCO2_treatment ~ variable, value.var="mean")
+carbchem.MASTER_wideStErr <- reshape2::dcast(carbchem.MASTER_meanALL, Food+pCO2_treatment ~ variable, value.var="se")
+carbchem.MASTER_wideN     <- reshape2::dcast(carbchem.MASTER_meanALL, Food+pCO2_treatment ~ variable, value.var="n")
+
+
+
+# final table
+
+colnames(carbchem.MASTER_wideMEANS)
+FINAL_TABLE                <- data.frame(matrix(nrow = nrow(carbchem.MASTER_wideMEANS), ncol = 1))
+FINAL_TABLE$pCO2_Treatment <- carbchem.MASTER_wideMEANS$pCO2_treatment
+FINAL_TABLE$food_supply    <- carbchem.MASTER_wideMEANS$Food
+FINAL_TABLE$Salinity       <-  paste( (paste( (signif(carbchem.MASTER_wideMEANS$Salinity, digits=3)),
+                                              (signif(carbchem.MASTER_wideStErr$Salinity, digits=3)), sep=" ± ")),
+                                      " (",
+                                      carbchem.MASTER_wideN$Salinity,
+                                      ")",
+                                      sep = "")
+FINAL_TABLE$pCO2           <-  paste( (paste( (signif(carbchem.MASTER_wideMEANS$xCO2_out._dry_at._1_atm_.ppm_.DIC_pH, digits=3)),
+                                              (signif(carbchem.MASTER_wideStErr$xCO2_out._dry_at._1_atm_.ppm_.DIC_pH, digits=3)), sep=" ± ")),
+                                      " (",
+                                      carbchem.MASTER_wideN$xCO2_out._dry_at._1_atm_.ppm_.DIC_pH,
+                                      ")",
+                                      sep = "")
+FINAL_TABLE$Temperature    <- paste( (paste( (signif(carbchem.MASTER_wideMEANS$Temperature_bucket_C, digits=3)),
+                                             (signif(carbchem.MASTER_wideStErr$Temperature_bucket_C, digits=3)), sep=" ± ")),
+                                     " (",
+                                     carbchem.MASTER_wideN$Temperature_bucket_C,
+                                     ")",
+                                     sep = "")
+FINAL_TABLE$DO    <- paste( (paste( (signif(carbchem.MASTER_wideMEANS$DO_mg_l, digits=3)),
+                                             (signif(carbchem.MASTER_wideStErr$DO_mg_l, digits=3)), sep=" ± ")),
+                                     " (",
+                                     carbchem.MASTER_wideN$DO_mg_l,
+                                     ")",
+                                     sep = "")
+FINAL_TABLE$pH             <- paste( (paste( (signif(carbchem.MASTER_wideMEANS$pH, digits=3)),
+                                             (signif(carbchem.MASTER_wideStErr$pH, digits=3)), sep=" ± ")),
+                                     " (",
+                                     carbchem.MASTER_wideN$pH,
+                                     ")",
+                                     sep = "")
+FINAL_TABLE$TCO2    <- paste( (paste( (signif(carbchem.MASTER_wideMEANS$TCO2_mmol_kgSW, digits=3)),
+                                             (signif(carbchem.MASTER_wideStErr$TCO2_mmol_kgSW, digits=3)), sep=" ± ")),
+                                     " (",
+                                     carbchem.MASTER_wideN$TCO2_mmol_kgSW,
+                                     ")",
+                                     sep = "")
+
+FINAL_TABLE$pH_out    <- paste( (paste( (signif(carbchem.MASTER_wideMEANS$pH_out, digits=3)),
+                                      (signif(carbchem.MASTER_wideStErr$pH_out, digits=3)), sep=" ± ")),
+                              " (",
+                              carbchem.MASTER_wideN$pH_out,
+                              ")",
+                              sep = "")
+
+FINAL_TABLE$HCO3           <-  paste( (paste( (signif(carbchem.MASTER_wideMEANS$HCO3_out_mmol_kgSW, digits=3)),
+                                              (signif(carbchem.MASTER_wideStErr$HCO3_out_mmol_kgSW, digits=3)), sep=" ± ")),
+                                      " (",
+                                      carbchem.MASTER_wideN$HCO3_out_mmol_kgSW,
+                                      ")",
+                                      sep = "")
+FINAL_TABLE$CO3           <-  paste( (paste( (signif(carbchem.MASTER_wideMEANS$CO3_out_mmol_kgSW, digits=3)),
+                                             "±",
+                                             (signif(carbchem.MASTER_wideStErr$CO3_out_mmol_kgSW, digits=3)), sep="  ")),
+                                     " (",
+                                     carbchem.MASTER_wideN$CO3_out_mmol_kgSW,
+                                     ")",
+                                     sep = "")
+FINAL_TABLE$TA             <- paste( (paste( (signif(carbchem.MASTER_wideMEANS$TA_mmol_kgSW, digits=3)),
+                                             (signif(carbchem.MASTER_wideStErr$TA_mmol_kgSW, digits=3)), sep=" ± ")),
+                                     " (",
+                                     carbchem.MASTER_wideN$TA_mmol_kgSW,
+                                     ")",
+                                     sep = "")
+FINAL_TABLE$Calcite.Sat  <-  paste( (paste( (signif(carbchem.MASTER_wideMEANS$Wca_out, digits=3)),
+                                              (signif(carbchem.MASTER_wideStErr$Wca_out, digits=3)), sep=" ± ")),
+                                      " (",
+                                      carbchem.MASTER_wideN$Wca_out,
+                                      ")",
+                                      sep = "")
+FINAL_TABLE$Aragonite.Sat  <-  paste( (paste( (signif(carbchem.MASTER_wideMEANS$War_out_DIC_pH, digits=3)),
+                                              (signif(carbchem.MASTER_wideStErr$War_out_DIC_pH, digits=3)), sep=" ± ")),
+                                      " (",
+                                      carbchem.MASTER_wideN$War_out_DIC_pH,
+                                      ")",
+                                      sep = "")
+
+FINAL_TABLE                <- FINAL_TABLE[,-1] # view table
+
+FINAL_TABLE %>%
+  kbl(caption = "Table 1. Seawater chemistry") %>%
+  kable_classic(full_width = T, html_font = "Cambria")
+
+
+
+#write.csv(ChemTable_MeanSE, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Water_Chemistry/SummaryTable_meanSE.csv")
+write.csv(FINAL_TABLE, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Seawater_chemistry/SummaryTable_meanSE.csv")
+
+
+carbchem.MASTER_long
+
+tableWide <- cast(carbchem.MASTER_long, name ~ numbers) 
+carbchem.MASTER_long$value <- as.numeric(carbchem.MASTER_long$value)
+data_wide <- reshape2::dcast((carbchem.MASTER_long %>% 
+                                dplyr::select(-Date)), Food + pCO2_treatment ~ variable, value.var="value", fun.aggregate=sum)
+
+
+melt( (carbchem.MASTER_long %>% 
+                                dplyr::select(-Date)), id.vars = c("Food", "pCO2_treatment", "variable"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Total Alkalinity (Mean St Error)
@@ -238,4 +447,4 @@ View(ChemTable_MeanSE)
 
 
 #write.csv(ChemTable_MeanSE, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Water_Chemistry/SummaryTable_meanSE.csv")
-write.csv(ChemTable_MeanSE, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Water_Chemistry/SummaryTable_meanSE.csv")
+#write.csv(ChemTable_MeanSE, "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA/RAnalysis/Output/Water_Chemistry/SummaryTable_meanSE.csv")

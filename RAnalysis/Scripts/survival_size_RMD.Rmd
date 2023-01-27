@@ -62,7 +62,7 @@ survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repo
 
 ```
 
-# regression of size metrics
+# condition Index
 
 ```{r Condition index data, statistics, plotting, include=FALSE}
 
@@ -120,19 +120,38 @@ Master_CI_raw$pH <- as.factor(Master_CI_raw$pH)
 # statistical approach to 20211026 (last time point of the food OA challenge BUT just the fed animals..)
 LMEmod_CI_1026.DATA <- Master_CI_raw %>% dplyr::filter(Age %in% '64DPF') # filter the data from 20211026
 levels(LMEmod_CI_1026.DATA$random_eff) # should be 8 levels A B C D within 7.5 and 8 
-LMEmod_CI_1026      <- lme(CI ~ pH, random=~1|random_eff, data= LMEmod_CI_1026.DATA) # run the model with ranodom effect of the tank replicate within treatment
+LMEmod_CI_1026      <- lme(CI ~ pH, 
+                           random=~1|random_eff, 
+                           data= LMEmod_CI_1026.DATA) # run the model
+
+LMERmod_CI_1026      <- lmer(CI ~ pH + 
+                           (1|random_eff), 
+                           data= LMEmod_CI_1026.DATA) # run the model
+
+
+ print(dative.glmm2, corr=F)
+ 
+ 
+shapiro.test(residuals(LMEmod_CI_1026)) # non-normal 8.769e-07
+leveneTest(residuals(LMEmod_CI_1026) ~ LMEmod_CI_1026.DATA$pH) # 0.1017
+LMEmod_CI_1026_T    <- lme(log(CI) ~ pH, 
+                           random=~1|random_eff, 
+                           data= LMEmod_CI_1026.DATA) # run the model
+shapiro.test(residuals(LMEmod_CI_1026_T)) # non-normal 8.769e-07
+leveneTest(residuals(LMEmod_CI_1026) ~ LMEmod_CI_1026.DATA$pH) # 0.1017
+
+pander(anova(LMEmod_CI_1026), style='rmarkdown') # print the model
 # |     &nbsp;      | numDF | denDF | F-value | p-value |
 # |:---------------:|:-----:|:-----:|:-------:|:-------:|
 # | **(Intercept)** |   1   |  80   |  1627   |    0    |
 # |     **pH**      |   1   |   6   |  4.657  | 0.07428 | # marginal significant
-pander(anova(LMEmod_CI_1026), style='rmarkdown') # print the model
 kable(as.data.frame(anova(LMEmod_CI_1026))) %>%  # save the table 
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Table.png", zoom = 1.5)
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Diagnostics.pdf"))
 check_model(LMEmod_CI_1026)  # model diagnostics
 dev.off()
-shapiro.test(residuals(LMEmod_CI_1026)) # non-normal 8.769e-07
+
 
 
 summarySE(LMEmod_CI_1026.DATA, measurevar="CI", groupvars="pH")
@@ -324,10 +343,15 @@ leveneTest(mod_shellwt_length)
 
 ```{r, Survival plot Mean SE}
 #First make calculations for means and standard error
-LarvaeSurvival_Summ <- summarySE(survival_larvae, measurevar="Survival", groupvars=c("Day", "Treatment")) %>% 
-    dplyr::mutate(pCO2 = case_when(Treatment == "Low"  ~ "500 μatm", Treatment == "Moderate" ~ "800 μatm", Treatment == "High" ~ "1200 μatm")) # cahmber volumes on different dates with different instruments 
+LarvaeSurvival_Summ <- summarySE(survival_larvae, 
+                                 measurevar="Survival", 
+                                 groupvars=c("Day", "Treatment")) %>% 
+    dplyr::mutate(pCO2 = case_when(Treatment == "Low"  ~ "500 μatm", 
+                                   Treatment == "Moderate" ~ "800 μatm", 
+                                   Treatment == "High" ~ "1200 μatm")) # cahmber volumes on different dates with different instruments 
 
-LarvaeSurvival_Summ$pCO2 <- factor(LarvaeSurvival_Summ$pCO2, c("500 μatm","800 μatm", "1200 μatm"))
+LarvaeSurvival_Summ$pCO2 <- factor(LarvaeSurvival_Summ$pCO2, 
+                                   c("500 μatm","800 μatm", "1200 μatm"))
 ## Use geom_line and geom_point to plot over time
 LarvaeSurvival_Plot <-ggplot(data=LarvaeSurvival_Summ, aes(x=Day, y=Survival, color=pCO2)) +
   geom_line( stat = "identity", size=1.0)+
@@ -461,8 +485,11 @@ dev.off()
 data_51 <- length %>%
   filter(Age_DPF=="51") %>%
   dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate, sep = "_")))
+  dplyr::mutate(Fed_Unfed = 
+                  case_when(Fed_Unfed == "fed" ~ "High food",  
+                            Fed_Unfed == "unfed" ~ "Low food")) %>% 
+  dplyr::mutate(random_fact = 
+                  as.factor(paste(pCO2,Replicate, sep = "_")))
 
 data_51_AVG <- data_51 %>%  summarySE(measurevar="Length_um", groupvars= "pCO2")
 # data_51_AVG
@@ -478,11 +505,13 @@ Length914_reps
 require(nlme)
 # Linear mixed effects model with random effect of Replicate 
 ShellLengthMod_D51 = lme(Length_um ~ pCO2, random=~1|random_fact,data=data_51)
-# output the model results
-# |     &nbsp;      | numDF | denDF | F-value | p-value |
-# |:---------------:|:-----:|:-----:|:-------:|:-------:|
-# | **(Intercept)** |   1   |  629  |  1097   |    0    |
-# |    **pCO2**     |   1   |   6   |  0.233  | 0.6464  |
+shapiro.test(residuals(ShellLengthMod_D51)) # 2.316e-14 non normal
+leveneTest(residuals(ShellLengthMod_D51) ~ data_51$pCO2) # 0.8915
+ShellLengthMod_D51_T = lme(log(Length_um) ~ pCO2, random=~1|random_fact,data=data_51)
+shapiro.test(residuals(ShellLengthMod_D51_T)) # 2.316e-14 non normal
+leveneTest(residuals(ShellLengthMod_D51_T) ~ data_51$pCO2) # 0.8915
+
+
 pander(anova(ShellLengthMod_D51), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(ShellLengthMod_D51))) %>%  # print a png of this table
   kable_styling() %>%
@@ -491,8 +520,7 @@ kable(as.data.frame(anova(ShellLengthMod_D51))) %>%  # print a png of this table
 pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210914_figs_table/20210914_length_LME_Diagnostics.pdf"))
 check_model(ShellLengthMod_D51) # print the model diagnostics 
 dev.off()
-shapiro.test(residuals(ShellLengthMod_D51)) # non normal
-leveneTest(residuals(ShellLengthMod_D51) ~ data_51$pCO2)
+
 
 
 # call the results of LMER to add to boxplot below 
@@ -558,7 +586,13 @@ data_64_AVG.survival
 require(nlme)
 
 # Length:::::::::::::::::::::::::::::::::::::::::::::::
-ShellLengthMod_D64 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|random_fact,data=data_64_length)
+ShellLengthMod_D64 = lme(Length_um ~ 
+                           pCO2 * Fed_Unfed, 
+                         random=~1|random_fact,
+                         data=data_64_length)
+leveneTest(residuals(ShellLengthMod_D64) ~ data_64_length$pCO2) # 0.5277
+shapiro.test(resid(ShellLengthMod_D64)) # < 2.2e-16
+pander(anova(ShellLengthMod_D64), style='rmarkdown') # anova table of lmer
 # output the model results
 # |       &nbsp;       | numDF | denDF | F-value |  p-value  |
 # |:------------------:|:-----:|:-----:|:-------:|:---------:|
@@ -566,7 +600,6 @@ ShellLengthMod_D64 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|random_fact,dat
 # |      **pCO2**      |   1   |  12   | 0.03278 |  0.8593   |
 # |   **Fed_Unfed**    |   1   |  12   |   107   | 2.488e-07 |
 # | **pCO2:Fed_Unfed** |   1   |  12   | 0.07402 |  0.7902   |
-pander(anova(ShellLengthMod_D64), style='rmarkdown') # anova table of lmer
 kable(as.data.frame(anova(ShellLengthMod_D64))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_LME_Table.png", zoom = 1.5)
@@ -574,9 +607,7 @@ kable(as.data.frame(anova(ShellLengthMod_D64))) %>%  # print a png of this table
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_LME_Diagnostics.pdf"))
 check_model(ShellLengthMod_D64) # print the model diagnostics 
 dev.off()
-shapiro.test(residuals(ShellLengthMod_D64)) #  non normal < 2.2e-16
-leveneTest(residuals(ShellLengthMod_D51) ~ data_64_length$pCO2) # 0.7793
-leveneTest(residuals(ShellLengthMod_D51) ~ data_64_length$Fed_Unfed) # < 2.2e-16 ***
+
 
 
 
@@ -584,7 +615,10 @@ leveneTest(residuals(ShellLengthMod_D51) ~ data_64_length$Fed_Unfed) # < 2.2e-16
 # Survival:::::::::::::::::::::::::::::::::::::::::::::
 
 
-SurvivalhMod_D64 = lme(Survival ~ pCO2 * Fed_Unfed, random=~1|random_fact, data=data_64_survival) # no replicates within the tanks a,b,c,d - linear model used here
+SurvivalhMod_D64 = lme(Survival ~ 
+                         pCO2 * Fed_Unfed, 
+                       random=~1|random_fact, 
+                       data=data_64_survival) # no replicates within the tanks a,b,c,d - linear model used here
 # output the model results
 # |       &nbsp;       | numDF | denDF | F-value |  p-value  |
 # |:------------------:|:-----:|:-----:|:-------:|:---------:|
@@ -733,15 +767,21 @@ dev.off()
 # length data 
 data_92_length <- length %>%
   filter(Age_DPF=="92") %>%
-  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))%>% 
+  dplyr::mutate(pCO2 = 
+                  case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+  dplyr::mutate(Fed_Unfed = 
+                  case_when(Fed_Unfed == "fed" ~ "High food",  
+                            Fed_Unfed == "unfed" ~ "Low food"))%>% 
   dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
 
-data_92_AVG.length <- data_92_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))
-data_92_AVG.length
+data_92_AVG.length <- data_92_length %>%  
+  summarySE(measurevar="Length_um", 
+            groupvars= c("pCO2", "Fed_Unfed"))
+# data_92_AVG.length
 
-data_92_AVG.length <- data_92_length %>%  summarySE(measurevar="Length_um", groupvars= "Fed_Unfed")
-data_92_AVG.length
+data_92_AVG.length <- data_92_length %>%  
+  summarySE(measurevar="Length_um", groupvars= "Fed_Unfed")
+# data_92_AVG.length
 
 # Survival data 
 data_92_survival <- survival_juvenile %>%
@@ -751,10 +791,10 @@ data_92_survival <- survival_juvenile %>%
   dplyr::rename(Length_um = Length)%>% 
   dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Fed_Unfed, sep = "_")))
 levels(data_92_survival$Fed_Unfed) <- c("High food", "Low food")
-levels(data_92_survival$pCO2) <- c("800 μatm", "500 μatm")
+levels(data_92_survival$pCO2)      <- c("800 μatm", "500 μatm")
 
 data_92_AVG.survival<- data_92_survival %>%  summarySE(measurevar="Survival", groupvars= "Fed_Unfed")
-data_92_AVG.survival
+# data_92_AVG.survival
 
 # Linear mixed effects models :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 require(nlme)
@@ -763,7 +803,21 @@ require(nlme)
 # Length:::::::::::::::::::::::::::::::::::::::::::::::
 
 
-ShellLengthMod_D92 = lme(Length_um ~ pCO2 * Fed_Unfed, random=~1|random_fact,data=data_92_length)
+
+ShellLengthMod_D92 = lme(Length_um ~ 
+                           pCO2 * Fed_Unfed, 
+                         random=~1|random_fact,
+                         data=data_92_length)
+ShellLengthMod_D92 = lmer(Length_um ~ 
+                           pCO2 * Fed_Unfed + (1|random_fact),
+                          family="binomial",
+                         data=data_92_length)
+print(ShellLengthMod_D92, corr=F)
+
+
+shapiro.test(residuals(ShellLengthMod_D92)) # non normal 6.026e-15
+leveneTest(residuals(ShellLengthMod_D92) ~ data_92_length$pCO2) # 0.1068
+leveneTest(residuals(ShellLengthMod_D92) ~ data_92_length$Fed_Unfed) # < 2.2e-16 ***
 # output the model results
 # |       &nbsp;       | numDF | denDF | F-value |  p-value  |
 # |:------------------:|:-----:|:-----:|:-------:|:---------:|
@@ -779,9 +833,7 @@ kable(as.data.frame(anova(ShellLengthMod_D92))) %>%  # print a png of this table
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_LME_Diagnostics.pdf"))
 check_model(ShellLengthMod_D92) # print the model diagnostics 
 dev.off()
-shapiro.test(residuals(ShellLengthMod_D92)) # non normal 6.026e-15
-leveneTest(residuals(ShellLengthMod_D92) ~ data_92_length$pCO2) # 0.1583
-leveneTest(residuals(ShellLengthMod_D92) ~ data_92_length$Fed_Unfed) # < 2.2e-16 ***
+
 
 
 # Survival:::::::::::::::::::::::::::::::::::::::::::::

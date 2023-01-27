@@ -1,5 +1,5 @@
 ---
-title: "Respiration Analysis F1 Scallops 2021"
+title: "Respiration Calc F1 Scallops 2021"
 author: "Samuel Gurr"
 date: "10/6/2021"
 output:
@@ -28,7 +28,6 @@ library(data.table)
 library(stringr)
 library(latex2exp)
 library(Rmisc)
-# library(devtools)
 library(ggpubr)
 library(hrbrthemes)
 library(nlme)
@@ -193,7 +192,7 @@ Resp.Master <- merge(resp.data_merged, blanks_means, by=c("Date", "pH", "Run", "
   dplyr::mutate(resp_blankStand = abs(Lpc) - BLANK.mean_Lpc) # ommits respiration rate values showing an increase in O2 over time 
 
 Resp.less.than.blank <- Resp.Master %>% dplyr::filter(resp_blankStand < 0) %>% dplyr::select(c(1:7,15,18,29)) %>% mutate(Lpc = abs(Lpc)) # call the values with positive resp rates, measing they were slower than the blank!
-print(Resp.less.than.blank) # 15 total samples were less than the blank after the correction... (Lpc < BLANK.mean_LPC)
+print(Resp.less.than.blank) # 14 total samples were less than the blank after the correction... (Lpc < BLANK.mean_LPC)
 
 ```
 
@@ -209,48 +208,133 @@ print(Resp.less.than.blank) # 15 total samples were less than the blank after th
 
 ```{r master resp file, echo=FALSE}
 
-Resp.Master_OM <- Resp.Master[!is.na(Resp.Master$Length_um),] %>% dplyr::filter(!resp_blankStand < 0) %>% # omit respiration values subtracted by blank (resp_blankStand) that are negative (less than the blank)
-  dplyr::mutate(volume = case_when(filetype == "LoLigo_data" & Date == '9/14/2021' ~ 2.2, # small vessels for loligo system - 22 ml vessels
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH1' ~ 68.55323, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH2' ~ 68.85583, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH3' ~ 68.87473, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH4' ~ 68.95481, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH5' ~ 68.57288, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH6' ~ 68.01878, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH7' ~ 68.54551, # larger custom vessels measured individually...
-                                   filetype == "LoLigo_data" & Date == '10/26/2021' & Channel == 'CH8' ~ 68.53297, # larger custom vessels measured individually...
-                                   filetype == "SDR_data" ~ 1.7)) %>% # 24-well plate - 1700ul 
-  # mg minute -> mg L hr
-  dplyr::mutate(resp_mg_L_hr =(resp_blankStand *  # resp corrected for blank (remember within Date, Run and treatment!) - currently as raw units of mg O2 per minute (output from LoLinR script)
-                                      (volume/1000) * # mult by volume of the resp vessel corrected in Liters - now units in  mg per L per min
-                                       60))  %>% # mult by 60 to convert to hours - now units in mg L per hour
-  # mg L hr -> umol L hr
-  dplyr::mutate(resp_umol_L_hr = ( (resp_mg_L_hr * 1000) / 16) ) %>% #  convert mg L per hr to umol L hr- first by mg to ug (mg*1000 = ug) and then ug to umol (1 umol = 32 ug -  ug O2 div 32 ug/umol)                                
+Resp.Master_OM <- Resp.Master[!is.na(Resp.Master$Length_um),] %>% 
+  # omit resp values less than the blank
+  dplyr::filter(!resp_blankStand < 0) %>% # omit respiration values subtracted by blank (resp_blankStand) that are negative (less than the blank)
+  # new colums with the experimental conditions                   
   dplyr::mutate(Age = case_when(Date == '9/14/2021' ~ 50, Date == '9/30/2021' ~ 66, Date == '10/26/2021' ~ 92)) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == 'F' ~ "High food", is.na(Fed_Unfed) ~ "High food", Fed_Unfed == 'U' ~ "Low food")) %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8.0 ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+  dplyr::mutate(Fed_Unfed = case_when(
+    Fed_Unfed == 'F' ~ "High food", is.na(Fed_Unfed) ~ "High food", 
+    Fed_Unfed == 'U' ~ "Low food")) %>% 
+  dplyr::mutate(pCO2 = case_when(
+    pH == 8.0 ~ "500 μatm", 
+    pH == 7.5 ~ "800 μatm")) %>% 
+  # the volume of the cahmbers 
+  dplyr::mutate(volume = case_when(
+     filetype == "LoLigo_data" & Date == '9/14/2021' ~ 1.7, # small vessels for loligo system - 22 ml vessels
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH1' ~ 23.1, # F1 data
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH2' ~ 23.05, 
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH4' ~ 22.55,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH5' ~ 23.18,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH6' ~ 23.24,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH7' ~ 22.63, 
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH8' ~ 22.95,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH3' ~ 23.31, #larger custom vessels measured individually...
+     filetype == "SDR_data" ~ 1.7)) %>% # 24-well plate - 1700ul used for the unfed and fed on 9/30 and the unfed only on 10/26
+  # factor in the biovolume (volume displaced from the animal) to get the actual calculated volume of the chambers
+  dplyr::mutate(Length_mm = Length_um/1000) %>% # Length in millimeters
+  dplyr::mutate(Biovol_length3 = (0.000198*(Length_mm^3)))  %>% # biovoume calc using length (mm) ^3 0.000198 derived from a regression run with all F1 data 
+  dplyr::mutate(calculated_volume = (volume - Biovol_length3)) %>%  # actual volume of the vessel accounting for the volume displaced (length^3 equivelent to the measured biovolume)
+  # REspiration units mg minute -> mg L hr
+  dplyr::mutate(resp_mg_L_hr =(resp_blankStand *  # resp corrected for blank (remember within Date, Run and treatment!) - currently as raw units of mg O2 per minute (output from LoLinR script)
+                                      (calculated_volume/1000) * # mult by volume of the resp vessel corrected in Liters - now units in  mg per L per min
+                                       60))  %>% # mult by 60 to convert to hours - now units in mg L per hour
+  dplyr::mutate(resp_umol_L_hr = ( (resp_mg_L_hr * 1000) / 32) ) #  convert mg L per hr to umol L hr- first by mg to ug (mg*1000 = ug) and then ug to umol (1 umol = 32 ug -  ug O2 div 32 ug/umol)          
 
-Resp.Master %>% dplyr::filter(resp_blankStand < 0) # 15 rows omitted 
+Resp.Master %>% dplyr::filter(resp_blankStand < 0) # 14 rows omitted 
 ```
 
+# ALOMETRIC COEFFICIENT (b factor) 
 
-### Relationship between Whole dry weight  v. Shell length 
+## by SHELL AND INDIVIDUAL LENGTH (only for biovolume calculated using length^3)
 
-```{r DW v shell length plot,  echo=TRUE, message = FALSE, warning = FALSE}
-Resp.Master_OM %>% ggplot(aes(x = Length_um, y = resp_umol_L_hr)) +
-                                geom_smooth(method = "lm") +
-                                theme_classic() +
-                                ylab("resp_umol_L_hr") +
-                                xlab("Length_um") +
-                                geom_point()  +
-                                facet_wrap(~Age + Fed_Unfed, scales = 'free')
-# outlier in 'fed' Day 92 3X higher than all other rates - visual of this data appears shows an abrupt anomaly 
-Resp.Master_OM <- Resp.Master_OM %>% filter(!resp_umol_L_hr > (max(resp_umol_L_hr) - 0.001))
-# view the above ggplot again, youll see the fed day 92 now show a regression that was once lacking with this outlier
+* why? - we want to compare resp data across time however we did not measure dry tissue nor biovolume in samll animals, thus 
+to calculate resp using the sample methods across time, we used length^3 correction for biovolume and will further use a bfactor for shell length in these data 
+
+* note: this is in contrast to resp values used for SFG, O:N, and any overlaid phys with ecretion and biodeposition becasue animals were large enough to have tissue dry weights and biovolumes 
+
+```{r b factor SHELL AND INDIVIDUAL LENGTH, echo=TRUE, echo = FALSE,message = FALSE, warning = FALSE, results='hide'}
+
+# FOR SHELL ENGTH WE WILL USE THE 'resp_umol_hr_biovolcalc' data to employ all resp data files across time! 
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# GET B FACTOR FOR ALL AVAILABLE INDIVIDUALS WITH LENGTH AND MO2 ::::::::::::::::::::::::::::::
+nrow(Resp.Master_OM) # 118
+Resp.Master_OM$log10_VO2     <- log10(as.numeric(Resp.Master_OM$resp_umol_L_hr)) # assign resp value
+Resp.Master_OM$log10_Length  <- log10(as.numeric(Resp.Master_OM$Length_um)) # assign length value 
+#summary(lm(RR_master_OM$log10_VO2~RR_master_OM$log10_Length)) # 1.8502 == b factor
+
+MO2_b.factorLENGTH_PLOT <- Resp.Master_OM %>% 
+                           #filter(!resp_umol_L_hr < 0.08) %>% 
+                           ggplot(aes(x=log10_Length, y=log10_VO2)) +
+                              geom_point() +
+                              theme(panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank())+ 
+                              scale_x_continuous(name ="log10_Length; in mm") +
+                              scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                              theme_classic() +
+                              theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                              ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                      (b.factor * log10_Length)") +
+                              geom_smooth(method = lm, color = 'red') +
+                              ggpmisc::stat_poly_eq(parse=T, 
+                                                    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+                                                    label.x.npc = "left")
+#MO2_b.factorLENGTH_PLOT
+
+MO2_b.factorLENGTH_PLOT <- Resp.Master_OM %>% 
+                           #filter(!resp_umol_L_hr < 0.08) %>% 
+                         dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -3)) %>%  # outliers ommited (should be 2 data points)
+                           ggplot(aes(x=log10_Length, y=log10_VO2)) +
+                              geom_point() +
+                              theme(panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank())+ 
+                              scale_x_continuous(name ="log10_Length; in mm") +
+                              scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                              theme_classic() +
+                              theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                              ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                      (b.factor * log10_Length)") +
+                              geom_smooth(method = lm, color = 'red') +
+                              ggpmisc::stat_poly_eq(parse=T, 
+                                                    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+                                                    label.x.npc = "left")
+
+
+
+MO2_b.factorLENGTH_PLOT_facetted <- Resp.Master_OM %>% 
+                                    dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -3)) %>%  # outliers ommited (should be 2 data points)
+                                     ggplot(aes(x=log10_Length, y=log10_VO2, color = pCO2)) +
+                                        geom_point() +
+                                        scale_color_manual(values=c("blue","orange")) +
+                                        theme(panel.grid.major = element_blank(), 
+                                              panel.grid.minor = element_blank())+ 
+                                        scale_x_continuous(name ="log10_Length; in mm") +
+                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                                        theme_classic() +
+                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                                (b.factor * log10_Length)") +
+                                        geom_smooth(method = lm, color = 'red') +
+                                        ggpmisc::stat_poly_eq(parse=T, 
+                                                              aes(label = paste(..eq.label..,
+                                                                                ..rr.label.., sep = "~~~")),
+                                                              label.x.npc = "left") +
+                                        facet_wrap(~pCO2)
+# MO2_b.factorLENGTH_PLOT_facetted
+
+
+# OUTPUT PLOTS 
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/metabolic_scaling/MetabolicScaling_bFactor_LENGTH.pdf"), width = 8, height = 8)
+print(ggarrange(MO2_b.factorLENGTH_PLOT, MO2_b.factorLENGTH_PLOT_facetted, nrow = 2, ncol = 1)) # print the model diagnostics
+dev.off() 
+
+print(ggarrange(MO2_b.factorLENGTH_PLOT, MO2_b.factorLENGTH_PLOT_facetted, nrow = 2, ncol = 1)) # print the model diagnostics
+
+# b factor == 1.46
+
 ```
 
-
-### Standardize rates as...
+# Standardize rates as...
 
 ##### (1) shell length: umol L-1 O2 mm shell length hour-1
 ##### (2) whole dry weight: umol L-1 O2 g whole dry weight hour-1 
@@ -262,8 +346,16 @@ Resp.Master_OM <- Resp.Master_OM %>% filter(!resp_umol_L_hr > (max(resp_umol_L_h
 
 # (1)  umol O2 L-1 g mm shell length-1 ::::::::::::::::::::::::::::::::::::::::::::::::::
 # NORMALIZED for Shell length
-Resp.Master_OM$resp_µmol_L_mm_Length_hr <- (Resp.Master_OM$resp_umol_L_hr / # multiple by 1000 to convert mmol/ O2 to umol/L O2
-              (Resp.Master_OM$Length_um/1000)) # normalize by shell size as to mg O2 L-1 g mm-1
+bLength = 1.46 # review the outlier-omitted b factor plot in previous chunk
+meanLength   <- mean(Resp.Master_OM$Length_mm) #4.292843
+
+Resp.Master_Master <- Resp.Master_OM %>% 
+
+                       dplyr::mutate(resp_umol_hr_bFactorNormLength.MEAN = 
+                                    (resp_umol_L_hr)*((meanLength/Length_mm)^bLength) ) %>% # length b factor  correcred using 'resp_umol_hr_biovolcalc'
+    
+                       dplyr::mutate(resp_µmol_L_mm_Length_hr = 
+                                       (resp_umol_L_hr /(Length_um/1000)) )
 
 # (2) mg O2 L-1 g dry tissue weight-1 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # NORMALIZED for Whole animal dry weight (g)
@@ -273,7 +365,7 @@ Resp.Master_OM$resp_µmol_mg_hr <- (Resp.Master_OM$resp_umol_L_hr /
 
 
 # write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
- write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
+ write.csv(Resp.Master_Master, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 
 ```
 
@@ -485,7 +577,7 @@ dev.off()
 ```{r load master resp file, echo=FALSE}
 
 # Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personnel computer 
-Resp.Master_OM  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T, fileEncoding = "latin1") # work computer
+Resp.Master  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T, fileEncoding = "latin1") # work computer
 
 ```
 
@@ -507,7 +599,7 @@ Resp.Master_OM  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/A
 ```{r 9/14 replicates and mean resp, echo=FALSE}
 
 # model effect of treatment on resp rate 20210507
-Resp_0914 <- Resp.Master_OM %>% 
+Resp_0914 <- Resp.Master %>% 
               dplyr::filter(Date %in% '9/14/2021')  %>% # call only 9/14
               dplyr::filter(!Chamber_tank  %in% 'blank')
 
@@ -522,6 +614,9 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 # 8_D	2	   *2 rep
 
 Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pH")) %>% 
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+
+Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.MEAN", groupvars=c("pH")) %>% 
       dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
 
 

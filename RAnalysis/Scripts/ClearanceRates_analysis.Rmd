@@ -113,16 +113,18 @@ Seston_FR_914_df   <-  ClearancRates_calc %>%
 # Ply - Linear Mixed Effects Model
 Ply_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Ply_FR_914_df) #nlme
 shapiro.test(resid(Ply_LMEmod_0914)) # 0.1025
-pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lmer
+leveneTest(residuals(Ply_LMEmod_0914) ~ Ply_FR_914_df$pH) # 0.7556
+pander(anova(Ply_LMEmod_0914), style='rmarkdown') # anova table of lme
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
 # | **(Intercept)** |   1   |   8   |  61.6   | 5.011e-05 |
 # |     **pH**      |   1   |   6   | 0.1432  |  0.7181   |
-Ply_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Ply_FR_914_df, REML = FALSE) # lme4 (can run leenes test with this package output)
+Ply_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Ply_FR_914_df, REML = TRUE) # lme4 (can run leenes test with this package output)
 leveneTest(residuals(Ply_LMERmod_0914) ~ Ply_FR_914_df$pH) # 0.7556
 shapiro.test(resid(Ply_LMERmod_0914)) # 0.1025
 summary(Ply_LMERmod_0914) # random factor accounts fo 0 percent of the variance
 pander(anova(Ply_LMERmod_0914), style='rmarkdown') # anova table of lmer
+
 # | &nbsp; | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F) |
 # |:------:|:------:|:-------:|:-----:|:-----:|:-------:|:------:|
 # | **pH** | 0.8132 | 0.8132  |   1   |  14   | 0.1432  | 0.7108 |
@@ -162,23 +164,25 @@ dev.off()
 # SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
 # model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
 # no effect of pH treatment (marginal effect < 0.1)
-
+Chaet_LMEmod_0914 <-lm(CR_mL.hr.mmlength ~ pH, data=Chaet_FR_914_df)
 # chaet - Linear Mixed Effects Model
-Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Chaet_FR_914_df) #nlme
+Chaet_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, rand
+                        om=~1|random_fact, data=Chaet_FR_914_df) #nlme
 shapiro.test(resid(Chaet_LMEmod_0914)) # 0.1672
+leveneTest(residuals(Chaet_LMERmod_0914) ~ Chaet_FR_914_df$pH) # 0.1234
+
 pander(anova(Chaet_LMEmod_0914), style='rmarkdown') # anova table of lmer
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
 # | **(Intercept)** |   1   |  15   |  64.57  | 8.153e-07 |
 # |     **pH**      |   1   |   6   |  4.102  |  0.08924  |
 Chaet_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Chaet_FR_914_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Chaet_LMERmod_0914) ~ Chaet_FR_914_df$pH) # 0.1234
 shapiro.test(resid(Chaet_LMERmod_0914)) # 0.1672
 summary(Chaet_LMERmod_0914) # random factor accounts fo 0 percent of the variance
 pander(anova(Chaet_LMERmod_0914), style='rmarkdown') # anova table of lmer
 # | &nbsp; | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F)  |
 # |:------:|:------:|:-------:|:-----:|:-----:|:-------:|:-------:|
-# | **pH** | 21.08  |  21.08  |   1   |  21   |  4.102  | 0.05573 | # marginal effect!
+# | **pH** | 21.08  |  21.08  |   1   |  23   |  4.492  | 0.04505 | # marginal effect!
 
 # Chaet - one-way anova
 Chaet_ANOVAmod_0914 <-aov(CR_mL.hr.mmlength ~ pH, data=Chaet_FR_914_df)
@@ -215,13 +219,13 @@ dev.off()
 # Seston - Linear Mixed Effects Model
 Seston_LMEmod_0914 <-lme(CR_mL.hr.mmlength ~ pH, random=~1|random_fact, data=Seston_FR_914_df) #nlme
 shapiro.test(resid(Seston_LMEmod_0914)) # 0.6937
+leveneTest(residuals(Seston_LMERmod_0914) ~ Seston_FR_914_df$pH) # 0.1319
 pander(anova(Seston_LMEmod_0914), style='rmarkdown') # anova table of lmer
 # |     &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:---------------:|:-----:|:-----:|:-------:|:---------:|
 # | **(Intercept)** |   1   |  15   |  48.89  | 4.339e-06 |
 # |     **pH**      |   1   |   6   |  1.496  |  0.2672   |
 Seston_LMERmod_0914 <- lmer(CR_mL.hr.mmlength ~ pH + (1|random_fact), data=Seston_FR_914_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Seston_LMERmod_0914) ~ Seston_FR_914_df$pH) # 0.1319
 shapiro.test(resid(Seston_LMERmod_0914)) # 0.797
 summary(Seston_LMERmod_0914) # view for the portion of random effecting the variance
 (0.1186   /(0.1186   + 2.9818   ) )* 100 # random factor accounts fo 3.825313 percent of the variance
@@ -284,7 +288,7 @@ CR_914_boxplot
 
 # Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/2010914_CR_Boxplots.pdf"))
 ggarrange(CR_914_boxplot)
 dev.off()
 
@@ -305,7 +309,7 @@ dev.off()
 
 
 
-
+nrow(Ply_FR_930_df)
 # Data
 Ply_FR_930_df      <- ClearancRates_calc %>% 
   filter(Date %in% '20210930') %>%  
@@ -353,6 +357,7 @@ require(nlme)
 # Ply - Linear Mixed Effects Model
 Ply_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Ply_FR_930_df) #nlme
 shapiro.test(resid(Ply_LMEmod_0930)) # 0.407
+leveneTest(residuals(Ply_LMERmod_0930) ~ Ply_FR_930_df$pH) # 0.2448
 pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
 # |      &nbsp;      | numDF | denDF | F-value  | p-value  |
 # |:----------------:|:-----:|:-----:|:--------:|:--------:|
@@ -361,7 +366,6 @@ pander(anova(Ply_LMEmod_0930), style='rmarkdown') # anova table of lmer
 # |  **Fed_Unfed**   |   1   |   6   |  1.365   |  0.287   |
 # | **pH:Fed_Unfed** |   1   |   6   |  0.1011  |  0.7612  |
 Ply_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Ply_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output)
-leveneTest(residuals(Ply_LMERmod_0930) ~ Ply_FR_930_df$pH) # 0.2448
 shapiro.test(resid(Ply_LMERmod_0930)) # 0.2007
 summary(Ply_LMERmod_0930) # view for the portion of random effecting the variance
 (11.50       /(11.50       + 12.26       ) )* 100 # random factor accounts fo 48.40067 percent of the variance
@@ -416,18 +420,29 @@ dev.off()
 # chaet - Linear Mixed Effects Model
 Chaet_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df) #nlme
 shapiro.test(resid(Chaet_LMEmod_0930)) #3.877e-10
-pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  52   |  44.02  | 1.893e-08 |
-# |      **pH**      |   1   |  12   | 0.06041 |   0.81    |
-# |  **Fed_Unfed**   |   1   |  12   |  6.973  |  0.02155  | * 
-# | **pH:Fed_Unfed** |   1   |  12   | 0.01714 |   0.898   |
-Chaet_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
 leveneTest(residuals(Chaet_LMERmod_0930) ~ Chaet_FR_930_df$pH) # 0.5066
+pander(anova(Chaet_LMEmod_0930), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:---------:|
+# | **(Intercept)**  |   1   |  52   |  75.88   | 9.753e-12 |
+# |      **pH**      |   1   |  12   |  0.5087  |  0.4894   |
+# |  **Fed_Unfed**   |   1   |  12   |  7.169   |  0.02013  | # sig
+# | **pH:Fed_Unfed** |   1   |  12   | 0.001205 |  0.9729   |
+Chaet_LMEmod_0930_T <-lme(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_930_df) #nlme
+shapiro.test(resid(Chaet_LMEmod_0930_T)) # 0.1789
+help("pvalues")
+leveneTest(residuals(Chaet_LMEmod_0930_T) ~ Chaet_FR_930_df$pH) # 0.1524
+pander(anova(Chaet_LMEmod_0930_T), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
+# |:----------------:|:-----:|:-----:|:--------:|:---------:|
+# | **(Intercept)**  |   1   |  52   |  75.88   | 9.753e-12 |
+# |      **pH**      |   1   |  12   |  0.5087  |  0.4894   |
+# |  **Fed_Unfed**   |   1   |  12   |  7.169   |  0.02013  | # sig - no change to outcome although transformed
+# | **pH:Fed_Unfed** |   1   |  12   | 0.001205 |  0.9729   |
+Chaet_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_930_df, REML = TRUE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
 shapiro.test(resid(Chaet_LMERmod_0930)) # 3.877e-10 - NON NORMAL
 hist(resid(Chaet_LMERmod_0930)) # positive skew 
-Chaet_LMERmod_0930_TRANSFORMED <- lmer(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
+Chaet_LMERmod_0930_TRANSFORMED <- lmer(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_930_df, REML = TRUE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
 leveneTest(residuals(Chaet_LMERmod_0930_TRANSFORMED) ~ Chaet_FR_930_df$pH) # 0.1524
 shapiro.test(resid(Chaet_LMERmod_0930_TRANSFORMED)) # 0.1789
 summary(Chaet_LMERmod_0930_TRANSFORMED) # random factor accounts fo 0 percent of the variance
@@ -479,6 +494,7 @@ dev.off()
 # Seston - Linear Mixed Effects Model
 Seston_LMEmod_0930 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df) #nlme
 shapiro.test(resid(Seston_LMEmod_0930)) #  2.236e-06
+leveneTest(residuals(Seston_LMEmod_0930) ~ Seston_FR_930_df$pH) # 0.3324
 pander(anova(Seston_LMEmod_0930), style='rmarkdown') # anova table of lmer
 # |      &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:----------------:|:-----:|:-----:|:-------:|:---------:|
@@ -486,6 +502,16 @@ pander(anova(Seston_LMEmod_0930), style='rmarkdown') # anova table of lmer
 # |      **pH**      |   1   |  12   | 0.05125 |  0.8247   |
 # |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
 # | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
+Seston_LMEmod_0930_T <-lme(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, random=~1|random_fact, data=Seston_FR_930_df) #nlme
+shapiro.test(resid(Seston_LMEmod_0930_T)) #  2.236e-06
+leveneTest(residuals(Seston_LMEmod_0930_T) ~ Seston_FR_930_df$pH) # 0.3324
+pander(anova(Seston_LMEmod_0930_T), style='rmarkdown') # anova table of lmer
+# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:----------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)**  |   1   |  34   |  23.41  | 2.784e-05 |
+# |      **pH**      |   1   |  12   | 0.2759  |  0.6089   |
+# |  **Fed_Unfed**   |   1   |  12   | 0.6224  |  0.4455   |
+# | **pH:Fed_Unfed** |   1   |  12   |  2.677  |  0.1277   |
 Seston_LMERmod_0930 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_930_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
 leveneTest(residuals(Seston_LMERmod_0930) ~ Seston_FR_930_df$pH) # 0.3292
 shapiro.test(resid(Seston_LMERmod_0930)) # 3.709e-07 - NON NORMAL
@@ -626,6 +652,7 @@ Seston_FR_1026_df   <- ClearancRates_calc %>%
 # Ply - Linear Mixed Effects Model
 Ply_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Ply_FR_1026_df) #nlme
 shapiro.test(resid(Ply_LMEmod_1026)) # 0.06153
+leveneTest(residuals(Ply_LMEmod_1026) ~ Ply_FR_1026_df$pH) # 0.05927 
 pander(anova(Ply_LMEmod_1026), style='rmarkdown') # anova table of lmer
 # |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
 # |:----------------:|:-----:|:-----:|:--------:|:---------:|
@@ -688,6 +715,7 @@ dev.off()
 # chaet - Linear Mixed Effects Model
 Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df) #nlme
 shapiro.test(resid(Chaet_LMEmod_1026)) #9.188e-05
+leveneTest(residuals(Chaet_LMEmod_1026) ~ Chaet_FR_1026_df$pH) # 0.1017
 pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
 # |      &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:----------------:|:-----:|:-----:|:-------:|:---------:|
@@ -695,17 +723,19 @@ pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
 # |      **pH**      |   1   |  10   | 0.2495  |  0.6282   |
 # |  **Fed_Unfed**   |   1   |  10   |  17.84  | 0.001763  |
 # | **pH:Fed_Unfed** |   1   |  10   | 0.5351  |  0.4813   | 
-Chaet_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Chaet_LMERmod_1026) ~ Chaet_FR_1026_df$pH) # 0.1017
-shapiro.test(resid(Chaet_LMERmod_1026)) # 9.188e-05 - NON NORMAL
-hist(resid(Chaet_LMERmod_1026)) # positive skew 
-summary(Chaet_LMERmod_1026)
-Chaet_LMERmod_1026_TRANSFORMED <- lmer(sqrt(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Chaet_LMERmod_1026_TRANSFORMED) ~ Chaet_FR_1026_df$pH) # 0.1069
-shapiro.test(resid(Chaet_LMERmod_1026_TRANSFORMED)) # 0.0003287
+Chaet_LMEmod_1026_T <-lme(asin(sqrt(CR_mL.hr.mmlength/100)) ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df) #nlme
+shapiro.test(resid(Chaet_LMEmod_1026_T)) #9.188e-05
+leveneTest(residuals(Chaet_LMEmod_1026_T) ~ Chaet_FR_1026_df$pH) # 0.1017
+pander(anova(Chaet_LMEmod_1026_T), style='rmarkdown') # anova table of lmer
+
 # perhaps an outlier> there is a value over twice greater than the second highest 
 max(Chaet_FR_1026_df$CR_mL.hr.mmlength) # 47.66838 
 Chaet_FR_1026_df_OM <- Chaet_FR_1026_df %>% dplyr::filter(CR_mL.hr.mmlength < (47.66838 - 0.001)) 
+Chaet_LMEmod_1026_OM <-lme(asin(sqrt(CR_mL.hr.mmlength/100)) ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df_OM) #nlme
+shapiro.test(resid(Chaet_LMEmod_1026_OM)) #9.188e-05
+leveneTest(residuals(Chaet_LMEmod_1026_OM) ~ Chaet_FR_1026_df_OM$pH) # 0.1017
+pander(anova(Chaet_LMEmod_1026_OM), style='rmarkdown') # anova table of lmer
+
 Chaet_LMERmod_1026_OM <- lmer((CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df_OM, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
 leveneTest(residuals(Chaet_LMERmod_1026_OM) ~ Chaet_FR_1026_df_OM$pH) # 0.1279
 shapiro.test(resid(Chaet_LMERmod_1026_OM)) # 0.002004 - NON NORMAL
@@ -758,14 +788,15 @@ dev.off()
 
 # Seston - Linear Mixed Effects Model
 Seston_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Seston_FR_1026_df) #nlme
-shapiro.test(resid(Seston_LMEmod_1026)) #  2.236e-06
+leveneTest(residuals(Seston_LMEmod_1026) ~ Seston_FR_1026_df$pH) # 0.6573
+shapiro.test(resid(Seston_LMEmod_1026)) #  0.1157
 pander(anova(Seston_LMEmod_1026), style='rmarkdown') # anova table of lmer
 # |      &nbsp;      | numDF | denDF | F-value |  p-value  |
 # |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  34   |  33.37  | 1.682e-06 |
-# |      **pH**      |   1   |  12   | 0.05125 |  0.8247   |
-# |  **Fed_Unfed**   |   1   |  12   | 0.3996  |  0.5391   |
-# | **pH:Fed_Unfed** |   1   |  12   |  1.247  |   0.286   |
+# | **(Intercept)**  |   1   |  14   |  61.2   | 1.775e-06 |
+# |      **pH**      |   1   |  11   |  1.138  |  0.3089   |
+# |  **Fed_Unfed**   |   1   |  11   |  19.33  | 0.001068  |
+# | **pH:Fed_Unfed** |   1   |  11   |  2.006  |  0.1843   |
 Seston_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
 leveneTest(residuals(Seston_LMERmod_1026) ~ Seston_FR_1026_df$pH) # 0.3292
 shapiro.test(resid(Seston_LMERmod_1026)) # 3.709e-07 - NON NORMAL
