@@ -85,7 +85,7 @@ kable(head(resp.data_merged))
 resp.data_merged[48 ,c(1:6)]  #  CH5	Run_2_raw.txt	-0.005252180	-0.004583581	-0.004583581
 resp.data_merged[44 ,c(1:6)]  #  CH3	Run_2_raw.txt	-0.010489214	-0.008507836	-0.008507836
 resp.data_merged[36 ,c(1:6)]  #  CH1	Run_2_raw.txt	0.000995514	0.002014487	0.002014487
-resp.data_merged[23 ,c(1:6)]  #  CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 
+#resp.data_merged[23 ,c(1:6)]  #  CH5	Run_1_raw.txt	-0.00704407	-0.005910146	-0.005910146 
 resp.data_merged[37 ,c(1:6)]  #  CH1	Run_3_raw.txt	-0.01067604	-0.01067604	-0.01067604
 resp.data_merged[41 ,c(1:6)]  #  CH2	Run_3_raw.txt	-0.002221288	-0.00212516	-0.00212516
 resp.data_merged[45 ,c(1:6)]  #  CH3	Run_3_raw.txt	-0.001386829	-0.00246828	-0.00246828
@@ -106,7 +106,7 @@ resp.data_merged[96 ,c(1:6)]  #  C1 RR_9.30.21_PM_Plate_1_Run_2.csv	0.011656487	
 resp.data_merged[48 ,4]  <- as.numeric(-0.0154) # RERUN
 resp.data_merged[44 ,4]  <- as.numeric(-0.0205) # RERUN
 resp.data_merged[36 ,4]  <- as.numeric(-0.0164) # RERUN
-resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
+#resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
 resp.data_merged[37 ,4]  <- as.numeric(-0.00123) # RERUN
 resp.data_merged[41 ,4]  <- as.numeric(-0.0036)  # RERUN
 resp.data_merged[45 ,4]  <- as.numeric(-0.0034)  # RERUN 
@@ -118,7 +118,7 @@ resp.data_merged[71 ,4]  <- as.numeric(-0.0128) # RERUN
 resp.data_merged[95 ,4]  <- resp.data_merged[95,5] # 20210930_Plate_2_Run_2_C5_regression - Lz and Leq regression than Lpc
 resp.data_merged[111,4]  <- resp.data_merged[111,5] # 20210930_Plate_2_Run_1_C1_regression - Lz and Leq  regression than Lpc
 resp.data_merged[96 ,4]  <- as.numeric(-0.0296) # RERUN
-resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
+#resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
 
 
 # look at the data for sanity check...
@@ -126,7 +126,7 @@ resp.data_merged[23 ,4]  <- as.numeric(-0.0275) # RERUN
 resp.data_merged[44 ,c(1:6)] # -0.0205
 resp.data_merged[36 ,c(1:6)] # -0.0164
 resp.data_merged[23 ,c(1:6)] # -0.0275
-resp.data_merged[23 ,c(1:6)] # -0.0275
+#resp.data_merged[23 ,c(1:6)] # -0.0275
 resp.data_merged[37 ,c(1:6)] # -0.00123 
 resp.data_merged[41 ,c(1:6)] # -0.0036  
 resp.data_merged[45 ,c(1:6)] # -0.0034
@@ -188,10 +188,15 @@ kable(blanks_means) # you can now see that each Date, Run, has a pH 8 and pH 7.5
 
 ```{r merge blanks_means for a master file, echo=FALSE}
 
-Resp.Master <- merge(resp.data_merged, blanks_means, by=c("Date", "pH", "Run", "filetype")) %>% # NOTE: this repeats for every distinct length value
-  dplyr::mutate(resp_blankStand = abs(Lpc) - BLANK.mean_Lpc) # ommits respiration rate values showing an increase in O2 over time 
+Resp.Master <- merge(resp.data_merged, 
+                     blanks_means, by=c("Date", "pH", "Run", "filetype")) %>% # NOTE: this repeats for every distinct length value
+               dplyr::mutate(resp_blankStand = 
+                                abs(Lpc) - BLANK.mean_Lpc) # ommits respiration rate values showing an increase in O2 over time 
 
-Resp.less.than.blank <- Resp.Master %>% dplyr::filter(resp_blankStand < 0) %>% dplyr::select(c(1:7,15,18,29)) %>% mutate(Lpc = abs(Lpc)) # call the values with positive resp rates, measing they were slower than the blank!
+Resp.less.than.blank <- Resp.Master %>% 
+                          dplyr::filter(resp_blankStand < 0) %>% 
+                          dplyr::select(c(1:7,15,18,29)) %>% 
+                          mutate(Lpc = abs(Lpc)) # call the values with positive resp rates, measing they were slower than the blank!
 print(Resp.less.than.blank) # 14 total samples were less than the blank after the correction... (Lpc < BLANK.mean_LPC)
 
 ```
@@ -253,18 +258,23 @@ to calculate resp using the sample methods across time, we used length^3 correct
 
 * note: this is in contrast to resp values used for SFG, O:N, and any overlaid phys with ecretion and biodeposition becasue animals were large enough to have tissue dry weights and biovolumes 
 
-```{r b factor SHELL AND INDIVIDUAL LENGTH, echo=TRUE, echo = FALSE,message = FALSE, warning = FALSE, results='hide'}
+```{r b factor SHELL LENGTH outlier omitted, echo=TRUE, echo = FALSE,message = FALSE, warning = FALSE, results='hide'}
 
 # FOR SHELL ENGTH WE WILL USE THE 'resp_umol_hr_biovolcalc' data to employ all resp data files across time! 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # GET B FACTOR FOR ALL AVAILABLE INDIVIDUALS WITH LENGTH AND MO2 ::::::::::::::::::::::::::::::
 nrow(Resp.Master_OM) # 118
-Resp.Master_OM$log10_VO2     <- log10(as.numeric(Resp.Master_OM$resp_umol_L_hr)) # assign resp value
-Resp.Master_OM$log10_Length  <- log10(as.numeric(Resp.Master_OM$Length_um)) # assign length value 
-#summary(lm(RR_master_OM$log10_VO2~RR_master_OM$log10_Length)) # 1.8502 == b factor
 
-MO2_b.factorLENGTH_PLOT <- Resp.Master_OM %>% 
-                           #filter(!resp_umol_L_hr < 0.08) %>% 
+Resp.Master_bfactor_plotting <- Resp.Master_OM %>% 
+dplyr::mutate(log10_VO2     = log10(as.numeric(Resp.Master_OM$resp_umol_L_hr)) ) %>%  # assign resp value
+dplyr::mutate(log10_Length  = log10(as.numeric(Resp.Master_OM$Length_um)) ) %>% # assign length value 
+dplyr::mutate(Food_OA       = paste(Resp.Master_OM$pCO2, Resp.Master_OM$Fed_Unfed, sep = "_")) # two-way factor to facet plots by  
+
+Resp.Master_bfactor_plottingOM <- Resp.Master_bfactor_plotting %>% 
+  # one outlier value that is omitted for parallet graphical outputsn with the non-omitted data 
+  dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -3))  # outliers ommited (a ingle data point)
+
+MO2_b.factorLENGTH_PLOT <- Resp.Master_bfactor_plotting %>% 
                            ggplot(aes(x=log10_Length, y=log10_VO2)) +
                               geom_point() +
                               theme(panel.grid.major = element_blank(), 
@@ -279,30 +289,7 @@ MO2_b.factorLENGTH_PLOT <- Resp.Master_OM %>%
                               ggpmisc::stat_poly_eq(parse=T, 
                                                     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
                                                     label.x.npc = "left")
-#MO2_b.factorLENGTH_PLOT
-
-MO2_b.factorLENGTH_PLOT <- Resp.Master_OM %>% 
-                           #filter(!resp_umol_L_hr < 0.08) %>% 
-                         dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -3)) %>%  # outliers ommited (should be 2 data points)
-                           ggplot(aes(x=log10_Length, y=log10_VO2)) +
-                              geom_point() +
-                              theme(panel.grid.major = element_blank(), 
-                                    panel.grid.minor = element_blank())+ 
-                              scale_x_continuous(name ="log10_Length; in mm") +
-                              scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
-                              theme_classic() +
-                              theme(legend.position="none",axis.title.y=element_text(size=7)) +
-                              ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
-                                      (b.factor * log10_Length)") +
-                              geom_smooth(method = lm, color = 'red') +
-                              ggpmisc::stat_poly_eq(parse=T, 
-                                                    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
-                                                    label.x.npc = "left")
-
-
-
-MO2_b.factorLENGTH_PLOT_facetted <- Resp.Master_OM %>% 
-                                    dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -3)) %>%  # outliers ommited (should be 2 data points)
+MO2_b.factorLENGTH_PLOT_facetted <- Resp.Master_bfactor_plotting %>% 
                                      ggplot(aes(x=log10_Length, y=log10_VO2, color = pCO2)) +
                                         geom_point() +
                                         scale_color_manual(values=c("blue","orange")) +
@@ -319,54 +306,228 @@ MO2_b.factorLENGTH_PLOT_facetted <- Resp.Master_OM %>%
                                                               aes(label = paste(..eq.label..,
                                                                                 ..rr.label.., sep = "~~~")),
                                                               label.x.npc = "left") +
+                                        facet_wrap(~Food_OA)
+MO2_b.factorLENGTH_PLOT_facetted_food <- Resp.Master_bfactor_plotting %>% 
+                                     ggplot(aes(x=log10_Length, y=log10_VO2)) + # omitted , color = pCO2
+                                        geom_point() +
+                                        #scale_color_manual(values=c("blue","orange")) +
+                                        theme(panel.grid.major = element_blank(), 
+                                              panel.grid.minor = element_blank())+ 
+                                        scale_x_continuous(name ="log10_Length; in mm") +
+                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                                        theme_classic() +
+                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                                (b.factor * log10_Length)") +
+                                        geom_smooth(method = lm, color = 'red') +
+                                        ggpmisc::stat_poly_eq(parse=T, 
+                                                              aes(label = paste(..eq.label..,
+                                                                                ..rr.label.., sep = "~~~")),
+                                                              label.x.npc = "left") +
+                                        facet_wrap(~Fed_Unfed)
+MO2_b.factorLENGTH_PLOT_facetted_pCO2 <- Resp.Master_bfactor_plotting %>% 
+                                     ggplot(aes(x=log10_Length, y=log10_VO2)) +
+                                        geom_point() +
+                                        #scale_color_manual(values=c("blue","orange")) +
+                                        theme(panel.grid.major = element_blank(), 
+                                              panel.grid.minor = element_blank())+ 
+                                        scale_x_continuous(name ="log10_Length; in mm") +
+                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                                        theme_classic() +
+                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                                (b.factor * log10_Length)") +
+                                        geom_smooth(method = lm, color = 'red') +
+                                        ggpmisc::stat_poly_eq(parse=T, 
+                                                              aes(label = paste(..eq.label..,
+                                                                                ..rr.label.., sep = "~~~")),
+                                                              label.x.npc = "left") +
                                         facet_wrap(~pCO2)
-# MO2_b.factorLENGTH_PLOT_facetted
 
 
-# OUTPUT PLOTS 
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/metabolic_scaling/MetabolicScaling_bFactor_LENGTH.pdf"), width = 8, height = 8)
-print(ggarrange(MO2_b.factorLENGTH_PLOT, MO2_b.factorLENGTH_PLOT_facetted, nrow = 2, ncol = 1)) # print the model diagnostics
-dev.off() 
+ # OUTPUT PLOTS 
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/metabolic_scaling/MetabolicScaling_bFactor_Length_ALL.pdf"), width = 8, height = 25)
+print(ggarrange(MO2_b.factorLENGTH_PLOT, 
+                MO2_b.factorLENGTH_PLOT_facetted, 
+                MO2_b.factorLENGTH_PLOT_facetted_pCO2,
+                MO2_b.factorLENGTH_PLOT_facetted_food,
+                nrow = 4, ncol = 1)) # print the model diagnostics
+dev.off()
 
-print(ggarrange(MO2_b.factorLENGTH_PLOT, MO2_b.factorLENGTH_PLOT_facetted, nrow = 2, ncol = 1)) # print the model diagnostics
+
+
+
+#  NOW WITH THE SINGLE OUTLIER OMITTED 
+
+
+MO2_b.factorLENGTH_PLOT_OM <- Resp.Master_bfactor_plottingOM %>% 
+                           ggplot(aes(x=log10_Length, y=log10_VO2)) +
+                              geom_point() +
+                              theme(panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank())+ 
+                              scale_x_continuous(name ="log10_Length; in mm") +
+                              scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                              theme_classic() +
+                              theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                              ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                      (b.factor * log10_Length)") +
+                              geom_smooth(method = lm, color = 'red') +
+                              ggpmisc::stat_poly_eq(parse=T, 
+                                                    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+                                                    label.x.npc = "left")
+MO2_b.factorLENGTH_PLOT_facetted_OM <- Resp.Master_bfactor_plottingOM %>% 
+                                     ggplot(aes(x=log10_Length, y=log10_VO2, color = pCO2)) +
+                                        geom_point() +
+                                        scale_color_manual(values=c("blue","orange")) +
+                                        theme(panel.grid.major = element_blank(), 
+                                              panel.grid.minor = element_blank())+ 
+                                        scale_x_continuous(name ="log10_Length; in mm") +
+                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                                        theme_classic() +
+                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                                (b.factor * log10_Length)") +
+                                        geom_smooth(method = lm, color = 'red') +
+                                        ggpmisc::stat_poly_eq(parse=T, 
+                                                              aes(label = paste(..eq.label..,
+                                                                                ..rr.label.., sep = "~~~")),
+                                                              label.x.npc = "left") +
+                                        facet_wrap(~Food_OA)
+MO2_b.factorLENGTH_PLOT_facetted_food_OM <- Resp.Master_bfactor_plottingOM %>% 
+                                     ggplot(aes(x=log10_Length, y=log10_VO2)) + # omitted , color = pCO2
+                                        geom_point() +
+                                        #scale_color_manual(values=c("blue","orange")) +
+                                        theme(panel.grid.major = element_blank(), 
+                                              panel.grid.minor = element_blank())+ 
+                                        scale_x_continuous(name ="log10_Length; in mm") +
+                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                                        theme_classic() +
+                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                                (b.factor * log10_Length)") +
+                                        geom_smooth(method = lm, color = 'red') +
+                                        ggpmisc::stat_poly_eq(parse=T, 
+                                                              aes(label = paste(..eq.label..,
+                                                                                ..rr.label.., sep = "~~~")),
+                                                              label.x.npc = "left") +
+                                        facet_wrap(~Fed_Unfed)
+MO2_b.factorLENGTH_PLOT_facetted_pCO2_OM <- Resp.Master_bfactor_plottingOM %>% 
+                                     ggplot(aes(x=log10_Length, y=log10_VO2)) +
+                                        geom_point() +
+                                        #scale_color_manual(values=c("blue","orange")) +
+                                        theme(panel.grid.major = element_blank(), 
+                                              panel.grid.minor = element_blank())+ 
+                                        scale_x_continuous(name ="log10_Length; in mm") +
+                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
+                                        theme_classic() +
+                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
+                                                (b.factor * log10_Length)") +
+                                        geom_smooth(method = lm, color = 'red') +
+                                        ggpmisc::stat_poly_eq(parse=T, 
+                                                              aes(label = paste(..eq.label..,
+                                                                                ..rr.label.., sep = "~~~")),
+                                                              label.x.npc = "left") +
+                                        facet_wrap(~pCO2)
+
+
+ # OUTPUT PLOTS 
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/metabolic_scaling/MetabolicScaling_bFactor_Length_ALL_outlierOM.pdf"), width = 8, height = 25)
+print(ggarrange(MO2_b.factorLENGTH_PLOT_OM, 
+                MO2_b.factorLENGTH_PLOT_facetted_OM, 
+                MO2_b.factorLENGTH_PLOT_facetted_pCO2_OM,
+                MO2_b.factorLENGTH_PLOT_facetted_food_OM,
+                nrow = 4, ncol = 1)) # print the model diagnostics
+dev.off()
+
 
 # b factor == 1.46
 
 ```
 
-# Standardize rates as...
+# In summunary from the b factors above...
 
-##### (1) shell length: umol L-1 O2 mm shell length hour-1
-##### (2) whole dry weight: umol L-1 O2 g whole dry weight hour-1 
-##### (3) Standardized by shell length (allometric coefficient)
+- listed below all combinations (the single outlier omitted)
+  * b factor ALL = 1.41
+  
+  * b factor low food  = 2.86 # very different
+  * b factor high food = 1.16
+  
+  * b factor low pCO2  = 1.41 # very similar
+  * b factor high pCO2 = 1.43
+  
+  * b factor lowpCO2  x high food = 1.21 # similar based on food NOT pCO2
+  * b factor highpCO2 x high food = 1.14
+  * b factor lowpCO2  x low food  = 2.72 
+  * b factor highpCO2 x low food  = 3.03
+ 
 
+- move forward with the following: 
 
+  * b factor 'all'
+  * b factor 'foodsupply' as high food & low food
+  
 ```{r Calculate Resp Rates , echo=TRUE, message = FALSE, warning = FALSE}
-# Resp.Master_OM <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),]
 
-# (1)  umol O2 L-1 g mm shell length-1 ::::::::::::::::::::::::::::::::::::::::::::::::::
 # NORMALIZED for Shell length
-bLength = 1.46 # review the outlier-omitted b factor plot in previous chunk
-meanLength   <- mean(Resp.Master_OM$Length_mm) #4.292843
+# as (RR) * ([mean_length / individual length]^b_factor)
+bLength_all      = 1.41 # review the outlier-omitted b factor plot in previous chunk
+bLength_highfood = 1.16 # review the outlier-omitted b factor plot in previous chunk
+bLength_lowfood  = 2.86 # review the outlier-omitted b factor plot in previous chunk
 
-Resp.Master_Master <- Resp.Master_OM %>% 
 
-                       dplyr::mutate(resp_umol_hr_bFactorNormLength.MEAN = 
-                                    (resp_umol_L_hr)*((meanLength/Length_mm)^bLength) ) %>% # length b factor  correcred using 'resp_umol_hr_biovolcalc'
-    
+meanLengthALL        <- mean(Resp.Master_OM$Length_mm) #4.292843 - the mean for the normalization 
+meanLengthHighFood   <- mean((Resp.Master_OM %>% 
+                                filter(Fed_Unfed %in% 'High food'))$Length_mm) #4.943896 - the mean for the normalization 
+meanLengthLowFood    <- mean((Resp.Master_OM %>% 
+                                filter(Fed_Unfed %in% 'Low food'))$Length_mm) #3.114749 - the mean for the normalization 
+
+Resp.Masterfinal <- Resp.Master_OM %>% 
+                       # the 'all' b factor 
+                       dplyr::mutate(resp_umol_hr_bFactorNormLength.ALL = 
+                                    (resp_umol_L_hr)*
+                                    ((meanLength/Length_mm)^bLength_all) ) %>% 
+                       #  contingency statement for b factors based on food type
+                       dplyr::mutate(resp_umol_hr_bFactorNormLength.FOOD = 
+                                      case_when(Fed_Unfed  == "High food" ~ # when high food / supplementary fed animals
+                                          ((resp_umol_L_hr)* ((meanLengthHighFood/Length_mm)^bLength_highfood)), # 'bLength_highfood'
+                                          Fed_Unfed  == "Low food" ~ # when low food / supplementary fed animals
+                                          ((resp_umol_L_hr)* ((meanLengthLowFood/Length_mm)^bLength_lowfood)) ) ) %>% # 'bLength_lowfood'
+                      #   the non-bfactor correction simply dividing by individual shell length
                        dplyr::mutate(resp_µmol_L_mm_Length_hr = 
-                                       (resp_umol_L_hr /(Length_um/1000)) )
-
-# (2) mg O2 L-1 g dry tissue weight-1 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# NORMALIZED for Whole animal dry weight (g)
-Resp.Master_OM$resp_µmol_mg_hr <- (Resp.Master_OM$resp_umol_L_hr / 
-              (Resp.Master_OM$whole_Dry_weight)) # normalize by Dry tissue weight  as to mg O2 L-1 g dry tissue weight-1
-
-
+                                       (resp_umol_L_hr /(Length_um/1000)) ) %>% 
+                       dplyr::select(c(Date,
+                                      Age,
+                                      pH,
+                                      pCO2,
+                                      Fed_Unfed,
+                                      Replicate,
+                                      Chamber_tank,
+                                      Number,
+                                      Run,
+                                      Channel,
+                                      Length_um,
+                                      Length_mm,
+                                      # Dry_Shell_weight,
+                                      # Dry_Tissue_weight,
+                                      # whole_Dry_weight,
+                                      volume,
+                                      Biovol_length3,
+                                      calculated_volume, # as vessel volume - (biovol calc from length^3)
+                                      Lpc,
+                                      BLANK.mean_Lpc,
+                                      resp_blankStand,
+                                      resp_mg_L_hr, 
+                                      resp_umol_L_hr,
+                                      resp_umol_hr_bFactorNormLength.ALL,
+                                      resp_umol_hr_bFactorNormLength.FOOD)) %>% 
+                      dplyr::rename(raw_resp_rate = Lpc)
 
 # write.csv(Resp.Master_OM, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
- write.csv(Resp.Master_Master, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
+ write.csv(Resp.Masterfinal, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv")
 
+ 
+View(Resp.Masterfinal)
 ```
 
 
@@ -376,196 +537,169 @@ Resp.Master_OM$resp_µmol_mg_hr <- (Resp.Master_OM$resp_umol_L_hr /
 ####  (1) Shell length vs. Raw respiration rate (umol O2 L- hr-1)...
 ``` {r Shell length vs. raw respiration rate, echo=TRUE, message = FALSE, warning = FALSE}
 
-# by Length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# by Length ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-P_Length_resp_all <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %>% 
-                        ggplot(aes(x = (Length_um/1000), y = resp_umol_L_hr, color = as.factor(pCO2))) +
+P_Length_resp_all <- Resp.Masterfinal%>% 
+                        ggplot(aes(
+                          x = Length_mm, 
+                          y = resp_umol_L_hr, 
+                          color = as.factor(pCO2))) +
                          scale_color_manual(values=c("forestgreen","darkorange2"))+
-                          geom_smooth(method = "lm", se=FALSE, color="black", formula = resp_umol_L_hr ~ Length_um) +
+                          geom_smooth(method = "lm", 
+                                      se=FALSE, 
+                                      color="black", 
+                                      formula = resp_umol_L_hr ~ Length_mm) +
                           theme_classic() +
-                          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_text(size=10))+ 
-                          labs(title = "Raw Resp v. Shell length (mm)", y = expression(μmol~L^{-1}~O[2]%.%hr^{-1})) +
+                          theme(panel.grid.major = element_blank(), 
+                                panel.grid.minor = element_blank(), 
+                                plot.title = element_text(size=10))+ 
+                          labs(title = "Raw Resp v. Shell length (mm)", 
+                               y = expression(μmol~O[2]%.%hr^{-1})) +
                           xlab("Shell length (mm)") +
                           theme(legend.position="none") +
                           geom_point()
 
-P_Length_resp_facet <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %>% 
-                        ggplot(aes(x = (Length_um/1000), y = resp_umol_L_hr, color = as.factor(pCO2))) +
-                         scale_color_manual(values=c("forestgreen","darkorange2"))+
-                          geom_smooth(method = "lm", se=FALSE, color="black", formula = resp_umol_L_hr ~ Length_um) +
+P_Length_resp_facet <- Resp.Masterfinal %>% 
+                        ggplot(aes(x = Length_mm, 
+                                   y = resp_umol_L_hr, 
+                                   color = as.factor(pCO2))) +
+                         scale_color_manual(values=c("forestgreen",
+                                                     "darkorange2"))+
+                          geom_smooth(method = "lm", 
+                                      se=FALSE, 
+                                      color="black", 
+                                      formula = resp_umol_L_hr ~ Length_mm) +
                           theme_classic() +
-                           theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+ 
-                          labs(y = expression(μmol~L^{-1}~O[2]%.%hr^{-1})) +
+                           theme(panel.grid.major = element_blank(), 
+                                 panel.grid.minor = element_blank(), 
+                                 legend.position = "none", 
+                                 plot.title = element_text(size=10))+ 
+                          labs(y = expression(μmol~O[2]%.%hr^{-1})) +
                           xlab("Shell length (mm)") +
                           geom_point() + 
-                          facet_wrap(~Age*Food, scales = "free")
-
+                          facet_wrap(~Age*Fed_Unfed, scales = "free")
 # print in markdown file 
-ggarrange(P_Length_resp_all, P_Length_resp_facet,nrow = 2)
+ggarrange(P_Length_resp_all, P_Length_resp_facet, nrow = 2)
+
+
+
+# by b factor length all  == 1.41 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+P_bfactorLength_all <- Resp.Masterfinal %>% 
+                        ggplot(aes(
+                          x = Length_mm, 
+                          y = resp_umol_hr_bFactorNormLength.ALL, 
+                          color = as.factor(pCO2))) +
+                         scale_color_manual(values=c("forestgreen","darkorange2"))+
+                          geom_smooth(method = "lm", 
+                                      se=FALSE, 
+                                      color="black", 
+                                      formula = resp_umol_hr_bFactorNormLength.ALL ~ Length_mm) +
+                          theme_classic() +
+                          theme(panel.grid.major = element_blank(), 
+                                panel.grid.minor = element_blank(), 
+                                plot.title = element_text(size=10))+ 
+                          labs(title = "Resp bfactor ALL v. Shell length (mm)", 
+                               y = expression(b~factor~ALL~μmol~O[2]%.%hr^{-1})) +
+                          xlab("Shell length (mm)") +
+                          theme(legend.position="none") +
+                          geom_point()
+
+P_bfactorLength_all_facet <- Resp.Masterfinal %>% 
+                        ggplot(aes(x = Length_mm, 
+                                   y = resp_umol_hr_bFactorNormLength.ALL, 
+                                   color = as.factor(pCO2))) +
+                         scale_color_manual(values=c("forestgreen",
+                                                     "darkorange2"))+
+                          geom_smooth(method = "lm", 
+                                      se=FALSE, 
+                                      color="black", 
+                                      formula = resp_umol_hr_bFactorNormLength.ALL ~ Length_mm) +
+                          theme_classic() +
+                           theme(panel.grid.major = element_blank(), 
+                                 panel.grid.minor = element_blank(), 
+                                 legend.position = "none", 
+                                 plot.title = element_text(size=10))+ 
+                          labs(y = expression(b~factor~ALL~μmol~O[2]%.%hr^{-1})) +
+                          xlab("Shell length (mm)") +
+                          geom_point() + 
+                          facet_wrap(~Age*Fed_Unfed, scales = "free")
+# print in markdown file 
+ggarrange(P_bfactorLength_all, P_bfactorLength_all_facet,nrow = 2)
+
+
+
+
+
+
+
+P_bfactorLength_food <- Resp.Masterfinal %>% 
+                        ggplot(aes(
+                          x = Length_mm, 
+                          y = resp_umol_hr_bFactorNormLength.FOOD, 
+                          color = as.factor(pCO2))) +
+                         scale_color_manual(values=c("forestgreen","darkorange2"))+
+                          geom_smooth(method = "lm", 
+                                      se=FALSE, 
+                                      color="black", 
+                                      formula = resp_umol_hr_bFactorNormLength.FOOD ~ Length_mm) +
+                          theme_classic() +
+                          theme(panel.grid.major = element_blank(), 
+                                panel.grid.minor = element_blank(), 
+                                plot.title = element_text(size=10))+ 
+                          labs(title = "Resp bfactor FOOD v. Shell length (mm)", 
+                               y = expression(b~factor~FOOD~μmol~O[2]%.%hr^{-1})) +
+                          xlab("Shell length (mm)") +
+                          theme(legend.position="none") +
+                          geom_point()
+
+P_bfactorLength_food_facet <- Resp.Masterfinal %>% 
+                        ggplot(aes(x = Length_mm, 
+                                   y = resp_umol_hr_bFactorNormLength.FOOD, 
+                                   color = as.factor(pCO2))) +
+                         scale_color_manual(values=c("forestgreen",
+                                                     "darkorange2"))+
+                          geom_smooth(method = "lm", 
+                                      se=FALSE, 
+                                      color="black", 
+                                      formula = resp_umol_hr_bFactorNormLength.FOOD ~ Length_mm) +
+                          theme_classic() +
+                           theme(panel.grid.major = element_blank(), 
+                                 panel.grid.minor = element_blank(), 
+                                 legend.position = "none", 
+                                 plot.title = element_text(size=10))+ 
+                          labs(y = expression(b~factor~FOOD~μmol~O[2]%.%hr^{-1})) +
+                          xlab("Shell length (mm)") +
+                          geom_point() + 
+                          facet_wrap(~Age*Fed_Unfed, scales = "free")
+
+
+
+
+
+
+
+
 # Export to pdf
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
+
+# raw vs. shell length
 pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_raw.pdf"), width = 10, height = 6)
 ggarrange(P_Length_resp_all, P_Length_resp_facet,ncol = 2)
 dev.off()
 
-```
 
+# b factor corrected (ALL) vs. shell length
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_bfactorALL.pdf"), width = 10, height = 6)
+ggarrange(P_bfactorLength_all, P_bfactorLength_all_facet,ncol = 2)
+dev.off()
 
-#### (2) Whole animal dry weight vs. Raw respiration rate (umol O2 L- hr-1)...
-```{r Whole dry weight length vs. raw respiration rate, echo=TRUE, message = FALSE, warning = FALSE}
-
-# by WHOLE animal dry weight  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-P_WholeDW_resp_all  <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %>% 
-                          ggplot(aes(x = whole_Dry_weight, y = resp_umol_L_hr, color = as.factor(pCO2))) +
-                            scale_color_manual(values=c("forestgreen","darkorange2"))+
-                            geom_smooth(method = "lm", se=FALSE, color="black", formula = resp_umol_L_hr ~ whole_Dry_weight) +
-                            theme_classic() +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_text(size=10))+ 
-                            labs(title = "Raw Resp v. Whole dry weight (mg)", y = expression(μmol~L^{-1}~O[2]%.%hr^{-1})) +
-                            theme(legend.position="none") +
-                            xlab("Whole dry weight (mg)") +
-                            geom_point()
-
-P_WholeDW_resp_facet <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_umol_L_hr),] %>% 
-                          ggplot(aes(x = whole_Dry_weight, y = resp_umol_L_hr, color = as.factor(pCO2))) +
-                            scale_color_manual(values=c("forestgreen","darkorange2"))+
-                            geom_smooth(method = "lm", se=FALSE, color="black", formula = resp_umol_L_hr ~ whole_Dry_weight) +
-                            theme_classic() +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none",plot.title = element_text(size=10))+ 
-                            labs(y = expression(μmol~L^{-1}~O[2]%.%hr^{-1})) +
-                            xlab("Whole dry weight (mg)") +
-                            geom_point() + 
-                            facet_wrap(~Age*Food, scales = "free")
-
-
-# print in markdown file 
-ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2)
-# Export to pdf
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/WholeDW_resp_raw.pdf"), width = 10, height = 6)
-#pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/WholeDW_resp_raw.pdf"), width = 10, height = 6)
-ggarrange(P_WholeDW_resp_all, P_WholeDW_resp_facet,ncol = 2) 
+# b factor corrected (Food type) vs. shell length
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Shell_length_resp_bfactorFOOD.pdf"), width = 10, height = 6)
+ggarrange(P_bfactorLength_food, P_bfactorLength_food_facet,ncol = 2)
 dev.off()
 
 ```
 
-
-### (1,2, and 3) Assemble Standrdized rate (allometric coeff) and corrected rates for shell length and dry tissue weight...
-```{r Line plot , echo=TRUE, message = FALSE, warning = FALSE}
-
-
- 
-# Length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-# Length_um
-SumTab_Len      <- Resp.Master_OM[!is.na(Resp.Master_OM$Length_um),] %>%  
-            mutate(Length_mm = Length_um/1000) %>% 
-            summarySE(measurevar="Length_mm", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-SumTab_Len$pCO2 <- factor(SumTab_Len$pCO2, c("500 µatm","800 µatm"))
-## Use geom_line and geom_point to plot over time
-Length_time    <- ggplot(data=SumTab_Len, aes(x=Age, y=Length_mm, color=pCO2)) +
-            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-            geom_point()+ 
-            scale_color_manual(values=c("forestgreen","darkorange2"))+
-            geom_errorbar(aes(ymin=Length_mm-se, ymax=Length_mm+se), width=.2,
-                          position=position_dodge(.1))+
-            theme_bw() +  
-            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_text(size=10))+ 
-            scale_x_continuous(name ="Age (d)") +
-            labs(title =  "Shell length over time..", 
-                 y = "Shell length (mm)") +
-            scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-            theme(legend.position="none") +
-            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-            facet_wrap(~pCO2)
-Length_time
-
-
-# resp_µmol_L_mm_Length_hr
-RespSumTab_Len      <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_µmol_L_mm_Length_hr),] %>%  
-            summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-RespSumTab_Len$pCO2 <- factor(RespSumTab_Len$pCO2, c("500 µatm","800 µatm"))
-## Use geom_line and geom_point to plot over time
-Resp_LengthStand    <- ggplot(data=RespSumTab_Len, aes(x=Age, y=resp_µmol_L_mm_Length_hr, color=pCO2)) +
-            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-            geom_point()+ 
-            scale_color_manual(values=c("forestgreen","darkorange2"))+
-            geom_errorbar(aes(ymin=resp_µmol_L_mm_Length_hr-se, ymax=resp_µmol_L_mm_Length_hr+se), width=.2,
-                          position=position_dodge(.1))+
-            theme_bw() +  
-            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_text(size=10))+ 
-            scale_x_continuous(name ="Age (d)") +
-            labs(title = "Resp corrected by shell length", 
-                 y = expression(μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1})) +
-            scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-            theme(legend.position="none") +
-            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-            facet_wrap(~pCO2)
-Resp_LengthStand
-
-
-
-
-# Whole dry weight :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-# resp_µmol_mg_hr
-SumTab_WholeDW      <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_µmol_mg_hr),] %>%  
-            summarySE(measurevar="whole_Dry_weight", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-SumTab_WholeDW$pCO2 <- factor(SumTab_WholeDW$pCO2, c("500 µatm","800 µatm"))
-## Use geom_line and geom_point to plot over time
-WholeDW_time    <- ggplot(data=SumTab_WholeDW, aes(x=Age, y=whole_Dry_weight, color=pCO2)) +
-            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-            geom_point()+ 
-            scale_color_manual(values=c("forestgreen","darkorange2"))+
-            geom_errorbar(aes(ymin=whole_Dry_weight-se, ymax=whole_Dry_weight+se), width=.2,
-                          position=position_dodge(.1))+
-            theme_bw() +  
-            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_text(size=10))+ 
-            scale_x_continuous(name ="Age (d)") +
-            labs(title = "Whole dry weight over time..", 
-                 y = "Whole dry weight (mg)") +
-            scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-            theme(legend.position="none") +
-            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-            facet_wrap(~pCO2)
-
-RespSumTab_DW      <- Resp.Master_OM[!is.na(Resp.Master_OM$resp_µmol_mg_hr),] %>%  
-          summarySE(measurevar="resp_µmol_mg_hr", groupvars=c("Age", "pCO2", "Fed_Unfed"))
-RespSumTab_DW$pCO2 <- factor(RespSumTab_DW$pCO2, c("500 µatm","800 µatm"))
-## Use geom_line and geom_point to plot over time
-Resp_DryWgtStand   <- ggplot(data=RespSumTab_DW, aes(x=Age, y=resp_µmol_mg_hr, color=pCO2)) +
-          geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-          geom_point()+ 
-          scale_color_manual(values=c("forestgreen","darkorange2"))+
-          geom_errorbar(aes(ymin=resp_µmol_mg_hr-se, ymax=resp_µmol_mg_hr+se), width=.2,
-                        position=position_dodge(.1))+
-          theme_bw() +  
-          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), plot.title = element_text(size=10))+ 
-          scale_x_continuous(name ="Age (d)") +
-          labs(title = "Resp corrected by whole animal dry weight", 
-               y = expression(μmol~L^{-1}~O[2]%.%mg^{-1}~whole~DW%.% hr^{-1})) +
-          scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-          theme(legend.position="none") +
-          # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-          facet_wrap(~pCO2)
-
-
-
-# Print assembled plot from previous chunks....  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# both shell length and whole dry weight used for standardizing respiration rate - view the diagnostic pots for this here (good visual!)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 8)
-# pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_normalized_summary.pdf"), width = 10, height = 8)
-ggarrange(P_Length_resp_all ,Length_time, Resp_LengthStand,
-          P_WholeDW_resp_all, WholeDW_time, Resp_DryWgtStand, ncol = 3, nrow = 2, heights=c(1,1))
-dev.off()
-
-
-pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/All_Respiration_length.pdf"), width = 8, height = 6)
-Resp_LengthStand
-dev.off()
-
-
-```
 
 
 
@@ -577,7 +711,7 @@ dev.off()
 ```{r load master resp file, echo=FALSE}
 
 # Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personnel computer 
-Resp.Master  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T, fileEncoding = "latin1") # work computer
+Resp.Master  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # work computer
 
 ```
 
@@ -610,162 +744,89 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 # 7.5_D	3			
 # 8_A	2	   *2 rep			
 # 8_B	3			
-# 8_C	3			
+# 8_C	2		 *2 rep	
 # 8_D	2	   *2 rep
 
-Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pH")) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.ALL", groupvars=c("pCO2"))
 
-Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.MEAN", groupvars=c("pH")) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.FOOD", groupvars=c("pCO2"))
 
 
 ```
 
 ### 9/14/2021 linear model, diagnostics, and plots
 
-#### Length standardized
+```{r 9/14 f factor ALL, echo=TRUE, message = FALSE, warning = FALSE}
 
-```{r 9/14 Length standardized, echo=TRUE, message = FALSE, warning = FALSE}
+# Objective: run AOV and LME for the data, rationale being that we have mutliple samples per replicate tank
+# thus important that we address this random effect. Performing AOV and LME allows us to run model selection using AIC 
+# to determine the model with the better fit 
 
-# Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=("pH")) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+
+
+# b FACTOR ALL ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: day 0 of initiating the food treatment thus ONLY b factor ALL is used in this chuck for 9/14
+
+
 
 # plot the replicates (visual diagnostics of random factor)
-Resp914_Length_reps<- ggboxplot(Resp_0914, x = "pH", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
+Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.ALL", groupvars=("pCO2"))
+Resp914_bLengthALL_reps<- ggboxplot(Resp_0914, x = "pCO2", y = "resp_umol_hr_bFactorNormLength.ALL", color = "Replicate",
                               add = c("mean_se", "dotplot"),
                               palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp914_Length_reps
+Resp914_bLengthALL_reps
 
 # One-way ANOVA (without the random effect) 
-Resp914_ANOVA <- aov(resp_µmol_L_mm_Length_hr ~ pCO2, data=Resp_0914) # run mod
-summary(Resp914_ANOVA) # summary mod
-kable(  data.frame(unclass(summary(Resp914_ANOVA)), check.names = FALSE, stringsAsFactors = FALSE)  ) %>%  # print a png of this table
+AOV914.bfactALL <- aov(resp_umol_hr_bFactorNormLength.ALL ~ 
+                       pCO2, 
+                     data=Resp_0914) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.8823
+leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.8757
+# all is good, lets see the results
+pander(anova(AOV914.bfactALL), style='rmarkdown') # anova table of lm
+# |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
+# |:-------------:|:--:|:---------:|:---------:|:-------:|:------:|
+# |   **pCO2**    | 1  | 0.0003541 | 0.0003541 | 0.1971  | 0.6621 |
+# | **Residuals** | 19 |  0.03413  | 0.001796  |   NA    |   NA   |
+# output results 
+kable(data.frame(unclass(summary(AOV914.bfactALL)), 
+                   check.names = FALSE, 
+                   stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_OneWayANOVA_Table.png", zoom = 1.5)
-#             Df   Sum Sq   Mean Sq F value Pr(>F)
-# pCO2         1 0.000027 0.0000267   0.061  0.807
-# Residuals   19 0.008241 0.0004337   
-shapiro.test(residuals(Resp914_ANOVA)) # normal - 0.7462
-leveneTest(Resp914_ANOVA) # homogeneity of variance (equal variance - 0.7901
-
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_AOV_RR_bfactor_ALL.png", zoom = 1.5)
 
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_0914_SL<-lme(resp_µmol_L_mm_Length_hr ~ pCO2, random=~1|Chamber_tank, data=Resp_0914) # with the random effect as an LME model
-# |     &nbsp;      | numDF | denDF | F-value  |  p-value  |
-# |:---------------:|:-----:|:-----:|:--------:|:---------:|
-# | **(Intercept)** |   1   |  13   |  43.61   | 1.706e-05 |
-# |    **pCO2**     |   1   |   6   | 0.001242 |   0.973   |
-pander(anova(LMEmod_0914_SL), style='rmarkdown') # anova table of lmer
-kable(as.data.frame(anova(LMEmod_0914_SL))) %>%  # print a png of this table
+LME914.bfactALL<-lme(resp_umol_hr_bFactorNormLength.ALL ~ 
+                     pCO2, 
+                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
+                     data=Resp_0914) 
+# check model assumptions
+shapiro.test(residuals(LME914.bfactALL)) # normal - 0.9216
+leveneTest(residuals(LME914.bfactALL) ~ Resp_0914$pCO2) # 0.3248 
+# all is good, lets see the results
+pander(anova(LME914.bfactALL), style='rmarkdown') # anova table of lmer
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  13   |  48.65  | 9.693e-06 |
+# |    **pCO2**     |   1   |   6   | 0.02535 |  0.8787   |
+# output results 
+kable(as.data.frame(anova(LME914.bfactALL))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Diagnostics.pdf"))
-check_model(LMEmod_0914_SL) # print the model diagnostics 
-dev.off()
-# levene's test
-leveneTest(residuals(LMEmod_0914_SL) ~ Resp_0914$pCO2) # 0.06434 . PASS
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_LME_RR_bfactor_ALL.png", zoom = 1.5)
 
-
-# test linear mixed model
-library('HLMdiag')
-# REML == Residual maximum likelihood (REML)
-# technique for estimating variance components in multi-classified data.
-
-#compute a model where the effect of pCO2 is estimated
-fm1 <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ 
-                    pCO2 + 
-                    (1 | Chamber_tank), 
-                  data=Resp_0914, 
-                  REML = FALSE)#because we want to compare models on likelihood; you cannot compare models that differ in fixed effects if they are fitted by REML thus FALSE
-#next, compute a model where the effect of status is not estimated
-fm2 <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ 
-                   (1 | Chamber_tank), 
-                  data=Resp_0914, 
-                  REML = FALSE)#because we want to compare models on likelihood; you cannot compare models that differ in fixed effects if they are fitted by REML thus FALSE
-#compute the AIC-corrected log-base-2 likelihood ratio (a.k.a. "bits" of evidence)
-(AIC(fm2)-AIC(fm1))*log2(exp(1)) # -2.880164
-(AIC(fm2)-AIC(fm1)) # -1.996378
-# simple anova on the unrestricted 
-anova(lmer(resp_µmol_L_mm_Length_hr ~ 
-                    pCO2 + 
-                    (1 | Chamber_tank), 
-                  data=Resp_0914, 
-                  REML = T)) #  0.9533
-
-
-fm1_resid <- hlm_resid(fm1)
-resid1_fm1<- hlm_resid(fm1, standardize = TRUE, include.ls = FALSE)
-
-
-ggplot(data = resid1_fm1, 
-       aes(x = resp_µmol_L_mm_Length_hr, y = .std.resid)) + 
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess", se = FALSE) + 
-  labs(y = "LS level-1 residuals", 
-       title = "LS residuals against standardized LRT score")
-# look for linear realtionship 
-fm1b <- update(fm1, .~. + I(resp_µmol_L_mm_Length_hr^2) 
-               + I(resp_µmol_L_mm_Length_hr^3))
-resid1_fm1b <- hlm_resid(fm1b, level = 1, standardize = TRUE)
-ggplot(data = resid1_fm1b, 
-       aes(x = resp_µmol_L_mm_Length_hr, y = .std.resid)) + 
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess", se = FALSE) + 
-  labs(y = "LS level-1 residuals", 
-       title = "LS residuals against standardized LRT score")
-
-# random effect
-resid2_fm1b <- hlm_resid(fm1, level = "Chamber_tank", include.ls = FALSE)
-ggplot(data = resid2_fm1b, aes(x = Chamber_tank, y = .ranef.intercept)) + 
-  geom_point() +
-  labs(y = "Random effects - intercept", 
-       title = "Intercept random effects against Chamber_tank") + 
-  coord_flip()
-
-
-fm1     <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ pCO2 
-                  + (1 | Chamber_tank), data=Resp_0914, REML = FALSE)
-shapiro.test(resid(fm1)) # 0.9627
-shapiro.test(pull_resid(fm1, level = "Chamber_tank")) # 0.2039
-shapiro.test(pull_resid(fm1, level = "pCO2")) # 0.2039
-qqnorm(resid(fm1))
-qqnorm(pull_resid(fm1, level = "pCO2"))
-
-
-
-fm1.aug <- hlm_augment(fm1)
-shapiro.test(fm1.aug$.ls.resid)# 0.2039
-qqnorm(fm1.aug$.ls.resid)
-tibble::glimpse(fm1.aug)
-
-fm1_resid  <- hlm_resid(fm1)
-shapiro.test(fm1_resid$.resid) #0.9627
-qqnorm(fm1_resid$.resid)
-
-fm1_resid2 <- hlm_resid(fm1, standardize = TRUE, include.ls = FALSE)
-shapiro.test(fm1_resid2$.std.resid) # 0.9627
-shapiro.test(fm1_resid2$.chol.mar.resid) # 0.9221
-qqnorm(fm1_resid2$.std.resid)
-
-
-fm1_resid
-qqnorm(fm1_resid$.resid)
-shapiro.test(fm1_resid$.resid)
-
-mdffits(fm1)
-pull_resid(fm1)
-
-
-
-# call the results of LMER to add to boxplot below 
-DF   <- paste( (anova(LMEmod_0914_SL)[[1]])[2], (anova(LMEmod_0914_SL)[[2]])[2], sep = '/') # call DF
-Fval <- (anova(LMEmod_0914_SL)[[3]])[2] # call f
-pval <- (anova(LMEmod_0914_SL)[[4]])[2] # call p value
+# AIC model selection
+pander(AIC(LME914.bfactALL, AOV914.bfactALL), style='rmarkdown') # anova table of lmer
+# |       &nbsp;        | df |  AIC   |
+# |:-------------------:|:--:|:------:|
+# | **LME914.bfactALL** | 4  | -57.46 | 
+# | **AOV914.bfactALL** | 3  | -69.27 | # for negative AIC, the lower the AIC the best fit the model - the simple AOV is better 
 
 # plot
-Resp914_Length <- ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
+Resp914_Length <- ggplot(Resp_0914, 
+                         aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), 
+                             resp_umol_hr_bFactorNormLength.ALL , 
+                             fill = pCO2)) +
                     theme(panel.grid=element_blank()) +
                     geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
                     scale_fill_manual(values=c("white","grey50")) +
@@ -773,21 +834,18 @@ Resp914_Length <- ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', 
                     theme_classic() +
                     scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
                    # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
-                    labs(title = "F1 Scallops: respiration rates on 20210914 (shell length stand.)", 
-                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
+                    labs(title = "F1 Scallops: respiration rates on 20210914 (b factor ALL)", 
+                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
                          x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
                     theme(axis.text=element_text(size=8),
                           axis.title=element_text(size=8,face="bold")) +
-                     stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") # +
-                     # annotate("text", x=2, y=0.000005, size = 4, label = "shapiro wilk = 0.3347") +
-                     # annotate("text", x=2, y=0.0000075, size = 4, label = "levene's = ???") +
-                     # annotate("text", x=2, y=0.0000115, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
+                     stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") 
 Resp914_Length # print this figure...
 
 
 # Export the figures to pdf
-ggarrange(Resp914_Length,Resp914_Length_reps,nrow = 2) %>%
-  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_respiration_length.pdf")
+ggarrange(Resp914_Length,Resp914_bLengthALL_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_RR_bfactor_ALL.pdf")
 
 ```
 
@@ -805,16 +863,17 @@ ggarrange(Resp914_Length,Resp914_Length_reps,nrow = 2) %>%
 
 ```{r 9/30 replicates, echo=FALSE}
 
-Resp_0930 <- Resp.Master_OM %>% 
+Resp_0930 <- Resp.Master %>% 
   dplyr::filter(Date %in% '9/30/2021')  %>% # call only 9/14
-  dplyr::select(-Center) %>% 
-  dplyr::mutate(pHxFood = paste(pH,Food, sep = "_")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Food, sep="_")))
+  dplyr::mutate(pHxFood = paste(pH,Fed_Unfed, sep = "_")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Fed_Unfed, sep="_")))
 
 kable(Resp_0930 %>% dplyr::group_by(Chamber_tank, Food) %>% dplyr::summarise(n())) # tank replication - lowest value was 2 for 7.5_D unfed
 
-Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=(c("pH", "Food"))) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.ALL", groupvars=c("pCO2"))
+
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.FOOD", groupvars=c("pCO2"))
+
 ```
 
 
@@ -824,75 +883,232 @@ Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=(c("pH
 
 ```{r 9/30 Length standardized, echo=TRUE, message = FALSE, warning = FALSE}
 
+# Objective: run AOV and LME for the data, rationale being that we have mutliple samples per replicate tank
+# thus important that we address this random effect. Performing AOV and LME allows us to run model selection using AIC 
+# to determine the model with the better fit 
 
-# Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# Visualize the data with the random effet as treplicate 
-Resp930_Length_reps <- ggboxplot(Resp_0930, x = "pHxFood", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
+# NOTE: 
+# this chunk demonstrates that our data is non-normally distributed, thus we will need 
+# to either transform to resolve or resort to a nonparametric test
+# given we have a two-way factorial design (in our simple linear model) we can use the Scheirer-Ray-Hare Test 
+# https://rcompanion.org/handbook/F_14.html
+library(rcompanion) # install.packages('rcompanion')
+library(FSA)
+install.packages('FSA')
+
+
+
+
+
+
+
+
+
+# b FACTOR ALL  'resp_umol_hr_bFactorNormLength.ALL' ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: day 0 of initiating the food treatment thus ONLY b factor ALL is used in this chuck for 9/14
+
+# Visualize the data with the random effect of tank replicate 
+Resp930_bLengthALL_reps <- ggboxplot(Resp_0930, 
+                                 x = "pHxFood", 
+                                 y = "resp_umol_hr_bFactorNormLength.ALL", 
+                                 color = "Replicate",
           add = c("mean_se", "dotplot"),
           palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp930_Length_reps
+Resp930_bLengthALL_reps
 
-# Two-way ANOVA (without the random effect) 
-Resp930_ANOVA <- aov(resp_µmol_L_mm_Length_hr ~ pCO2*Food, data=Resp_0930) # run mod
-summary(Resp930_ANOVA) # summary mod
-kable(  data.frame(unclass(summary(Resp930_ANOVA)), check.names = FALSE, stringsAsFactors = FALSE)  ) %>%  # print a png of this table
+# One-way ANOVA (without the random effect) 
+AOV930.bfactALL <- aov(resp_umol_hr_bFactorNormLength.ALL ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_0930) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV930.bfactALL)) # non-normal - 0.002926
+leveneTest(AOV930.bfactALL) # homogeneity of variance (equal variance) - 0.3667
+pander(aov(AOV930.bfactALL), style='rmarkdown') # table for anova test
+# |       &nbsp;       | Df |  Sum Sq  | Mean Sq  | F value | Pr(>F)  |
+# |:------------------:|:--:|:--------:|:--------:|:-------:|:-------:|
+# |      **pCO2**      | 1  | 0.009064 | 0.009064 |  2.414  | 0.1254  |
+# |   **Fed_Unfed**    | 1  | 0.01979  | 0.01979  |  5.272  | 0.02513 | # significant
+# | **pCO2:Fed_Unfed** | 1  | 0.002959 | 0.002959 | 0.7881  | 0.3782  |
+# |   **Residuals**    | 61 |  0.229   | 0.003755 |   NA    |   NA    |
+SRH930.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength.ALL ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_0930) # run mod
+# all is good, lets see the results
+pander(print(SRH930.bfactALL), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
+# |:------------------:|:--:|:------:|:------:|:-------:|
+# |      **pCO2**      | 1  | 218.5  | 0.6113 | 0.4343  |
+# |   **Fed_Unfed**    | 1  |  2142  | 5.993  | 0.01436 | # significant, no change to the non normal anova
+# | **pCO2:Fed_Unfed** | 1  | 378.9  |  1.06  | 0.3032  |
+# |   **Residuals**    | 61 | 20114  |   NA   |   NA    |
+# output results 
+kable(data.frame(unclass(print(SRH930.bfactALL)), 
+                   check.names = FALSE, 
+                   stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_TwoWayANOVA_Table.png", zoom = 1.5)
-#              Df  Sum Sq  Mean Sq F value  Pr(>F)   
-# pCO2         1 0.00154 0.001539   2.094 0.15313   
-# Food         1 0.00671 0.006713   9.135 0.00368 **
-# pCO2:Food    1 0.00079 0.000786   1.070 0.30516   
-# Residuals   60 0.04409 0.000735
-shapiro.test(residuals(Resp930_ANOVA)) # NON normal - 0.009643
-leveneTest(Resp930_ANOVA) # homogeneity of variance (equal) variance - 0.2709
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_SRH_RR_bfactor_ALL.png", zoom = 1.5)
 
-# Linear mixed effects model with random effect of Replicate
-LMEmod_0930<-lme(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, random=~1|random_fact, data=Resp_0930)
-# |     &nbsp;      | numDF | denDF | F-value | p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:--------:|
-# | **(Intercept)** |   1   |  49   |  112.3  | 2.82e-14 |
-# |    **pCO2**     |   1   |   12   |  1.487  |  0.2461  |
-# |    **Food**     |   1   |  12   |  7.219  | 0.01979  |
-# |  **pCO2:Food**  |   1   |  12   | 0.6779  |  0.4264  |
-pander(anova(LMEmod_0930), style='rmarkdown')
-kable(as.data.frame(anova(LMEmod_0930))) %>% 
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
-check_model(LMEmod_0930) 
-dev.off()
-# levene's test
-leveneTest(residuals(LMEmod_0930) ~ Resp_0930$pCO2*Resp_0930$Food) # 0.2745 PASS
+# Linear mixed effects model with random effect of Replicate 
+LME930.bfactALL<-lme(resp_umol_hr_bFactorNormLength.ALL ~ 
+                     pCO2*Fed_Unfed, 
+                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
+                     data=Resp_0930) 
+# check model assumptions
+shapiro.test(residuals(LME930.bfactALL)) # non-normal - 0.006321 !!!!!!!!!
+leveneTest(residuals(LME930.bfactALL) ~ Resp_0930$pCO2) # 0.1546 
+leveneTest(residuals(LME930.bfactALL) ~ Resp_0930$Fed_Unfed) # 0.4334 
+# AIC model selection
+pander(AIC(AOV930.bfactALL, LME930.bfactALL), style='rmarkdown') # anova table of lmer
+# |       &nbsp;        | df |  AIC   |
+# |:-------------------:|:--:|:------:|
+# | **AOV930.bfactALL** | 5  | -172.7 | # for negative AIC, the lower the AIC the best fit the model - the simple AOV is better 
+# | **LME930.bfactALL** | 6  | -144.9 |
 
-# food supply diff
-Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars="Food")
-perc_diff <- (0.04864072 - 0.02785341)/0.04864072*100
-perc_diff #42.7 %
 
+# In summary, we looked at our non-normal LME and AOV and again found the simple model outweighs the variance 
+# explained when the random factor was addressedin the LME, thus we will moved forward with the simple model 
+# as opposed to transforming the data, used the Scheirer-Ray-Hare Test as a nonparametric two-factor test 
+# the outcome of which did not change relative to the non-normal AOV 
+# result: report the SRH test 
+
+# food supply diff - report this percent difference alonside the significant effect
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength.ALL", groupvars="Fed_Unfed")
+perc_diff <- (0.10579268 - 0.06994931)/0.10579268*100
+perc_diff #33.88077 %
 
 
 # plot
-Resp930_Length <- ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
-              theme(panel.grid=element_blank()) +
-              geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
-              scale_fill_manual(values=c("white","grey50")) +
-              geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-              theme_classic() +
-              scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
-              #scale_y_continuous(expand = c(0, 0), limits = c(0, 120)) +
-              theme(axis.text=element_text(size=8),
+Resp930_Length <- ggplot(Resp_0930, 
+                         aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), 
+                             resp_umol_hr_bFactorNormLength.ALL , 
+                             fill = pCO2)) +
+                    theme(panel.grid=element_blank()) +
+                    geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
+                    scale_fill_manual(values=c("white","grey50")) +
+                    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                    theme_classic() +
+                    scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
+                   # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+                    labs(title = "F1 Scallops: respiration rates on 20210930 (b factor ALL)", 
+                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
+                         x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+                    theme(axis.text=element_text(size=8),
                           axis.title=element_text(size=8,face="bold")) +
-              labs(title = "F1 Scallops: respiration rates on 20210930 (shell length stand.)", 
-                   y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
-                   x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")"))  + 
-               stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-               facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food')))
-Resp930_Length
+                    stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") + 
+                    facet_wrap(~Fed_Unfed)  
+Resp930_Length # print this figure...
 
-# Export to pdf
-ggarrange(Resp930_Length,Resp930_Length_reps,nrow = 2) %>%
-  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_Figures.pdf")
+
+# Export the figures to pdf
+ggarrange(Resp930_Length,Resp930_bLengthALL_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_RR_bfactor_ALL.pdf")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# b FACTOR FOOD 'resp_umol_hr_bFactorNormLength.FOOD'  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: day 0 of initiating the food treatment thus ONLY b factor ALL is used in this chuck for 9/14
+
+# Visualize the data with the random effect of tank replicate 
+Resp930_bLengthFOOD_reps <- ggboxplot(Resp_0930, 
+                                 x = "pHxFood", 
+                                 y = "resp_umol_hr_bFactorNormLength.FOOD", 
+                                 color = "Replicate",
+          add = c("mean_se", "dotplot"),
+          palette = c("#00AFBB", "#E7B800", "brown", "grey"))
+Resp930_bLengthFOOD_reps
+
+# One-way ANOVA (without the random effect) 
+AOV930.bfactFOOD <- aov(resp_umol_hr_bFactorNormLength.FOOD ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_0930) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV930.bfactFOOD)) # normal - 0.07444
+leveneTest(AOV930.bfactFOOD) # hetergeneity of variance  - 0.01184 
+pander(aov(AOV930.bfactFOOD), style='rmarkdown') # table for anova test
+# |       &nbsp;       | Df |  Sum Sq  | Mean Sq  | F value |  Pr(>F)   |
+# |:------------------:|:--:|:--------:|:--------:|:-------:|:---------:|
+# |      **pCO2**      | 1  | 0.01183  | 0.01183  |  3.088  |  0.08391  |
+# |   **Fed_Unfed**    | 1  | 0.08515  | 0.08515  |  22.23  | 1.451e-05 |
+# | **pCO2:Fed_Unfed** | 1  | 0.002842 | 0.002842 | 0.7418  |  0.3925   |
+# |   **Residuals**    | 61 |  0.2337  | 0.003831 |   NA    |    NA     |
+SRH930.bfactFOOD <- scheirerRayHare(resp_umol_hr_bFactorNormLength.FOOD ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_0930) # run mod
+# all is good, lets see the results
+pander(print(SRH930.bfactFOOD), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq |   H    |  p.value  |
+# |:------------------:|:--:|:------:|:------:|:---------:|
+# |      **pCO2**      | 1  | 384.5  | 1.075  |  0.2997   |
+# |   **Fed_Unfed**    | 1  |  6549  | 18.32  | 1.868e-05 |
+# | **pCO2:Fed_Unfed** | 1  | 202.8  | 0.5673 |  0.4513   |
+# |   **Residuals**    | 61 | 15683  |   NA   |    NA     |
+# output results 
+kable(data.frame(unclass(print(SRH930.bfactFOOD)), 
+                   check.names = FALSE, 
+                   stringsAsFactors = FALSE)  ) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_SRH_RR_bfactor_FOOD.png", zoom = 1.5)
+
+# Linear mixed effects model with random effect of Replicate 
+LME930.bfactFOOD<-lme(resp_umol_hr_bFactorNormLength.FOOD ~ 
+                     pCO2*Fed_Unfed, 
+                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
+                     data=Resp_0930) 
+# check model assumptions
+shapiro.test(residuals(LME930.bfactFOOD)) # normal - 0.2483
+leveneTest(residuals(LME930.bfactFOOD) ~ Resp_0930$pCO2) # 0.2775  
+leveneTest(residuals(LME930.bfactFOOD) ~ Resp_0930$Fed_Unfed) # 0.002249 **
+# AIC model selection
+pander(AIC(AOV930.bfactFOOD, LME930.bfactFOOD), style='rmarkdown') # anova table of lmer
+# |        &nbsp;        | df |  AIC   |
+# |:--------------------:|:--:|:------:|
+# | **AOV930.bfactFOOD** | 5  | -171.4 |# for negative AIC, the lower the AIC the best fit the model - the simple AOV is better 
+# | **LME930.bfactFOOD** | 6  | -144.2 |
+
+
+
+# In summary, we looked at our non-normal LME and AOV and again found the simple model outweighs the variance 
+# explained when the random factor was addressed in the LME, thus we will moved forward with the simple model 
+# as opposed to transforming the data, used the Scheirer-Ray-Hare Test as a nonparametric two-factor test 
+# the outcome of which did not change relative to the non-normal AOV 
+# result: report the SRH test 
+
+# plot
+Resp930_Length_bfactFOOD <- ggplot(Resp_0930, 
+                         aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), 
+                             resp_umol_hr_bFactorNormLength.FOOD , 
+                             fill = pCO2)) +
+                    theme(panel.grid=element_blank()) +
+                    geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
+                    scale_fill_manual(values=c("white","grey50")) +
+                    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                    theme_classic() +
+                    scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
+                   # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+                    labs(title = "F1 Scallops: respiration rates on 20210930 (b factor FOOD)", 
+                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
+                         x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+                    theme(axis.text=element_text(size=8),
+                          axis.title=element_text(size=8,face="bold")) +
+                    stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") + 
+                    facet_wrap(~Fed_Unfed)  
+Resp930_Length_bfactFOOD # print this figure...
+
+# Export the figures to pdf
+ggarrange(Resp930_Length_bfactFOOD,Resp930_bLengthFOOD_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_RR_bfactor_FOOD.pdf")
 
 ```
 
@@ -906,9 +1122,9 @@ Resp_0930$pHxFood <- as.factor(Resp_0930$pHxFood)
 
 df_mean <- Resp_0930 %>% 
   dplyr::group_by(pHxFood) %>% 
-  dplyr::summarize(average = mean(resp_µmol_L_mm_Length_hr)) %>%
+  dplyr::summarize(average = mean(resp_umol_hr_bFactorNormLength.ALL)) %>%
   dplyr::ungroup()
-p.box <- ggplot(Resp_0930, aes(x = pHxFood, y = resp_µmol_L_mm_Length_hr)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
+p.box <- ggplot(Resp_0930, aes(x = pHxFood, y = resp_umol_hr_bFactorNormLength.ALL)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
              color="red") 
 p.box.data <- layer_data(p.box) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
@@ -920,7 +1136,7 @@ p.box.data <- layer_data(p.box) %>%
 
 p.box.data %>% unnest(outliers)
 
-
+library(tidyverse)
 denisty_box_resp_64DPF <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
@@ -929,7 +1145,7 @@ denisty_box_resp_64DPF <-ggplot(p.box.data) +
                             # vertical lines at Q1 / Q2 / Q3
                             geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
                             # density plot
-                            geom_density(data = Resp_0930, aes(x = resp_µmol_L_mm_Length_hr, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
+                            geom_density(data = Resp_0930, aes(x = resp_umol_hr_bFactorNormLength.ALL, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
                             #  theme
                             theme_classic() +
                             xlim(0, 0.22) +
@@ -941,8 +1157,8 @@ denisty_box_resp_64DPF <-ggplot(p.box.data) +
                             scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_resp_64DPF
 
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_RRbfactorALL_density_plot.pdf"), width = 5, height = 5)
 denisty_box_resp_64DPF # print the model diagnostics 
 dev.off()
 
