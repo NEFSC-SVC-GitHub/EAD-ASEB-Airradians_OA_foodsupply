@@ -111,8 +111,8 @@ AOV914.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~
                        pCO2, 
                      data=Resp_0914) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.6476
-leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.4156
+shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.6853
+leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.4684
 # all is good, lets see the results
 pander(anova(AOV914.bfactALL), style='rmarkdown') # anova table of lm
 # |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
@@ -306,8 +306,8 @@ pander(AIC(AOV930.bfactALL, LME930.bfactALL), style='rmarkdown') # anova table o
 
 # food supply diff - report this percent difference alonside the significant effect
 Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars="Fed_Unfed")
-perc_diff <- (0.10532084 - 0.06871314)/0.10532084*100
-perc_diff #34.75827 %
+perc_diff <- (0.10504454 - 0.08012453)/0.10504454*100
+perc_diff #23.72328 %
 
 
 # plot
@@ -322,7 +322,7 @@ Resp930_Length <- ggplot(Resp_0930,
                     theme_classic() +
                     scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
                    # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
-                    labs(title = "F1 Scallops: respiration rates on 20210930 (b factor 2.13)", 
+                    labs(title = "F1 Scallops: respiration rates on 20210930 (b factor 2.0)", 
                          y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
                          x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
                     theme(axis.text=element_text(size=8),
@@ -479,13 +479,24 @@ pander(aov(AOV1026.bfactALL), style='rmarkdown') # table for anova test
 # |      **pCO2**      | 1  | 6.793e-05 | 6.793e-05 | 0.4361  |  0.5144  |
 # |   **Fed_Unfed**    | 1  | 0.003074  | 0.003074  |  19.74  | 0.000127 |
 # | **pCO2:Fed_Unfed** | 1  | 2.537e-06 | 2.537e-06 | 0.01628 |  0.8994  |
-# |   **Residuals**    | 28 | 0.004361  | 0.0001558 |   NA    |    NA    
+# |   **Residuals**    | 28 | 0.004361  | 0.0001558 |   NA    |    NA    |
+SRH1026.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_1026) # run mod
+# all is good, lets see the results
+pander(print(SRH1026.bfactALL), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
+# |:------------------:|:--:|:------:|:------:|:-------:|
+# |      **pCO2**      | 1  | 35.19  | 0.4854 |  0.486  |
+# |   **Fed_Unfed**    | 1  | 204.4  | 2.819  | 0.09317 |
+# | **pCO2:Fed_Unfed** | 1  | 17.19  | 0.2371 | 0.6263  |
+# |   **Residuals**    | 25 |  1789  |   NA   |   NA    |
 # output results 
-kable(data.frame(unclass(summary(AOV1026.bfactALL)), 
+kable(data.frame(unclass(print(SRH1026.bfactALL)), 
                    check.names = FALSE, 
                    stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_AOV_RR_bfactor_ALL.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_SRH_RR_bfactor_ALL.png", zoom = 1.5)
 
 
 
@@ -508,7 +519,7 @@ Resp1026_Length <- ggplot(Resp_1026,
                     theme_classic() +
                     scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
                    # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
-                    labs(title = "F1 Scallops: respiration rates on 202101026 (b factor 2.13)", 
+                    labs(title = "F1 Scallops: respiration rates on 202101026 (b factor 2.0)", 
                          y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
                          x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
                     theme(axis.text=element_text(size=8),

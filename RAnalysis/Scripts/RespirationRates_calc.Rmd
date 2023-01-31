@@ -55,19 +55,21 @@ DWs_Len_914.930 <- read.csv(file="Data/Survival_Size/2021914_930_dryweights.csv"
 ```{r merge resp with length data and treatment IDs, echo=FALSE}
 
 # merge the exp_metadata with the resp.data
-resp.ref_length_merged                 <- merge(resp.ref, lengths) # all TRUE allows us to keep the blanks
-resp.data_merged                       <- merge(resp.data, resp.ref_length_merged) %>% # out master file moving forward....
-                                            dplyr::mutate(filetype = str_sub(Filename, -3,-1)) %>% 
-                                            dplyr::mutate(filetype = factor(ifelse(filetype == "csv", "SDR_data", "LoLigo_data")))
-kable(head(resp.data_merged))
+resp.ref_length_merged  <- merge(resp.ref, lengths) # all TRUE allows us to keep the blanks
+resp.data_merged        <- merge(resp.data, resp.ref_length_merged) %>% # out master file moving forward....
+                                            dplyr::mutate(filetype = 
+                                                            str_sub(Filename, -3,-1)) %>%  # column as csv and txt
+                                            dplyr::mutate(filetype = 
+                                                            factor(ifelse(filetype == "csv", "SDR_data", "LoLigo_data"))) # asign SDR for all csv files and Loligo for all txt files
+kable(head(resp.data_merged)) # print in a R markdown format to view
 
 ```
 
-#### Visual diagnostic plots to correct poor data (3 data points to change..)
+#### Visual diagnostic plots to correct poor data (11 data points to change..)
 
 - View on github: Airradians_OA/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/
 
-- found three calls that inaccurately represent the rates of oxygen consumption 
+- below are three examples that represent inaccurate rates of oxygen consumption (and can be corrected!) 
 
 (1) https://github.com/SamGurr/Airradians_OA/blob/master/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/20210930_Plate_2_Run_2_C5_regression.pdf
 - solution = call 'Lz' instead of the default Leq
@@ -77,6 +79,9 @@ kable(head(resp.data_merged))
 
 (3) https://github.com/SamGurr/Airradians_OA/blob/master/RAnalysis/Output/Respiration/plots_alpha0.4_increm15sec/20210930_Plate_1_Run_2_C1_regression.pdf
 - solution = we reran this at the end of the LoLin script  for 0-20 minutes and got an Lpc  -0.0296, insert this 
+
+* for all other cases corrected below, either another weighting metric (LZ or Leq as opposed to the Lpc output by LoLinR) or 
+a rerun of the data subset w/o noise/error/etc. allowed for a correction - in most cases the rerun was required
 
 ```{r IMPORTANT correct poor data, echo=TRUE, message = FALSE, warning = FALSE}
 
@@ -148,22 +153,22 @@ blanks_total <- data.frame() # start dataframe
 blanks.table <- data.frame(matrix(nrow = 1,ncol = 5)) # make a table template
 colnames(blanks.table)<-c('Date', 'Channel', 'mean_Lpc', 'mean_Leq' , 'mean_Lz') # names for comuns in the for loop
 
+# filter all blanks and edit where needed
 blanks_all_raw <- data.frame(merge(resp.ref, resp.data, by = c('Date', 'Channel', 'Filename')) %>% 
                   dplyr::filter(!Date ==  '9/14/2021'   | !Filename == 'Run_1_raw.txt') %>%  # run 1 was restarted due to poor data
                   dplyr::mutate(filetype = str_sub(Filename, -3,-1)) %>% 
                   dplyr::mutate(filetype = factor(ifelse(filetype == "csv", "SDR_data", "LoLigo_data"))) %>% 
-                  dplyr::filter(Chamber_tank  == 'blank') %>% 
-                  # dplyr::filter(Lpc <0) %>% 
+                  dplyr::filter(Chamber_tank  == 'blank') %>% # filter all ocurances of blank
                   dplyr::filter(!Date == '9/30/2021' | !Lpc < -0.035) %>% #omits C6 RR_9.30.21_AM_Plate_1_Run_1.csv	8.0	blank - View the Lolin plot, looks noisy and a fast outlier from the others
                   dplyr::filter(!Date == '10/26/2021'  | !Channel == "CH8" | !Run == "2" ) %>%  # omit a bad blank that contained a bad seal, noted on the respiration sampling day during the trial 
-                  dplyr::filter(!Date == '10/26/2021'  | !Channel == "CH8" | !Run == "3" ) %>%  # omit a bad blank that contained a bad seal, noted on the respiration sampling day during the trial 
-                  dplyr::filter(!Date ==  '9/30/2021'   | !pH == "7.5" | !Channel == "B2" | !Run == "1" | !Plate == "1" ) %>% 
-                  dplyr::select(c(Date, pH, Run, Plate, Lpc, Leq ,Lz, Channel, Food, Filename, filetype, Chamber_tank)) %>% 
-                  dplyr::arrange(Date, Run, pH))
+                  #dplyr::filter(!Date == '10/26/2021'  | !Channel == "CH8" | !Run == "3" ) %>%  # omit a bad blank that contained a bad seal, noted on the respiration sampling day during the trial 
+                  dplyr::filter(!Date ==  '9/30/2021'   | !pH == "7.5" | !Channel == "B2" | !Run == "1" | !Plate == "1" ) %>% # abnormal high rate for a blank - omission approximates the mean blank for the other treatment (bad data)
+                  dplyr::select(c(Date, pH, Run, Plate, Lpc, Leq ,Lz, Channel, Food, Filename, filetype, Chamber_tank)) %>% # select desired columns
+                  dplyr::arrange(Date, Run, pH)) # arrange the dataset to have consistant read out for process below...
 kable(blanks_all_raw)
 
 
-
+# blank means by date*pH*run
 blanks_means <- blanks_all_raw %>% 
      dplyr::group_by(Date, pH, Run, filetype) %>% 
      dplyr::filter(Chamber_tank == "blank") %>% 
@@ -174,10 +179,13 @@ blanks_means <- blanks_all_raw %>%
                       BLANK.mean_Lz = mean(abs(Lz)),
                       n = n()) %>% 
     dplyr::arrange(Date, Run)
-kable(blanks_means)
+kable(blanks_means) # IMPORTANT! notice there are no blanks for pH 7.5  runs 2 and 3 on 10/26 and run 1  9 /14
 
-dups_to_add <- blanks_means[c(5:7),] %>% mutate(pH = 7.5) # only pH 8 contains a positive blank on 9/14 Run 1 and 10/26 Run 2- duplicate and save as pH 7.5 
-blanks_means <- rbind(blanks_means, dups_to_add) %>% dplyr::arrange(Date, Run) 
+# we have some absent data, in this case 'dups_to_add' adds the opposite treatment blank (i.e. 7.5 no blank, assigned as 8's blank)
+dups_to_add <- blanks_means[c(5,8),] %>% # call blanks for pH 8 runs 2 and 3 on 10/26 and run 1  9 /14
+              dplyr:: mutate(pH = 7.5) # assign 7.5 pH
+blanks_means <- rbind(blanks_means, dups_to_add) %>% # bind on the rows 
+  dplyr::arrange(Date, Run) 
 kable(blanks_means) # you can now see that each Date, Run, has a pH 8 and pH 7.5 blank
 ```
 
@@ -197,7 +205,7 @@ Resp.less.than.blank <- Resp.Master %>%
                           dplyr::filter(resp_blankStand < 0) %>% 
                           dplyr::select(c(1:7,15,18,29)) %>% 
                           mutate(Lpc = abs(Lpc)) # call the values with positive resp rates, measing they were slower than the blank!
-print(Resp.less.than.blank) # 14 total samples were less than the blank after the correction... (Lpc < BLANK.mean_LPC)
+print(Resp.less.than.blank) # 17 total samples were less than the blank after the correction... (Lpc < BLANK.mean_LPC)
 
 ```
 
@@ -226,27 +234,35 @@ Resp.Master_OM <- Resp.Master[!is.na(Resp.Master$Length_um),] %>%
     pH == 7.5 ~ "800 μatm")) %>% 
   # the volume of the cahmbers 
   dplyr::mutate(volume = case_when(
-     filetype == "LoLigo_data" & Date == '9/14/2021' ~ 1.7, # small vessels for loligo system - 22 ml vessels
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH1' ~ 23.1, # F1 data
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH2' ~ 23.05, 
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH4' ~ 22.55,
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH5' ~ 23.18,
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH6' ~ 23.24,
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH7' ~ 22.63, 
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH8' ~ 22.95,
-     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH3' ~ 23.31, #larger custom vessels measured individually...
-     filetype == "SDR_data" ~ 1.7)) %>% # 24-well plate - 1700ul used for the unfed and fed on 9/30 and the unfed only on 10/26
+     filetype == "LoLigo_data" & Date %in% c('9/14/2021','9/30/2021') ~ 2.2,# fed F1 foodxOA
+     filetype == "SDR_data" & Date %in% c('9/30/2021','10/26/2021')~ 1.7, # small unfed F1s foodxOA; 24-well plate - 1700ul 
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH1' ~ 23.1, 
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH2' ~ 23.05, 
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH4' ~ 22.55,
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH5' ~ 23.18,
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH6' ~ 23.24,
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH7' ~ 22.63, 
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH8' ~ 22.95,
+     # filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH3' ~ 23.31
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH1' ~ 68.55323, # F1 data
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH2' ~ 68.85583, 
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH4' ~ 68.95481,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH5' ~ 68.57288,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH6' ~ 68.01878,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH7' ~ 68.54551, 
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH8' ~ 68.53297,
+     filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH3' ~ 68.87473)) %>% #larger custom vessels measured individually...
   # factor in the biovolume (volume displaced from the animal) to get the actual calculated volume of the chambers
   dplyr::mutate(Length_mm = Length_um/1000) %>% # Length in millimeters
-  dplyr::mutate(Biovol_length3 = (0.000198*(Length_mm^3)))  %>% # biovoume calc using length (mm) ^3 0.000198 derived from a regression run with all F1 data 
+  dplyr::mutate(Biovol_length3 = (0.000198*(Length_mm^3)))  %>% # biovoume calc using length(mm)^3; 0.000198 from a regression run with all F1 data 
   dplyr::mutate(calculated_volume = (volume - Biovol_length3)) %>%  # actual volume of the vessel accounting for the volume displaced (length^3 equivelent to the measured biovolume)
   # REspiration units mg minute -> mg L hr
   dplyr::mutate(resp_mg_L_hr =(resp_blankStand *  # resp corrected for blank (remember within Date, Run and treatment!) - currently as raw units of mg O2 per minute (output from LoLinR script)
-                                      (calculated_volume/1000) * # mult by volume of the resp vessel corrected in Liters - now units in  mg per L per min
+                                      (calculated_volume/1000) * # mult vessel corrected in Liters - now units in  mg per L per min
                                        60))  %>% # mult by 60 to convert to hours - now units in mg L per hour
-  dplyr::mutate(resp_umol_L_hr = ( (resp_mg_L_hr * 1000) / 32) ) #  convert mg L per hr to umol L hr- first by mg to ug (mg*1000 = ug) and then ug to umol (1 umol = 32 ug -  ug O2 div 32 ug/umol)          
+  dplyr::mutate(resp_umol_L_hr =  (resp_mg_L_hr * 1000) / 32) #  convert mg L per hr to umol L hr- first by mg to ug (mg*1000 = ug) and then ug to umol (1 umol = 32 ug -  ug O2 div 32 ug/umol)          
 
-Resp.Master %>% dplyr::filter(resp_blankStand < 0) # 14 rows omitted 
+Resp.Master %>% dplyr::filter(resp_blankStand < 0) # 17 rows omitted 
 ```
 
 # ALOMETRIC COEFFICIENT (b factor) 
@@ -266,13 +282,13 @@ to calculate resp using the sample methods across time, we used length^3 correct
 nrow(Resp.Master_OM) # 118
 
 Resp.Master_bfactor_plotting <- Resp.Master_OM %>% 
-dplyr::mutate(log10_VO2     = log10(as.numeric(Resp.Master_OM$resp_umol_L_hr)) ) %>%  # assign resp value
-dplyr::mutate(log10_Length  = log10(as.numeric(Resp.Master_OM$Length_um)) ) %>% # assign length value 
-dplyr::mutate(Food_OA       = paste(Resp.Master_OM$pCO2, Resp.Master_OM$Fed_Unfed, sep = "_")) # two-way factor to facet plots by  
+  dplyr::mutate(log10_VO2     = log10(as.numeric(Resp.Master_OM$resp_umol_L_hr)) ) %>%  # assign resp value
+  dplyr::mutate(log10_Length  = log10(as.numeric(Resp.Master_OM$Length_um)) ) %>% # assign length value 
+  dplyr::mutate(Food_OA       = paste(Resp.Master_OM$pCO2, Resp.Master_OM$Fed_Unfed, sep = "_")) # two-way factor to facet plots by  
 
 Resp.Master_bfactor_plottingOM <- Resp.Master_bfactor_plotting %>% 
   # one outlier value that is omitted for parallet graphical outputsn with the non-omitted data 
-  dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -3))  # outliers ommited (a ingle data point)
+  dplyr::filter(!(log10_Length > 3.8 & log10_VO2 < -2))  # outliers ommited (a ingle data point)
 
 MO2_b.factorLENGTH_PLOT <- Resp.Master_bfactor_plotting %>% 
                            ggplot(aes(x=log10_Length, y=log10_VO2)) +
@@ -448,16 +464,16 @@ dev.off()
 # In summunary from the b factors above...
 
 - listed below all combinations (the single outlier omitted)
-  * b factor ALL = 1.41
+  * b factor ALL = 2
   
   * b factor low food  = 2.86 # very different
-  * b factor high food = 1.16
+  * b factor high food = 1.76
   
-  * b factor low pCO2  = 1.41 # very similar
-  * b factor high pCO2 = 1.43
+  * b factor low pCO2  = 1.96 # very similar
+  * b factor high pCO2 = 2.12
   
-  * b factor lowpCO2  x high food = 1.21 # similar based on food NOT pCO2
-  * b factor highpCO2 x high food = 1.14
+  * b factor lowpCO2  x high food = 1.76 # similar based on food NOT pCO2
+  * b factor highpCO2 x high food = 1.82
   * b factor lowpCO2  x low food  = 2.72 
   * b factor highpCO2 x low food  = 3.03
  
@@ -471,9 +487,9 @@ dev.off()
 
 # NORMALIZED for Shell length
 # as (RR) * ([mean_length / individual length]^b_factor)
-bLength_all      = 2.13 #  the scaling exponent that we found for all our cumulative F1 data- also a similar b factor for SMO and length found in literature  (2.199)
+bLength_all      = 2 #  the scaling exponent that we found for all our cumulative F1 data- also a similar b factor for SMO and length found in literature  (2.199)
 
-meanLengthALL        <- median(Resp.Master_OM$Length_mm) #4.292843 - the mean for the normalization 
+meanLengthALL    <-mean(Resp.Master_OM$Length_mm) #4.161787 - the mean for the normalization 
 
 Resp.Masterfinal <- Resp.Master_OM %>% 
                        # the 'all' b factor 
@@ -570,7 +586,7 @@ ggarrange(P_Length_resp_all, P_Length_resp_facet, nrow = 2)
 
 
 
-# by b factor length all  == 1.41 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# by b factor length all  == 2.0 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 P_bfactorLength_all <- Resp.Masterfinal %>% 
                         ggplot(aes(
@@ -586,7 +602,7 @@ P_bfactorLength_all <- Resp.Masterfinal %>%
                           theme(panel.grid.major = element_blank(), 
                                 panel.grid.minor = element_blank(), 
                                 plot.title = element_text(size=10))+ 
-                          labs(title = "Resp bfactor 2.13 v. Shell length (mm)", 
+                          labs(title = "Resp bfactor 2.18 v. Shell length (mm)", 
                                y = expression(b~factor~μmol~O[2]%.%hr^{-1})) +
                           xlab("Shell length (mm)") +
                           theme(legend.position="none") +
