@@ -1,7 +1,7 @@
 ---
   title: "Respiration Analysis F1 Scallops 2021"
 author: "Samuel Gurr"
-date: "10/6/2021"
+date: "1/29/2023"
 output:
   html_document:
   df_print: paged
@@ -37,8 +37,7 @@ library(nlme)
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # personal computer
 
 # Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personnel computer 
-Resp.Master_OM  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T, fileEncoding = "latin1") # work computer
-
+Resp.Master  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # work computer
 ```
 
 
@@ -47,21 +46,24 @@ Resp.Master_OM  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/A
 
 
 
-### 9/14/2021 F1 juvenile scallops
+
+
+# 9/14/2021 F1 juvenile scallops (50 DPF; Day 0)
 
 **About**
-  - two pCO2 treatments 
+
+- two pCO2 treatments 
+
 - **before** we culled and started the food limitation trials
 
+#### number of replicates for analysis...
 
-##### number of replicates for analysis...
-
-```{r 9/14 replicates and mean resp, echo=FALSE}
+```{r Day 0 replicates and mean resp, echo=FALSE}
 
 # model effect of treatment on resp rate 20210507
-Resp_0914 <- Resp.Master_OM %>% 
-  dplyr::filter(Date %in% '9/14/2021')  %>% # call only 9/14
-  dplyr::filter(!Chamber_tank  %in% 'blank')
+Resp_0914 <- Resp.Master %>% 
+              dplyr::filter(Date %in% '9/14/2021')  %>% # call only 9/14
+              dplyr::filter(!Chamber_tank  %in% 'blank')
 
 Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank replication
 # 7.5_A	3			
@@ -70,329 +72,289 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 # 7.5_D	3			
 # 8_A	2	   *2 rep			
 # 8_B	3			
-# 8_C	3			
+# 8_C	2		 *2 rep	
 # 8_D	2	   *2 rep
 
-Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pH")) %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2"))
+
 
 
 ```
 
 ### 9/14/2021 linear model, diagnostics, and plots
 
-#### Length standardized
+```{r Day 0 b factor ALL, echo=TRUE, message = FALSE, warning = FALSE}
 
-```{r 9/14 Length standardized, echo=TRUE, message = FALSE, warning = FALSE}
+# Objective: run AOV and LME for the data, rationale being that we have mutliple samples per replicate tank
+# thus important that we address this random effect. Performing AOV and LME allows us to run model selection using AIC 
+# to determine the model with the better fit 
 
-# Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=("pH")) %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+
+
+# b FACTOR ALL ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: day 0 of initiating the food treatment thus ONLY b factor ALL is used in this chuck for 9/14
+
+
 
 # plot the replicates (visual diagnostics of random factor)
-Resp914_Length_reps<- ggboxplot(Resp_0914, 
-                                x = "pH", 
-                                y = "resp_µmol_L_mm_Length_hr", 
-                                color = "Replicate",
-                                add = c("mean_se", "dotplot"),
-                                palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp914_Length_reps
+Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=("pCO2"))
+Resp914_bLengthALL_reps<- ggboxplot(Resp_0914, 
+                                    x = "pCO2", 
+                                    y = "resp_umol_hr_bFactorNormLength", 
+                                    color = "Replicate",
+                              add = c("mean_se", "dotplot"),
+                              palette = c("#00AFBB", "#E7B800", "brown", "grey"))
+Resp914_bLengthALL_reps
 
 # One-way ANOVA (without the random effect) 
-Resp914_ANOVA <- aov(resp_µmol_L_mm_Length_hr ~ 
+AOV914.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~ 
                        pCO2, 
                      data=Resp_0914) # run mod
-summary(Resp914_ANOVA) # summary mod
-kable(data.frame(unclass(summary(Resp914_ANOVA)), check.names = FALSE, stringsAsFactors = FALSE)  ) %>%  # print a png of this table
+# check model assumptions
+shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.6476
+leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.4156
+# all is good, lets see the results
+pander(anova(AOV914.bfactALL), style='rmarkdown') # anova table of lm
+# |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
+# |:-------------:|:--:|:---------:|:---------:|:-------:|:------:|
+# |   **pCO2**    | 1  | 0.0006111 | 0.0006111 | 0.5286  | 0.476  |
+# | **Residuals** | 19 |  0.02197  | 0.001156  |   NA    |   NA   |
+# output results 
+kable(data.frame(unclass(summary(AOV914.bfactALL)), 
+                   check.names = FALSE, 
+                   stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_OneWayANOVA_Table.png", zoom = 1.5)
-#             Df   Sum Sq   Mean Sq F value Pr(>F)
-# pCO2         1 0.000027 0.0000267   0.061  0.807
-# Residuals   19 0.008241 0.0004337   
-shapiro.test(residuals(Resp914_ANOVA)) # normal - 0.7462
-leveneTest(Resp914_ANOVA) # homogeneity of variance (equal variance - 0.7901
-
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_AOV_RR_bfactor_ALL.png", zoom = 1.5)
 
 # Linear mixed effects model with random effect of Replicate 
-LMEmod_0914_SL <- lmer(resp_µmol_L_mm_Length_hr ~ pCO2 + (1|Chamber_tank), data=Resp_0914, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-
-LMEmod_0914_SL<-lme(resp_µmol_L_mm_Length_hr ~ 
-                      pCO2, 
-                    random=~1|Chamber_tank, 
-                    data=Resp_0914) # with the random effect as an LME model
-qqnorm(resid(LMEmod_0914_SL))
-shapiro.test(resid(LMEmod_0914_SL)) # 0.8512
-leveneTest(residuals(LMEmod_0914_SL) ~ Resp_0914$pCO2) # 0.06434 . PASS
-pander(anova(LMEmod_0914_SL), style='rmarkdown') # anova table of lmer
-# |     &nbsp;      | numDF | denDF | F-value  |  p-value  |
-# |:---------------:|:-----:|:-----:|:--------:|:---------:|
-# | **(Intercept)** |   1   |  13   |  43.61   | 1.706e-05 |
-# |    **pCO2**     |   1   |   6   | 0.001242 |   0.973   |
-kable(as.data.frame(anova(LMEmod_0914_SL))) %>%  # print a png of this table
+LME914.bfactALL<-lme(resp_umol_hr_bFactorNormLength.ALL ~ 
+                     pCO2, 
+                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
+                     data=Resp_0914) 
+# check model assumptions
+shapiro.test(residuals(LME914.bfactALL)) # normal - 0.9466
+leveneTest(residuals(LME914.bfactALL) ~ Resp_0914$pCO2) # 0.2723 
+# all is good, lets see the results
+pander(anova(LME914.bfactALL), style='rmarkdown') # anova table of lmer
+# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
+# |:---------------:|:-----:|:-----:|:-------:|:---------:|
+# | **(Intercept)** |   1   |  13   |  48.14  | 1.024e-05 |
+# |    **pCO2**     |   1   |   6   | 0.02091 |  0.8898   |
+# output results 
+kable(as.data.frame(anova(LME914.bfactALL))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_resp_LME_Diagnostics.pdf"))
-dev.off()
-# levene's test
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_LME_RR_bfactor_ALL.png", zoom = 1.5)
 
-
-# test linear mixed model
-library('HLMdiag')
-# REML == Residual maximum likelihood (REML)
-# technique for estimating variance components in multi-classified data.
-
-#compute a model where the effect of pCO2 is estimated
-fm1 <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ 
-                    pCO2 + 
-                    (1 | Chamber_tank), 
-                  data=Resp_0914, 
-                  REML = FALSE)#because we want to compare models on likelihood; you cannot compare models that differ in fixed effects if they are fitted by REML thus FALSE
-#next, compute a model where the effect of status is not estimated
-fm2 <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ 
-                    (1 | Chamber_tank), 
-                  data=Resp_0914, 
-                  REML = FALSE)#because we want to compare models on likelihood; you cannot compare models that differ in fixed effects if they are fitted by REML thus FALSE
-#compute the AIC-corrected log-base-2 likelihood ratio (a.k.a. "bits" of evidence)
-(AIC(fm2)-AIC(fm1))*log2(exp(1)) # -2.880164
-(AIC(fm2)-AIC(fm1)) # -1.996378
-# simple anova on the unrestricted 
-anova(lmer(resp_µmol_L_mm_Length_hr ~ 
-             pCO2 + 
-             (1 | Chamber_tank), 
-           data=Resp_0914, 
-           REML = T)) #  0.9533
-
-
-fm1_resid <- hlm_resid(fm1)
-resid1_fm1<- hlm_resid(fm1, standardize = TRUE, include.ls = FALSE)
-
-
-ggplot(data = resid1_fm1, 
-       aes(x = resp_µmol_L_mm_Length_hr, y = .std.resid)) + 
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess", se = FALSE) + 
-  labs(y = "LS level-1 residuals", 
-       title = "LS residuals against standardized LRT score")
-# look for linear realtionship 
-fm1b <- update(fm1, .~. + I(resp_µmol_L_mm_Length_hr^2) 
-               + I(resp_µmol_L_mm_Length_hr^3))
-resid1_fm1b <- hlm_resid(fm1b, level = 1, standardize = TRUE)
-ggplot(data = resid1_fm1b, 
-       aes(x = resp_µmol_L_mm_Length_hr, y = .std.resid)) + 
-  geom_point(alpha = 0.2) +
-  geom_smooth(method = "loess", se = FALSE) + 
-  labs(y = "LS level-1 residuals", 
-       title = "LS residuals against standardized LRT score")
-
-# random effect
-resid2_fm1b <- hlm_resid(fm1, level = "Chamber_tank", include.ls = FALSE)
-ggplot(data = resid2_fm1b, aes(x = Chamber_tank, y = .ranef.intercept)) + 
-  geom_point() +
-  labs(y = "Random effects - intercept", 
-       title = "Intercept random effects against Chamber_tank") + 
-  coord_flip()
-
-
-fm1     <- lme4::lmer(resp_µmol_L_mm_Length_hr ~ pCO2 
-                      + (1 | Chamber_tank), data=Resp_0914, REML = FALSE)
-shapiro.test(resid(fm1)) # 0.9627
-shapiro.test(pull_resid(fm1, level = "Chamber_tank")) # 0.2039
-shapiro.test(pull_resid(fm1, level = "pCO2")) # 0.2039
-qqnorm(resid(fm1))
-qqnorm(pull_resid(fm1, level = "pCO2"))
-
-
-
-fm1.aug <- hlm_augment(fm1)
-shapiro.test(fm1.aug$.ls.resid)# 0.2039
-qqnorm(fm1.aug$.ls.resid)
-tibble::glimpse(fm1.aug)
-
-fm1_resid  <- hlm_resid(fm1)
-shapiro.test(fm1_resid$.resid) #0.9627
-qqnorm(fm1_resid$.resid)
-
-fm1_resid2 <- hlm_resid(fm1, standardize = TRUE, include.ls = FALSE)
-shapiro.test(fm1_resid2$.std.resid) # 0.9627
-shapiro.test(fm1_resid2$.chol.mar.resid) # 0.9221
-qqnorm(fm1_resid2$.std.resid)
-
-
-fm1_resid
-qqnorm(fm1_resid$.resid)
-shapiro.test(fm1_resid$.resid)
-
-mdffits(fm1)
-pull_resid(fm1)
-
-
-
-# call the results of LMER to add to boxplot below 
-DF   <- paste( (anova(LMEmod_0914_SL)[[1]])[2], (anova(LMEmod_0914_SL)[[2]])[2], sep = '/') # call DF
-Fval <- (anova(LMEmod_0914_SL)[[3]])[2] # call f
-pval <- (anova(LMEmod_0914_SL)[[4]])[2] # call p value
+# AIC model selection
+pander(AIC(LME914.bfactALL, AOV914.bfactALL), style='rmarkdown') # anova table of lmer
+# |       &nbsp;        | df |  AIC   |
+# |:-------------------:|:--:|:------:|
+# | **LME914.bfactALL** | 4  | -58.44 |
+# | **AOV914.bfactALL** | 3  | -70.3  |  # for negative AIC, the lower the AIC the best fit the model - the simple AOV is better 
 
 # plot
-Resp914_Length <- ggplot(Resp_0914, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
-  scale_fill_manual(values=c("white","grey50")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
-  # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
-  labs(title = "F1 Scallops: respiration rates on 20210914 (shell length stand.)", 
-       y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
-       x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8,face="bold")) +
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") # +
-# annotate("text", x=2, y=0.000005, size = 4, label = "shapiro wilk = 0.3347") +
-# annotate("text", x=2, y=0.0000075, size = 4, label = "levene's = ???") +
-# annotate("text", x=2, y=0.0000115, size = 4, label= paste('DF =',DF,'F =', signif(Fval, digits=3), 'p value =', signif(pval, digits=3), sep=" ")) 
+Resp914_Length <- ggplot(Resp_0914, 
+                         aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), 
+                             resp_umol_hr_bFactorNormLength , 
+                             fill = pCO2)) +
+                    theme(panel.grid=element_blank()) +
+                    geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
+                    scale_fill_manual(values=c("white","grey50")) +
+                    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                    theme_classic() +
+                    scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
+                   # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+                    labs(title = "F1 Scallops: respiration rates on 20210914 (b factor 2.13)", 
+                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
+                         x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+                    theme(axis.text=element_text(size=8),
+                          axis.title=element_text(size=8,face="bold")) +
+                     stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") 
 Resp914_Length # print this figure...
 
 
 # Export the figures to pdf
-ggarrange(Resp914_Length,Resp914_Length_reps,nrow = 2) %>%
-  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_respiration_length.pdf")
+ggarrange(Resp914_Length,Resp914_bLengthALL_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_RR_bfactor_ALL.pdf")
 
 ```
 
 
-# 9/30/2021 F1 juvenile scallops
+
+
+
+
+
+
+# 9/30/2021 F1 juvenile scallops (64 DPF; Day 14)
 
 **About**
-  
-  - two pCO2 treatments 
+
+- two pCO2 treatments 
 
 - *before* we culled and started the food limitation trials
 
-
 #### number of replicates for analysis...
 
-```{r 9/30 replicates, echo=FALSE}
+```{r Day 14 replicates, echo=FALSE}
 
-Resp_0930 <- Resp.Master_OM %>% 
+Resp_0930 <- Resp.Master %>% 
   dplyr::filter(Date %in% '9/30/2021')  %>% # call only 9/14
-  dplyr::select(-Center) %>% 
-  dplyr::mutate(pHxFood = paste(pH,Food, sep = "_")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Food, sep="_")))
+  dplyr::mutate(pHxFood = paste(pH,Fed_Unfed, sep = "_")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Fed_Unfed, sep="_")))
 
 kable(Resp_0930 %>% dplyr::group_by(Chamber_tank, Food) %>% dplyr::summarise(n())) # tank replication - lowest value was 2 for 7.5_D unfed
 
-Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=(c("pH", "Food"))) %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2"))
+
+
 ```
 
+### Statistical models
 
-## 9/30/2021 linear model, diagnostics, and plots
+```{r Day 14 Stats b factor, echo=TRUE, message = FALSE, warning = FALSE}
 
-#### Length standardized
+# Objective: run AOV and LME for the data, rationale being that we have mutliple samples per replicate tank
+# thus important that we address this random effect. Performing AOV and LME allows us to run model selection using AIC 
+# to determine the model with the better fit 
 
-```{r 9/30 Length standardized, echo=TRUE, message = FALSE, warning = FALSE}
+
+# NOTE: 
+# this chunk demonstrates that our data is non-normally distributed, thus we will need 
+# to either transform to resolve or resort to a nonparametric test
+# given we have a two-way factorial design (in our simple linear model) we can use the Scheirer-Ray-Hare Test 
+# https://rcompanion.org/handbook/F_14.html
+library(rcompanion) # install.packages('rcompanion')
+library(FSA)
+install.packages('FSA')
 
 
-# Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# Visualize the data with the random effet as treplicate 
-Resp930_Length_reps <- ggboxplot(Resp_0930, x = "pHxFood", y = "resp_µmol_L_mm_Length_hr", color = "Replicate",
-                                 add = c("mean_se", "dotplot"),
-                                 palette = c("#00AFBB", "#E7B800", "brown", "grey"))
-Resp930_Length_reps
-?lmer
-# Linear mixed effects model with random effect of Replicate
-LMEmod_0930<-lme(resp_µmol_L_mm_Length_hr ~ 
-                   pCO2 * Food, 
-                 random=~1|random_fact, 
-                 data=Resp_0930)
-LMEmod_0930<-lmer(resp_µmol_L_mm_Length_hr ~ 
-                   pCO2 * Food +
-                  (1|random_fact), data=Resp_0930, REML = TRUE) 
-qqnorm(resid(LMEmod_0930))
-shapiro.test(residuals(LMEmod_0930)) #  non-normal - 0.005481
-leveneTest(residuals(LMEmod_0930) ~ Resp_0930$pCO2*Resp_0930$Food) # 0.3248 PASS
-pander(anova(LMEmod_0930), style='rmarkdown')
-# |     &nbsp;      | numDF | denDF | F-value | p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:--------:|
-# | **(Intercept)** |   1   |  49   |  112.3  | 2.82e-14 |
-# |    **pCO2**     |   1   |  12   |  1.487  |  0.2461  |
-# |    **Food**     |   1   |  12   |  7.219  | 0.01979  | # significant
-# |  **pCO2:Food**  |   1   |  12   | 0.6779  |  0.4264  |
 
-LMEmod_0930_T<-lme(asin(sqrt(resp_µmol_L_mm_Length_hr)) ~ # arsin sqrt transformation
-                   pCO2 * Food, 
-                 random=~1|random_fact, 
-                 data=Resp_0930)
 
-LMEmod_0930_T<-lmer(asin(sqrt(resp_µmol_L_mm_Length_hr)) ~ # arsin sqrt transformation
-                   pCO2 * Food +
-                  (1|random_fact), data=Resp_0930, REML = TRUE) 
 
-shapiro.test(residuals(LMEmod_0930_T)) #  normal - 0.3287
-qqnorm(resid(LMEmod_0930_T))
-leveneTest(residuals(LMEmod_0930_T) ~ Resp_0930$pCO2*Resp_0930$Food) # 0.484 PASS
-pander(anova(LMEmod_0930_T), style='rmarkdown')
-# |     &nbsp;      | numDF | denDF | F-value | p-value |
-# |:---------------:|:-----:|:-----:|:-------:|:-------:|
-# | **(Intercept)** |   1   |  49   |   337   |    0    |
-# |    **pCO2**     |   1   |  12   | 0.9207  | 0.3562  |
-# |    **Food**     |   1   |  12   |  7.38   | 0.01872 | # significant - transformation did not change the outcome of the model
-# |  **pCO2:Food**  |   1   |  12   |  1.011  | 0.3345  |
 
-kable(as.data.frame(anova(LMEmod_0930_T))) %>% 
+
+
+# b FACTOR ALL  'resp_umol_hr_bFactorNormLength.ALL' ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: day 0 of initiating the food treatment thus ONLY b factor ALL is used in this chuck for 9/14
+
+# Visualize the data with the random effect of tank replicate 
+Resp930_bLengthALL_reps <- ggboxplot(Resp_0930, 
+                                 x = "pHxFood", 
+                                 y = "resp_umol_hr_bFactorNormLength", 
+                                 color = "Replicate",
+          add = c("mean_se", "dotplot"),
+          palette = c("#00AFBB", "#E7B800", "brown", "grey"))
+Resp930_bLengthALL_reps
+
+# One-way ANOVA (without the random effect) 
+AOV930.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_0930) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV930.bfactALL)) # non-normal - 0.0001165
+leveneTest(AOV930.bfactALL) # homogeneity of variance (equal variance) - 0.354
+pander(aov(AOV930.bfactALL), style='rmarkdown') # table for anova test
+# |       &nbsp;       | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
+# |:------------------:|:--:|:---------:|:---------:|:-------:|:------:|
+# |      **pCO2**      | 1  |  0.00456  |  0.00456  |  3.061  | 0.0852 |
+# |   **Fed_Unfed**    | 1  | 0.002573  | 0.002573  |  1.727  | 0.1937 |
+# | **pCO2:Fed_Unfed** | 1  | 0.0008976 | 0.0008976 | 0.6027  | 0.4406 |
+# |   **Residuals**    | 61 |  0.09085  | 0.001489  |   NA    |   NA   |
+SRH930.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_0930) # run mod
+# all is good, lets see the results
+pander(print(SRH930.bfactALL), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
+# |:------------------:|:--:|:------:|:------:|:-------:|
+# |      **pCO2**      | 1  | 305.7  | 0.8551 | 0.3551  |
+# |   **Fed_Unfed**    | 1  |  1167  | 3.264  | 0.07083 |
+# | **pCO2:Fed_Unfed** | 1  | 411.5  | 1.151  | 0.2833  |
+# |   **Residuals**    | 61 | 20974  |   NA   |   NA    |
+# output results 
+kable(data.frame(unclass(print(SRH930.bfactALL)), 
+                   check.names = FALSE, 
+                   stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_LME_Diagnostics.pdf"))
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_SRH_RR_bfactor_ALL.png", zoom = 1.5)
 
-dev.off()
+# Linear mixed effects model with random effect of Replicate 
+LME930.bfactALL<-lme(resp_umol_hr_bFactorNormLength ~ 
+                     pCO2*Fed_Unfed, 
+                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
+                     data=Resp_0930) 
+# check model assumptions
+shapiro.test(residuals(LME930.bfactALL)) # non-normal - 0.0003778 
+leveneTest(residuals(LME930.bfactALL) ~ Resp_0930$pCO2) # 0.1021 
+leveneTest(residuals(LME930.bfactALL) ~ Resp_0930$Fed_Unfed) # 0.8869 
+# AIC model selection
+pander(AIC(AOV930.bfactALL, LME930.bfactALL), style='rmarkdown') # anova table of lmer
+# |       &nbsp;        | df |  AIC   |
+# |:-------------------:|:--:|:------:|
+# | **AOV930.bfactALL** | 5  | -232.8 |
+# | **LME930.bfactALL** | 6  | -201.3 |
 
-ggarrange( QQplot_930 ,QQplot_T_930 )
-# food supply diff
-Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars="Food")
-perc_diff <- (0.04791220 - 0.02785341)/0.04791220*100
-perc_diff #41.86573 %
 
+
+# In summary, we looked at our non-normal LME and AOV and again found the simple model outweighs the variance 
+# explained when the random factor was addressedin the LME, thus we will moved forward with the simple model 
+# as opposed to transforming the data, used the Scheirer-Ray-Hare Test as a nonparametric two-factor test 
+# the outcome of which did not change relative to the non-normal AOV 
+# result: report the SRH test 
+
+# food supply diff - report this percent difference alonside the significant effect
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars="Fed_Unfed")
+perc_diff <- (0.10532084 - 0.06871314)/0.10532084*100
+perc_diff #34.75827 %
 
 
 # plot
-Resp930_Length <- ggplot(Resp_0930, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
-  scale_fill_manual(values=c("white","grey50")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
-  #scale_y_continuous(expand = c(0, 0), limits = c(0, 120)) +
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8,face="bold")) +
-  labs(title = "F1 Scallops: respiration rates on 20210930 (shell length stand.)", 
-       y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
-       x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")"))  + 
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food')))
-Resp930_Length
+Resp930_Length <- ggplot(Resp_0930, 
+                         aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), 
+                             resp_umol_hr_bFactorNormLength , 
+                             fill = pCO2)) +
+                    theme(panel.grid=element_blank()) +
+                    geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
+                    scale_fill_manual(values=c("white","grey50")) +
+                    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                    theme_classic() +
+                    scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
+                   # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+                    labs(title = "F1 Scallops: respiration rates on 20210930 (b factor 2.13)", 
+                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
+                         x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+                    theme(axis.text=element_text(size=8),
+                          axis.title=element_text(size=8,face="bold")) +
+                    stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") + 
+                    facet_wrap(~Fed_Unfed)  
+Resp930_Length # print this figure...
 
-# Export to pdf
-ggarrange(Resp930_Length,Resp930_Length_reps,nrow = 2) %>%
-  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_Figures.pdf")
+
+# Export the figures to pdf
+ggarrange(Resp930_Length,Resp930_bLengthALL_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_RR_bfactor_ALL.pdf")
+
+
+
+
 
 ```
 
+### density plot - Day 64; b factor all 
 
-# density plot - Day 64
-
-```{r, Day 64 density respiration plot }
+```{r, Day 14 density plot - b factor ALL}
 library(dplyr)
 library(tidyr)
 Resp_0930$pHxFood <- as.factor(Resp_0930$pHxFood)
 
 df_mean <- Resp_0930 %>% 
   dplyr::group_by(pHxFood) %>% 
-  dplyr::summarize(average = mean(resp_µmol_L_mm_Length_hr)) %>%
+  dplyr::summarize(average = mean(resp_umol_hr_bFactorNormLength)) %>%
   dplyr::ungroup()
-p.box <- ggplot(Resp_0930, aes(x = pHxFood, y = resp_µmol_L_mm_Length_hr)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
-                                                                                                         color="red") 
+p.box <- ggplot(Resp_0930, aes(x = pHxFood, y = resp_umol_hr_bFactorNormLength)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
+             color="red") 
 p.box.data <- layer_data(p.box) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
@@ -403,182 +365,180 @@ p.box.data <- layer_data(p.box) %>%
 
 p.box.data %>% unnest(outliers)
 
-
+library(tidyverse)
 denisty_box_resp_64DPF <-ggplot(p.box.data) +
-  # manually plot flipped boxplot
-  geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
-  geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
-  # geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
-  # vertical lines at Q1 / Q2 / Q3
-  geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
-  # density plot
-  geom_density(data = Resp_0930, aes(x = resp_µmol_L_mm_Length_hr, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
-  #  theme
-  theme_classic() +
-  xlim(0, 0.22) +
-  facet_grid(pHxFood ~ .) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-  labs(title = "F1 Scallops: respiration rates 64 DPF)", 
-       x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
-       y = "Scaled density") +
-  scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
+                            # geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = Resp_0930, aes(x = resp_umol_hr_bFactorNormLength, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 0.22) +
+                            facet_grid(pHxFood ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(title = "F1 Scallops: respiration rates 64 DPF - b factor ALL", 
+                                 x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
+                                 y = "Scaled density") +
+                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_resp_64DPF
 
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_resp_density_plot.pdf"), width = 5, height = 5)
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_RRbfactorALL_density_plot.pdf"), width = 5, height = 5)
 denisty_box_resp_64DPF # print the model diagnostics 
 dev.off()
 
 ```
 
-# 10/26/2021 F1 juvenile scallops
+
+
+
+
+
+
+
+
+
+# 10/26/2021 F1 juvenile scallops  (92 DPF; Day 42)
 
 **About**
-  
-  - two pCO2 treatments 
+
+- two pCO2 treatments 
 
 - *before* we culled and started the food limitation trials
 
 
 #### number of replicates for analysis...
 
-```{r 10/26 replicates, echo=FALSE}
+```{r Day 42 replicates, echo=FALSE}
 
-Resp_1026 <- Resp.Master_OM %>% 
+Resp_1026 <- Resp.Master %>% 
   dplyr::filter(Date %in% '10/26/2021')  %>% # call only 10/14
-  dplyr::select(-Center) %>% 
-  dplyr::mutate(pHxFood = paste(pH,Food, sep = "_")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Food, sep="_")))
+  dplyr::mutate(pHxFood = paste(pH,Fed_Unfed, sep = "_")) %>% 
+  dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Fed_Unfed, sep="_")))
 
-kable(Resp_1026 %>% dplyr::group_by(Chamber_tank, Food) %>% dplyr::summarise(n())) # tank replication
+kable(Resp_1026 %>% dplyr::group_by(Chamber_tank, Fed_Unfed) %>% dplyr::summarise(n())) # tank replication
 
-Resp_1026 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=(c("Food","pH"))) %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm"))
+Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2","Fed_Unfed"))
+
+
 ```
 
+## Statistical models
 
-### 10/26/2021 Linear mixed-effects models, diagnostics, and plots
+```{r Day 42 Stats b factor, echo=TRUE, message = FALSE, warning = FALSE}
 
 
-#### Length standardized
+# Objective: run AOV and LME for the data, rationale being that we have mutliple samples per replicate tank
+# thus important that we address this random effect. Performing AOV and LME allows us to run model selection using AIC 
+# to determine the model with the better fit 
 
-```{r 10/26 Length standardized, echo=TRUE, message = FALSE, warning = FALSE}
 
-# Shell length standardized (SL) ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# NOTE: 
+# this chunk demonstrates that our data is non-normally distributed, thus we will need 
+# to either transform to resolve or resort to a nonparametric test
+# given we have a two-way factorial design (in our simple linear model) we can use the Scheirer-Ray-Hare Test 
+# https://rcompanion.org/handbook/F_14.html
+library(rcompanion) # install.packages('rcompanion')
+library(FSA)
+install.packages('FSA')
 
-# Visualize the data with the random effet as treplicate 
-Res1026_Length_reps <- ggboxplot(Resp_1026, 
+
+
+
+
+
+
+
+
+# b FACTOR ALL  'resp_umol_hr_bFactorNormLength.ALL' ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# note: day 0 of initiating the food treatment thus ONLY b factor ALL is used in this chuck for 9/14
+
+# Visualize the data with the random effect of tank replicate 
+Resp1026_bLengthALL_reps <- ggboxplot(Resp_1026, 
                                  x = "pHxFood", 
-                                 y = "resp_µmol_L_mm_Length_hr", 
+                                 y = "resp_umol_hr_bFactorNormLength", 
                                  color = "Replicate",
-                                 add = c("mean_se", "dotplot"),
-                                 palette = c("#00AFBB", 
-                                             "#E7B800", 
-                                             "brown", 
-                                             "grey"))
-Res1026_Length_reps
+          add = c("mean_se", "dotplot"),
+          palette = c("#00AFBB", "#E7B800", "brown", "grey"))
+Resp1026_bLengthALL_reps
 
-# ANOVA (wihtout the random effect
-AOVmod_1026 <-lm(resp_µmol_L_mm_Length_hr ~ pCO2 * Food, data=Resp_1026) # lm
-# shapiro wilk normality test
-shapiro.test(residuals(AOVmod_1026)) #  normal - 0.9677
-# levene's test
-leveneTest(residuals(AOVmod_1026) ~ Resp_1026$pCO2*Resp_1026$Food) # 2.08e-06 *** no pass
-
-
-require(nlme)
-# Linear mixed effects model with random effect of Replicate 
-LMEmod_1026_SL<-lme(resp_µmol_L_mm_Length_hr 
-                    ~ pCO2 * Food, 
-                    random=~1|random_fact, 
-                    data=Resp_1026)
-# shapiro wilk normality test
-shapiro.test(residuals(LMEmod_1026_SL)) #  normal - 0.9677
-# levene's test
-leveneTest(residuals(LMEmod_1026_SL) ~ Resp_1026$pCO2*Resp_1026$Food) # 2.08e-06 *** no pass
-pander(anova(LMEmod_1026_SL), style='rmarkdown')
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  15   |  72.15  | 4.086e-07 |
-# |    **pCO2**     |   1   |  12   | 0.2441  |  0.6302   |
-# |    **Food**     |   1   |  12   |  23.56  | 0.0003955 | **
-# |  **pCO2:Food**  |   1   |  12   | 0.5343  |  0.4788   |
-
-LMEmod_1026_SL_T<-lme(sqrt(resp_µmol_L_mm_Length_hr) ~
-                    pCO2 * Food, 
-                    random=~1|random_fact, 
-                    data=Resp_1026)
-qqnorm(resid(LMEmod_1026_SL_T))
-# shapiro wilk normality test
-shapiro.test(residuals(LMEmod_1026_SL_T)) #  normal - 0.9677
-# levene's test
-leveneTest(residuals(LMEmod_1026_SL_T) ~ Resp_1026$pCO2*Resp_1026$Food) # 2.08e-06 *** no pass
-pander(anova(LMEmod_1026_SL_T), style='rmarkdown')
-
-
-LMEmod_1026_SL_T <- lmer(log(resp_µmol_L_mm_Length_hr) ~  pCO2 * Food + (1|random_fact), data=Resp_1026, REML = TRUE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-
-
-
-kable(as.data.frame(anova(LMEmod_1026_SL))) %>% 
+# One-way ANOVA (without the random effect) 
+AOV1026.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~ 
+                       pCO2 * Fed_Unfed, 
+                     data=Resp_1026) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV1026.bfactALL)) # normal - .8932
+leveneTest(AOV1026.bfactALL) # homogeneity of variance (equal variance) - 0.1017
+pander(aov(AOV1026.bfactALL), style='rmarkdown') # table for anova test
+# |       &nbsp;       | Df |  Sum Sq   |  Mean Sq  | F value |  Pr(>F)  |
+# |:------------------:|:--:|:---------:|:---------:|:-------:|:--------:|
+# |      **pCO2**      | 1  | 6.793e-05 | 6.793e-05 | 0.4361  |  0.5144  |
+# |   **Fed_Unfed**    | 1  | 0.003074  | 0.003074  |  19.74  | 0.000127 |
+# | **pCO2:Fed_Unfed** | 1  | 2.537e-06 | 2.537e-06 | 0.01628 |  0.8994  |
+# |   **Residuals**    | 28 | 0.004361  | 0.0001558 |   NA    |    NA    
+# output results 
+kable(data.frame(unclass(summary(AOV1026.bfactALL)), 
+                   check.names = FALSE, 
+                   stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_LME_Diagnostics.pdf"))
-check_model(LMEmod_1026_SL) 
-dev.off()
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_AOV_RR_bfactor_ALL.png", zoom = 1.5)
 
 
 
-# food supply diff
-Resp_1026 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars="Food")
-perc_diff <- (0.08566193 - 0.02248406)/0.08566193*100
-perc_diff #42.7 %
+# In summary, we looked at our non-normal LME and AOV and again found the simple model outweighs the variance 
+# explained when the random factor was addressedin the LME, thus we will moved forward with the simple model 
+# as opposed to transforming the data, used the Scheirer-Ray-Hare Test as a nonparametric two-factor test 
+# the outcome of which did not change relative to the non-normal AOV 
+# result: report the SRH test 
 
-# call the results of LMER to add to boxplot below 
-DF   <- paste( (anova(LMEmod_01026_SL)[[1]])[3], (anova(LMEmod_01026_SL)[[2]])[3], sep = '/') # call DF
-Fval <- (anova(LMEmod_01026_SL)[[3]])[3] # call f
-pval <- (anova(LMEmod_01026_SL)[[4]])[3] # call p value
 
 # plot
-Resp1026_Length <- ggplot(Resp_1026, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), resp_µmol_L_mm_Length_hr , fill = pCO2)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
-  scale_fill_manual(values=c("white","grey50")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
-  # scale_y_continuous(expand = c(0, 0), limits = c(0, 250)) +
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8,face="bold")) +
-  labs(title = "F1 Scallops: respiration rates on 20211026 (shell length stand.)", 
-       y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
-       x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")"))  + 
-  facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) # +
-Resp1026_Length # the CH5 Run 1 (10/26 data) appears to be an outlier - this was rerun and inserted in a cluster above - the raw plots data shows that this very rapid rate was delayed, possibly a resp vessel malfunction??
+Resp1026_Length <- ggplot(Resp_1026, 
+                         aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), 
+                             resp_umol_hr_bFactorNormLength , 
+                             fill = pCO2)) +
+                    theme(panel.grid=element_blank()) +
+                    geom_boxplot(size=0.2, width=0.5, alpha=0.1, aes(fill=pCO2)) +
+                    scale_fill_manual(values=c("white","grey50")) +
+                    geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                    theme_classic() +
+                    scale_x_discrete(labels= c('~500 μatm', '~800 μatm')) +
+                   # scale_y_continuous(expand = c(0, 0), limits = c(0, 2)) +
+                    labs(title = "F1 Scallops: respiration rates on 202101026 (b factor 2.13)", 
+                         y = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm~shell~length^{-1}%.% hr^{-1}~")"),
+                         x = expression(italic(p)*CO[2]~Treatment~"("~μ*atm~")")) + 
+                    theme(axis.text=element_text(size=8),
+                          axis.title=element_text(size=8,face="bold")) +
+                    stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") + 
+                    facet_wrap(~Fed_Unfed)  
+Resp1026_Length # print this figure...
 
 
-# Export to pdf
-ggarrange(Resp1026_Length, Res1026_Length_reps,nrow = 2) %>% 
-  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_Figures.pdf")
+# Export the figures to pdf
+ggarrange(Resp1026_Length,Resp1026_bLengthALL_reps,nrow = 2) %>%
+  ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/202101026_RR_bfactor_ALL.pdf")
+
 
 ```
 
 
-# density plot - Day 92
+### density plot - Day 92; b factor all 
 
-```{r, Day 92 density respiration plot }
+```{r, Day 42 density respiration plot }
 library(dplyr)
 library(tidyr)
 Resp_1026$pHxFood <- as.factor(Resp_1026$pHxFood)
-Resp_1026$resp_µmol_L_mm_Length_hr.noSCI     <- format(as.numeric(Resp_1026$resp_µmol_L_mm_Length_hr), scientific = FALSE, digits = 3)
-Resp_1026$resp_µmol_L_mm_Length_hr.NUM       <- as.numeric(sprintf("%s", Resp_1026$resp_µmol_L_mm_Length_hr.noSCI))
 
 df_mean <- Resp_1026 %>% 
   dplyr::group_by(pHxFood) %>% 
-  dplyr::summarize(average = mean(resp_µmol_L_mm_Length_hr.NUM)) %>%
+  dplyr::summarize(average = mean(resp_umol_hr_bFactorNormLength)) %>%
   dplyr::ungroup()
-p.box <- ggplot(Resp_1026, aes(x = pHxFood, y = resp_µmol_L_mm_Length_hr.NUM)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
-                                                                                                             color="red") 
+p.box <- ggplot(Resp_1026, aes(x = pHxFood, y = resp_umol_hr_bFactorNormLength)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pHxFood, y = average),
+             color="red") 
 p.box.data <- layer_data(p.box) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
@@ -589,28 +549,32 @@ p.box.data <- layer_data(p.box) %>%
 
 p.box.data %>% unnest(outliers)
 
-
+library(tidyverse)
 denisty_box_resp_92DPF <-ggplot(p.box.data) +
-  # manually plot flipped boxplot
-  geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
-  geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
-  #geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
-  # vertical lines at Q1 / Q2 / Q3
-  geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
-  # density plot
-  geom_density(data = Resp_1026, aes(x = resp_µmol_L_mm_Length_hr.NUM, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
-  #  theme
-  theme_classic() +
-  facet_grid(pHxFood ~ .) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-  labs(title = "F1 Scallops: respiration rates 92 DPF)", 
-       x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
-       y = "Scaled density") +
-  scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxFood),color = "black") +
+                            # geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pHxFood, lower, mean, upper) %>% gather(key, value, -pHxFood), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = Resp_1026, aes(x = resp_umol_hr_bFactorNormLength, group=pHxFood, fill=pHxFood, ..scaled..), alpha=.4, adjust=1.5) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 0.22) +
+                            facet_grid(pHxFood ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(title = "F1 Scallops: respiration rates 92 DPF - b factor ALL", 
+                                 x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
+                                 y = "Scaled density") +
+                            scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_resp_92DPF
 
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_resp_density_plot.pdf"), width = 5, height = 5)
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_RRbfactorALL_density_plot.pdf"), width = 5, height = 5)
 denisty_box_resp_92DPF # print the model diagnostics 
 dev.off()
 
+
 ```
+

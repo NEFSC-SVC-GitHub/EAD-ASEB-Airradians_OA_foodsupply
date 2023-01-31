@@ -44,16 +44,19 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 
 # LOAD DATA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # Master_data       <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T) # master data file
-Master_data         <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T, fileEncoding = "latin1") # master data file
+Master_data           <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T, fileEncoding = "latin1") # master data file
 
 
-clearance.rate_914    <- Master_data  %>% dplyr::filter(Date %in% 20210914)  %>% 
+clearance.rate_914    <- Master_data  %>% 
+  dplyr::filter(Date %in% 20210914)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
 
-clearance.rate_930    <- Master_data  %>% dplyr::filter(Date %in% 20210930)  %>% 
+clearance.rate_930    <- Master_data  %>% 
+  dplyr::filter(Date %in% 20210930)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
 
-clearance.rate_1026    <- Master_data  %>% dplyr::filter(Date %in% 20211026)  %>% 
+clearance.rate_1026    <- Master_data  %>% 
+  dplyr::filter(Date %in% 20211026)  %>% 
   dplyr::mutate(Chamber_tank = paste(pH, Replicate, sep='_'))
 
 
@@ -61,9 +64,18 @@ clearance.rate_1026    <- Master_data  %>% dplyr::filter(Date %in% 20211026)  %>
 length.resp.feed <- read.csv(file="Data/Respiration/Lengths_Condition_resp_clearance.csv", header=T) %>% 
   dplyr::mutate(Date = paste("20",(format(as.Date(Date, "%m/%d/%Y"), "%y%m%d")), sep ='')) %>%
   dplyr::rename(Fed_Unfed = Food) 
-length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),] %>%  dplyr::select(c('Date', 'Run', 'Plate', 
-                                                                                               'pH', 'Fed_Unfed', 'Replicate',
-                                                                                               'Chamber_tank', 'Number', 'Length_um','whole_Dry_weight'))
+
+length.resp.feed <- length.resp.feed[!is.na(length.resp.feed$Length_um),] %>%  
+  dplyr::select(c('Date', 
+                  'Run', 
+                  'Plate',
+                  'pH', 
+                  'Fed_Unfed', 
+                  'Replicate',
+                  'Chamber_tank', 
+                  'Number', 
+                  'Length_um',
+                  'whole_Dry_weight'))
 
 ```
 
@@ -130,7 +142,9 @@ clearance.rate_1026_Scallops <- merge( # note - merging with th elengths removed
      dplyr::filter(Date %in% 20211026)) ) 
 
 
-ClearanceRate_Master             <- rbind(clearance.rate_914_Scallops, clearance.rate_930_Scallops, clearance.rate_1026_Scallops)
+ClearanceRate_Master             <- rbind(clearance.rate_914_Scallops, 
+                                          clearance.rate_930_Scallops, 
+                                          clearance.rate_1026_Scallops)
 # ClearanceRate_Master$tet.ply     <- (as.numeric(gsub(",", "", ClearanceRate_Master$tet.ply )))*(1000/33)
 # ClearanceRate_Master$chaet       <- (as.numeric(gsub(",", "", ClearanceRate_Master$chaet )))*(1000/33)
 # ClearanceRate_Master$total_algae <- (as.numeric(gsub(",", "", ClearanceRate_Master$total_algae )))*(1000/33)
@@ -147,14 +161,16 @@ ClearanceRate_Master.914 <- ClearanceRate_Master %>%
   dplyr::filter(Date %in% 20210914) %>% 
   dplyr::mutate(uniq_Identifier = paste(pH, "Run", Run, "Rep",Replicate, "Num", Number, sep='_'))
 
-loop_914 <- as.data.frame(unique(ClearanceRate_Master.914$uniq_Identifier)) %>% dplyr::rename(ID = "unique(ClearanceRate_Master.914$uniq_Identifier)")
+loop_914 <- as.data.frame(unique(ClearanceRate_Master.914$uniq_Identifier)) %>% 
+  dplyr::rename(ID = "unique(ClearanceRate_Master.914$uniq_Identifier)")
 
 # 64 DPF 0930 
 ClearanceRate_Master.930       <- ClearanceRate_Master %>% 
   dplyr::filter(Date %in% 20210930) %>% 
   dplyr::mutate(uniq_Identifier = paste(pH, Fed_Unfed, "Run", Run, "Rep",Replicate, "Num", Number, sep='_'))
 
-loop_930 <- as.data.frame(unique(ClearanceRate_Master.930$uniq_Identifier)) %>% dplyr::rename(ID = "unique(ClearanceRate_Master.930$uniq_Identifier)")
+loop_930 <- as.data.frame(unique(ClearanceRate_Master.930$uniq_Identifier)) %>% 
+  dplyr::rename(ID = "unique(ClearanceRate_Master.930$uniq_Identifier)")
 
 # 92 DPF 1026
 ClearanceRate_Master.1026       <- ClearanceRate_Master %>% 
@@ -162,7 +178,8 @@ ClearanceRate_Master.1026       <- ClearanceRate_Master %>%
   dplyr::mutate(Run = case_when(Run == "1_B" ~ "1B", Run == "1" ~ "1", Run =='2' ~ '2', Run == '3' ~ '3')) %>% 
   dplyr::mutate(uniq_Identifier = paste(pH, Fed_Unfed, "Run", Run, "Rep",Replicate, "Num", Number, sep='_'))
 
-loop_1026 <- as.data.frame(unique(ClearanceRate_Master.1026$uniq_Identifier)) %>% dplyr::rename(ID = "unique(ClearanceRate_Master.1026$uniq_Identifier)")
+loop_1026 <- as.data.frame(unique(ClearanceRate_Master.1026$uniq_Identifier)) %>% 
+  dplyr::rename(ID = "unique(ClearanceRate_Master.1026$uniq_Identifier)")
 
 ```
 
@@ -480,7 +497,8 @@ dev.off()
 # **A** == V * (ln(Blank_0/Blank_t)/t) for the 'blank' values in each treatment, accounts for the sink or stuck algae cells 
 
 Blanks.Master <- Master_data[is.na(Master_data$Replicate),] %>% 
-                                dplyr::mutate(unique_identifier = paste(Date, pH, "Run", Run, raw_ID_sample_number, sep ='_'))
+                                dplyr::mutate(unique_identifier =
+                                                paste(Date, pH, "Run", Run, raw_ID_sample_number, sep ='_'))
 
 loop_BLANKS       <- as.data.frame(unique(Blanks.Master$unique_identifier)) %>%
                             dplyr::rename(ID = "unique(Blanks.Master$unique_identifier)") # call unique identifier tfor the for loop calc of blanks 
@@ -732,9 +750,9 @@ Chaet_CR_914_Means <- df_total.914 %>%
   dplyr::group_by(pCO2) %>% 
   dplyr::filter(Chaet_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
-    Ply_meanCR = mean(Chaet_mL.hr.mmlength),
-    Ply_sdCR   = sd(Chaet_mL.hr.mmlength), 
-    Ply_seCR   = sd(Chaet_mL.hr.mmlength) / sqrt(length(Chaet_mL.hr.mmlength)), 
+    Chaet_meanCR = mean(Chaet_mL.hr.mmlength),
+    Chaet_sdCR   = sd(Chaet_mL.hr.mmlength), 
+    Chaet_seCR   = sd(Chaet_mL.hr.mmlength) / sqrt(length(Chaet_mL.hr.mmlength)), 
     n = n())
 print(Chaet_CR_914_Means)
 
@@ -743,9 +761,9 @@ Seston_CR_914_Means <- df_total.914 %>%
   dplyr::group_by(pCO2) %>% 
   dplyr::filter(Seston_mL.hr.mmlength > 0) %>% # ommit negative values
   dplyr::summarise(
-    Ply_meanCR = mean(Seston_mL.hr.mmlength),
-    Ply_sdCR   = sd(Seston_mL.hr.mmlength), 
-    Ply_seCR   = sd(Seston_mL.hr.mmlength) / sqrt(length(Seston_mL.hr.mmlength)), 
+    Seston_meanCR = mean(Seston_mL.hr.mmlength),
+    Seston_sdCR   = sd(Seston_mL.hr.mmlength), 
+    Seston_seCR   = sd(Seston_mL.hr.mmlength) / sqrt(length(Seston_mL.hr.mmlength)), 
     n = n())
 print(Seston_CR_914_Means)
 

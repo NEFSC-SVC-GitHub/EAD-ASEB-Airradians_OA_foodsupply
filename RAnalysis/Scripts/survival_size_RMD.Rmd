@@ -27,7 +27,7 @@ library(lme4)
 library(pander)
 library(performance)
 library(Rmisc)
-library(maditr)
+# library(maditr)
 library(reshape2)
 library(kableExtra)
 library(ggpubr)
@@ -114,77 +114,75 @@ Master_CI_raw <- rbind(CI_1026, CI_1202) %>% dplyr::filter(CI > 0) # ommit value
 Master_CI_raw$pH <- as.factor(Master_CI_raw$pH)
 
 
-# Linear mixed effects model 
 
-# 1026 data
-# statistical approach to 20211026 (last time point of the food OA challenge BUT just the fed animals..)
-LMEmod_CI_1026.DATA <- Master_CI_raw %>% dplyr::filter(Age %in% '64DPF') # filter the data from 20211026
-levels(LMEmod_CI_1026.DATA$random_eff) # should be 8 levels A B C D within 7.5 and 8 
-LMEmod_CI_1026      <- lme(CI ~ pH, 
-                           random=~1|random_eff, 
-                           data= LMEmod_CI_1026.DATA) # run the model
+# Prep for stats
 
-LMERmod_CI_1026      <- lmer(CI ~ pH + 
-                           (1|random_eff), 
-                           data= LMEmod_CI_1026.DATA) # run the model
+CI_1026.DATA <- Master_CI_raw %>% 
+  dplyr::filter(Age %in% '64DPF') %>% # filter the data from 20211026
+    dplyr::mutate(pCO2 = case_when(
+    pH == 8 ~ "500 μatm", 
+    pH == 7.5 ~ "800 μatm"))
+CI_1026.DATA$pCO2 <- as.factor(CI_1026.DATA$pCO2)
+levels(CI_1026.DATA$random_eff) # should be 8 levels A B C D within 7.5 and 8 
+levels(CI_1026.DATA$pCO2)
+View(CI_1026.DATA)
+# One-way ANOVA (without the random effect) 
 
-
- print(dative.glmm2, corr=F)
- 
- 
-shapiro.test(residuals(LMEmod_CI_1026)) # non-normal 8.769e-07
-leveneTest(residuals(LMEmod_CI_1026) ~ LMEmod_CI_1026.DATA$pH) # 0.1017
-LMEmod_CI_1026_T    <- lme(log(CI) ~ pH, 
-                           random=~1|random_eff, 
-                           data= LMEmod_CI_1026.DATA) # run the model
-shapiro.test(residuals(LMEmod_CI_1026_T)) # non-normal 8.769e-07
-leveneTest(residuals(LMEmod_CI_1026) ~ LMEmod_CI_1026.DATA$pH) # 0.1017
-
-pander(anova(LMEmod_CI_1026), style='rmarkdown') # print the model
-# |     &nbsp;      | numDF | denDF | F-value | p-value |
-# |:---------------:|:-----:|:-----:|:-------:|:-------:|
-# | **(Intercept)** |   1   |  80   |  1627   |    0    |
-# |     **pH**      |   1   |   6   |  4.657  | 0.07428 | # marginal significant
-kable(as.data.frame(anova(LMEmod_CI_1026))) %>%  # save the table 
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_LME_Diagnostics.pdf"))
-check_model(LMEmod_CI_1026)  # model diagnostics
-dev.off()
+AOVCI <- aov(CI ~ pCO2, data=CI_1026.DATA) # run mod
+# check model assumptions
+shapiro.test(residuals(AOVCI.bfactALL)) # non - normal - 8.769e-07
+leveneTest(AOVCI.bfactALL) # homogeneity of variance (equal variance) - 0.5031
+summary(AOVCI)
+# need to run the non-parametric
+library(rcompanion)
+KWCI <- kruskal.test(CI ~ pCO2, data = CI_1026.DATA) # run mod
+# all is good, lets see the results
+pander(print(KWCI), style='rmarkdown') # table for SRH test
+# | Test statistic | df |    P value    |
+# |:--------------:|:--:|:-------------:|
+# |     8.068      | 1  | 0.004506  * * |
 
 
 
-summarySE(LMEmod_CI_1026.DATA, measurevar="CI", groupvars="pH")
 
 # denisty plot 
 library(dplyr)
 library(tidyr)
 
-df_mean <- LMEmod_CI_1026.DATA %>% 
-  dplyr::group_by(pH) %>% 
+df_mean <- CI_1026.DATA %>% 
+  dplyr::group_by(pCO2) %>% 
   dplyr::summarize(average = mean(CI)) %>%
   dplyr::ungroup()
-p.box <- ggplot(LMEmod_CI_1026.DATA, aes(x = pH, y = CI)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pH, y = average),
+
+p.box <- ggplot(CI_1026.DATA, 
+                aes(x = pCO2, y = CI)) + 
+  geom_boxplot() + 
+  geom_point(data= df_mean,
+             mapping = aes(x = pCO2,
+                           y = average),
              color="red") 
+
 p.box.data <- layer_data(p.box) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
   dplyr::mutate(mean  = df_mean$average) %>% 
-  mutate(pH = factor(x, labels = levels(LMEmod_CI_1026.DATA$pH), ordered = TRUE)) %>%
+  mutate(pCO2 = 
+           factor(x, labels = levels(CI_1026.DATA$pCO2), ordered = TRUE)) %>%
   select(-x)
+
 denisty_box_CI_92DPF <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
-                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pH),color = "black") +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
                             geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
                             # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pH, lower, mean, upper) %>% gather(key, value, -pH), aes(xintercept = value)) +
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
                             # density plot
-                            geom_density(data = LMEmod_CI_1026.DATA, aes(x = CI, fill=pH, ..scaled..), alpha=.4) +
+                            geom_density(data = CI_1026.DATA, aes(x = CI, fill=pCO2, ..scaled..), alpha=.4) +
                             #  theme
                             theme_classic() +
                             #xlim(0, 20) +
-                            facet_grid(pH ~ .) +
+                            facet_grid(pCO2 ~ .) +
                             theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
                             labs(x = "Condition index", y = "Scaled density")  +
                             scale_fill_manual(values=c("grey40", "grey85"))
