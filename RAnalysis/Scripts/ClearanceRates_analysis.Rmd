@@ -64,7 +64,7 @@ ClearancRates_calc  <- read.csv(file="Output/ClearanceRates/ClearanceRate_Calc.c
 
 ## 20210914 Clearance Rate data 
 
-```{r 20210914 CR analysis, echo = T}
+```{r 20210914 CR DATA SUMMARY, echo = T}
 
 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -97,6 +97,22 @@ Seston_FR_914_df   <-  ClearancRates_calc %>%
   dplyr::mutate(pH = as.factor(pH))
 
 
+pander(Ply_FR_914_df %>% summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 6  |       4.384       | 2.509 | 1.024  | 2.634 |
+# | 800 μatm |    fed    | 10 |       4.85        | 2.31  | 0.7304 | 1.652 |
+pander(Chaet_FR_914_df %>% summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 11 |       2.799       | 1.552 | 0.4681 | 1.043 |
+# | 800 μatm |    fed    | 12 |       4.715       | 2.761 | 0.7969 | 1.754 |
+pander(Seston_FR_914_df %>% summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:------:|
+# | 500 μatm |    fed    | 11 |       2.54        | 1.289 | 0.3886 | 0.8659 |
+# | 800 μatm |    fed    | 12 |       3.59        | 2.23  | 0.6437 | 1.417  |
+
 
 # Data - b factor normalized
 Ply_FR_914_df.bfactor      <- ClearancRates_calc %>% 
@@ -121,6 +137,27 @@ Seston_FR_914_df.bfactor   <-  ClearancRates_calc %>%
   dplyr::mutate(pH = as.factor(pH))
 
 
+pander(Ply_FR_914_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 6  |      10.92       | 6.501 | 2.654 | 6.822 |
+# | 800 μatm |    fed    | 10 |      12.29       | 6.136 | 1.94  | 4.389 |
+pander(Chaet_FR_914_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 11 |      6.545       | 2.92  | 0.8804 | 1.962 |
+# | 800 μatm |    fed    | 12 |      11.52       | 6.464 | 1.866  | 4.107 |
+pander(Seston_FR_914_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 11 |      6.056       | 2.884 | 0.8694 | 1.937 |
+# | 800 μatm |    fed    | 12 |       8.82       | 5.238 | 1.512  | 3.328 |
+```
+
+```{r 20210914 CR ANALYSIS, echo = T}
 
 # ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -251,14 +288,7 @@ dev.off()
 ## 20210930 Clearance Rate data 
 
 
-```{r 20210930 CR analysis, echo = T}
-
-# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Two-way models (Kruskal Wallis for nonparametric if needed) :::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
+```{r 20210930 CR DATA SUMMARY, echo = T}
 
 # Data - simple size corrected
 
@@ -288,6 +318,30 @@ Seston_FR_930_df   <- ClearancRates_calc %>%
 
 
 
+pander(Ply_FR_930_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 4  |       6.507       | 7.332 | 3.666 | 11.67 |
+# | 500 μatm |   unfed   | 1  |       4.219       |  NA   |  NA   |  NA   |
+# | 800 μatm |    fed    | 11 |       6.803       | 5.429 | 1.637 | 3.647 |
+# | 800 μatm |   unfed   | 4  |       2.187       | 2.42  | 1.21  | 3.851 |
+pander(Chaet_FR_930_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:------:|
+# | 500 μatm |    fed    | 20 |       6.276       | 6.496 | 1.453  |  3.04  |
+# | 500 μatm |   unfed   | 18 |       2.63        | 1.823 | 0.4296 | 0.9064 |
+# | 800 μatm |    fed    | 19 |       6.377       | 8.419 | 1.932  | 4.058  |
+# | 800 μatm |   unfed   | 11 |       2.349       | 2.319 | 0.6991 | 1.558  |
+pander(Seston_FR_930_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 11 |       5.22        | 3.935 | 1.187  | 2.644 |
+# | 500 μatm |   unfed   | 15 |       2.773       | 2.687 | 0.6937 | 1.488 |
+# | 800 μatm |    fed    | 13 |       3.83        | 4.54  | 1.259  | 2.743 |
+# | 800 μatm |   unfed   | 11 |       4.18        | 5.228 | 1.576  | 3.512 |
 
 # Data - b factor normalized
 Ply_FR_930_df.bfactor      <- ClearancRates_calc %>% 
@@ -310,6 +364,46 @@ Seston_FR_930_df.bfactor   <-  ClearancRates_calc %>%
   dplyr::rename(CR_mL.hr.bfactor = Seston_mL.hr.bfactor) %>% 
   dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
+
+pander(Ply_FR_930_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 4  |      9.261       | 10.21 | 5.104 | 16.24 |
+# | 500 μatm |   unfed   | 1  |      9.245       |  NA   |  NA   |  NA   |
+# | 800 μatm |    fed    | 11 |      11.09       | 7.857 | 2.369 | 5.279 |
+# | 800 μatm |   unfed   | 4  |      4.873       | 5.519 | 2.759 | 8.782 |
+pander(Chaet_FR_930_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 20 |      10.07       | 8.875 | 1.984  | 4.153 |
+# | 500 μatm |   unfed   | 18 |      5.662       | 3.322 | 0.7829 | 1.652 |
+# | 800 μatm |    fed    | 19 |       10.4       | 11.79 | 2.705  | 5.684 |
+# | 800 μatm |   unfed   | 11 |      5.986       | 7.862 |  2.37  | 5.282 |
+pander(Chaet_FR_930_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")), style='rmarkdown')
+# | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
+# |:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
+# |    fed    | 39 |      10.23       | 10.26 | 1.643  | 3.326 |
+# |   unfed   | 29 |      5.785       | 5.366 | 0.9965 | 2.041 |
+  
+pander(Seston_FR_930_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 11 |      8.402       | 5.484 | 1.654 | 3.684 |
+# | 500 μatm |   unfed   | 15 |      6.462       | 6.707 | 1.732 | 3.714 |
+# | 800 μatm |    fed    | 13 |      6.228       | 6.476 | 1.796 | 3.913 |
+# | 800 μatm |   unfed   | 11 |      11.42       | 17.34 | 5.229 | 11.65 |
+```
+
+```{r 20210930 CR analysis, echo = T}
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Two-way models (Kruskal Wallis for nonparametric if needed) :::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 
@@ -473,14 +567,7 @@ dev.off()
 ## 20211026 Clearance Rate data 
 
 
-```{r 20211026 CR analysis, echo = T}
-
-# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Two-way models (Kruskal Wallis for nonparametric if needed) :::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
+```{r 20211026 CR DATA SUMMARY, echo = T}
 
 # Data - simple size corrected
 
@@ -508,6 +595,44 @@ Seston_FR_1026_df   <- ClearancRates_calc %>%
   dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
+
+
+pander(Ply_FR_1026_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 8  |       41.3        | 19.73 | 6.975  | 16.49 |
+# | 500 μatm |   unfed   | 6  |       4.917       | 3.732 | 1.524  | 3.917 |
+# | 800 μatm |    fed    | 10 |       41.87       | 37.23 | 11.77  | 26.64 |
+# | 800 μatm |   unfed   | 7  |       2.603       | 2.28  | 0.8619 | 2.109 |
+pander(Chaet_FR_1026_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |   sd   |   se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:------:|:------:|:------:|
+# | 500 μatm |    fed    | 8  |       13.03       | 3.827  | 1.353  |  3.2   |
+# | 500 μatm |   unfed   | 3  |       1.971       | 0.7464 | 0.4309 | 1.854  |
+# | 800 μatm |    fed    | 10 |       18.4        | 13.64  | 4.312  | 9.755  |
+# | 800 μatm |   unfed   | 7  |       2.068       |  1.05  | 0.397  | 0.9713 |
+pander(Chaet_FR_1026_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=("Fed_Unfed")), style='rmarkdown')
+# | Fed_Unfed | N  | CR_mL.hr.mmlength |   sd   |   se   |   ci   |
+# |:---------:|:--:|:-----------------:|:------:|:------:|:------:|
+# |    fed    | 18 |       16.01       | 10.58  | 2.495  | 5.264  |
+# |   unfed   | 10 |       2.039       | 0.9281 | 0.2935 | 0.6639 |
+  
+pander(Seston_FR_1026_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:-:|:-----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 8 |       7.572       | 3.019 | 1.067  | 2.524 |
+# | 500 μatm |   unfed   | 6 |       2.738       | 1.533 | 0.6257 | 1.608 |
+# | 800 μatm |    fed    | 9 |       11.79       | 5.907 | 1.969  | 4.541 |
+# | 800 μatm |   unfed   | 6 |       1.875       | 1.633 | 0.6667 | 1.714 |
+
+
+
+
+
 # Data - b factor normalized
 Ply_FR_1026_df.bfactor      <- ClearancRates_calc %>% 
   filter(Date %in% '20211026') %>%  
@@ -531,6 +656,44 @@ Seston_FR_1026_df.bfactor   <-  ClearancRates_calc %>%
   dplyr::mutate(pH = as.factor(pH))
 
 
+pander(Ply_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 8  |      201.5       | 102.2 | 36.15 | 85.47 |
+# | 500 μatm |   unfed   | 6  |      81.12       | 68.24 | 27.86 | 71.62 |
+# | 800 μatm |    fed    | 10 |      238.3       | 213.8 | 67.61 | 152.9 |
+# | 800 μatm |   unfed   | 7  |      33.12       | 29.3  | 11.07 | 27.09 |
+pander(Chaet_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 8  |      64.74       | 24.11 | 8.525 | 20.16 |
+# | 500 μatm |   unfed   | 3  |      33.45       | 16.23 | 9.371 | 40.32 |
+# | 800 μatm |    fed    | 10 |      102.3       | 63.87 | 20.2  | 45.69 |
+# | 800 μatm |   unfed   | 7  |      25.87       | 15.19 | 5.742 | 14.05 |
+pander(Chaet_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")), style='rmarkdown')
+# | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# |    fed    | 18 |      85.59       | 52.6  | 12.4  | 26.16 |
+# |   unfed   | 10 |      28.14       | 15.03 | 4.752 | 10.75 |
+  
+pander(Seston_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:-:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 8 |      38.09       | 18.68 | 6.604 | 15.62 |
+# | 500 μatm |   unfed   | 6 |      38.61       | 19.13 | 7.81  | 20.08 |
+# | 800 μatm |    fed    | 9 |      69.81       | 39.06 | 13.02 | 30.02 |
+# | 800 μatm |   unfed   | 6 |       22.5       | 19.96 | 8.147 | 20.94 |
+```
+
+```{r 20211026 CR analysis, echo = T}
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Two-way models (Kruskal Wallis for nonparametric if needed) :::::
+# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 # ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -988,7 +1151,7 @@ dev.off()
 ```
 
 
-
+## Plotting
 
 ```{r, Chaet ClearanceRate Figure All} 
 
@@ -1028,7 +1191,6 @@ pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsuppl
 ChaetClear_time
 dev.off()
 ```
-
 
 
 ```{r, Ply ClearanceRate Figure All} 
@@ -1127,18 +1289,20 @@ SESTON_plotting     <- Master_930_plotting %>% dplyr::filter(type %in% 'seston')
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # Chaetoceros                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+Master_930_plotting$pHxfood <- as.factor(Master_930_plotting$pHxfood)
 
-df_mean_CHAET <- CHAET_plotting %>%
+# simply corrected for shell length
+df_mean_CHAET <- Master_930_plotting %>%
   dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::summarize(average = mean(Chaet_mL.hr.mmlength)) %>%
   dplyr::ungroup()
-p.box_CHAET <- ggplot(CHAET_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+p.box_CHAET <- ggplot(Master_930_plotting, aes(x = pHxfood, y = Chaet_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
              color="red") 
 p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
   dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
-  mutate(pHxfood = factor(x, labels = levels(CHAET_plotting$pHxfood), ordered = TRUE)) %>%
+  mutate(pHxfood = factor(x, labels = levels(Master_930_plotting$pHxfood), ordered = TRUE)) %>%
   select(-x)
 
 p.box.data.CHAET %>% unnest(outliers)
@@ -1152,7 +1316,7 @@ density.plot_CR_CHAET_930 <-ggplot(p.box.data.CHAET) +
                                 # vertical lines at Q1 / Q2 / Q3
                                 geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
                                 # density plot
-                                geom_density(data = CHAET_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                geom_density(data = Master_930_plotting, aes(x = Chaet_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
                                 #  theme
                                 theme_classic() +
                                 facet_grid(pHxfood ~ .) +
@@ -1163,98 +1327,53 @@ density.plot_CR_CHAET_930 <-ggplot(p.box.data.CHAET) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_CHAET_930
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+
+
+
+# corrected for b factor 
+
+df_mean_CHAET <- Master_930_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(Chaet_mL.hr.bfactor)) %>%
+  dplyr::ungroup()
+p.box_CHAET <- ggplot(Master_930_plotting, aes(x = pHxfood, y = Chaet_mL.hr.bfactor)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(Master_930_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.CHAET %>% unnest(outliers)
+
+
+density.plot_CR_CHAET_930 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = Master_930_plotting, aes(x = Chaet_mL.hr.bfactor, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_CHAET_930
+
+
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_CHAET_930 # print the model diagnostics 
 dev.off()
 
 
-# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Tetraselmis (Ply)                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-df_mean_PLY <- PLY_plotting %>%
-  dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
-  dplyr::ungroup()
-p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
-             color="red") 
-p.box.data.PLY <- layer_data(p.box_PLY) %>%
-  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
-  dplyr::rename(mean = flipped_aes) %>% 
-  dplyr::mutate(mean  = df_mean_PLY$average) %>% 
-  mutate(pHxfood = factor(x, labels = levels(PLY_plotting$pHxfood), ordered = TRUE)) %>%
-  select(-x)
-
-p.box.data.PLY %>% unnest(outliers)
-
-
-density.plot_CR_PLY_930 <-ggplot(p.box.data.PLY) +
-                                # manually plot flipped boxplot
-                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
-                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
-                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
-                                # vertical lines at Q1 / Q2 / Q3
-                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
-                                # density plot
-                                geom_density(data = PLY_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
-                                #  theme
-                                theme_classic() +
-                                facet_grid(pHxfood ~ .) +
-                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                                labs(title = "F1 Scallops: Clearance rates (Tetraselmis/PLY) 92 DPF", 
-                                     x = expression(Clearance~rate~"("~Tetraselmis~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
-                                     y = "Scaled density") +
-                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
-density.plot_CR_PLY_930
-
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_PLY_density_plot.pdf"), width = 5, height = 5)
-density.plot_CR_PLY_930 # print the model diagnostics 
-dev.off()
-
-# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# Seston                             ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-df_mean_SESTON <- SESTON_plotting %>%
-  dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
-  dplyr::ungroup()
-p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
-             color="red") 
-p.box.data.SESTON <- layer_data(p.box_SESTON) %>%
-  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
-  dplyr::rename(mean = flipped_aes) %>% 
-  dplyr::mutate(mean  = df_mean_SESTON$average) %>% 
-  mutate(pHxfood = factor(x, labels = levels(SESTON_plotting$pHxfood), ordered = TRUE)) %>%
-  select(-x)
-
-p.box.data.SESTON %>% unnest(outliers)
-
-
-density.plot_CR_SESTON_0930 <-ggplot(p.box.data.SESTON) +
-                                # manually plot flipped boxplot
-                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
-                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
-                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
-                                # vertical lines at Q1 / Q2 / Q3
-                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
-                                # density plot
-                                geom_density(data = SESTON_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
-                                #  theme
-                                theme_classic() +
-                                facet_grid(pHxfood ~ .) +
-                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                                labs(title = "F1 Scallops: Clearance rates (seston) 92 DPF", 
-                                     x = expression(Clearance~rate~"("~SESTONoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
-                                     y = "Scaled density") +
-                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
-density.plot_CR_SESTON_0930
-
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
-density.plot_CR_SESTON_0930 # print the model diagnostics 
-dev.off()
 
 ```
 
@@ -1308,7 +1427,46 @@ density.plot_CR_CHAET_1026 <-ggplot(p.box.data.CHAET) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_CHAET_1026
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+
+
+# b factor 
+df_mean_CHAET <- CHAET_plotting %>%
+  dplyr::group_by(pHxfood) %>% 
+  dplyr::summarize(average = mean(Chaet_mL.hr.bfactor)) %>%
+  dplyr::ungroup()
+p.box_CHAET <- ggplot(CHAET_plotting, aes(x = pHxfood, y = Chaet_mL.hr.bfactor)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+  mutate(pHxfood = factor(x, labels = levels(CHAET_plotting$pHxfood), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data.CHAET %>% unnest(outliers)
+
+
+density.plot_CR_CHAET_1026 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = CHAET_plotting, aes(x = Chaet_mL.hr.bfactor, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 92 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
+density.plot_CR_CHAET_1026
+
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_CHAET_1026 # print the model diagnostics 
 dev.off()
 
@@ -1320,9 +1478,9 @@ dev.off()
 
 df_mean_PLY <- PLY_plotting %>%
   dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::summarize(average = mean(Ply_mL.hr.bfactor)) %>%
   dplyr::ungroup()
-p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
+p.box_PLY <- ggplot(PLY_plotting, aes(x = pHxfood, y = Ply_mL.hr.bfactor)) + geom_boxplot() + geom_point(data= df_mean_PLY, mapping = aes(x = pHxfood, y = average),
              color="red") 
 p.box.data.PLY <- layer_data(p.box_PLY) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
@@ -1342,7 +1500,7 @@ density.plot_CR_PLY_1026 <-ggplot(p.box.data.PLY) +
                                 # vertical lines at Q1 / Q2 / Q3
                                 geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
                                 # density plot
-                                geom_density(data = PLY_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                geom_density(data = PLY_plotting, aes(x = Ply_mL.hr.bfactor, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
                                 #  theme
                                 theme_classic() +
                                 facet_grid(pHxfood ~ .) +
@@ -1353,7 +1511,7 @@ density.plot_CR_PLY_1026 <-ggplot(p.box.data.PLY) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_PLY_1026
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_PLY_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_PLY_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_PLY_1026 # print the model diagnostics 
 dev.off()
 
@@ -1364,9 +1522,9 @@ dev.off()
 
 df_mean_SESTON <- SESTON_plotting %>%
   dplyr::group_by(pHxfood) %>% 
-  dplyr::summarize(average = mean(CR_mL.hr.mmlength)) %>%
+  dplyr::summarize(average = mean(Seston_mL.hr.bfactor)) %>%
   dplyr::ungroup()
-p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = CR_mL.hr.mmlength)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
+p.box_SESTON <- ggplot(SESTON_plotting, aes(x = pHxfood, y = Seston_mL.hr.bfactor)) + geom_boxplot() + geom_point(data= df_mean_SESTON, mapping = aes(x = pHxfood, y = average),
              color="red") 
 p.box.data.SESTON <- layer_data(p.box_SESTON) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
@@ -1386,7 +1544,7 @@ density.plot_CR_SESTON_1026 <-ggplot(p.box.data.SESTON) +
                                 # vertical lines at Q1 / Q2 / Q3
                                 geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
                                 # density plot
-                                geom_density(data = SESTON_plotting, aes(x = CR_mL.hr.mmlength, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                geom_density(data = SESTON_plotting, aes(x = Seston_mL.hr.bfactor, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
                                 #  theme
                                 theme_classic() +
                                 facet_grid(pHxfood ~ .) +
@@ -1397,7 +1555,7 @@ density.plot_CR_SESTON_1026 <-ggplot(p.box.data.SESTON) +
                                 scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 density.plot_CR_SESTON_1026
 
-pdf(paste0(filename = "C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CR_SESTON_density_plot.pdf"), width = 5, height = 5)
 density.plot_CR_SESTON_1026 # print the model diagnostics 
 dev.off()
 

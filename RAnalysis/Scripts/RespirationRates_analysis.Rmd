@@ -76,7 +76,11 @@ Resp_0914 %>% dplyr::group_by(Chamber_tank) %>% dplyr::summarise(n()) # tank rep
 # 8_D	2	   *2 rep
 
 Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2"))
-
+# 500 μatm	9	0.1656607	0.07775551	0.02591850	0.05976817
+# 800 μatm	12	0.1449237	0.06321486	0.01824856	0.04016480
+Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pCO2"))
+# 500 μatm	9	0.02215083	0.009248787	0.003082929	0.007109247
+# 800 μatm	12	0.02100752	0.011146946	0.003217846	0.007082431
 
 
 ```
@@ -115,10 +119,10 @@ shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.6853
 leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.4684
 # all is good, lets see the results
 pander(anova(AOV914.bfactALL), style='rmarkdown') # anova table of lm
-# |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
-# |:-------------:|:--:|:---------:|:---------:|:-------:|:------:|
-# |   **pCO2**    | 1  | 0.0006111 | 0.0006111 | 0.5286  | 0.476  |
-# | **Residuals** | 19 |  0.02197  | 0.001156  |   NA    |   NA   |
+# |    &nbsp;     | Df |  Sum Sq  | Mean Sq  | F value | Pr(>F) |
+# |:-------------:|:--:|:--------:|:--------:|:-------:|:------:|
+# |   **pCO2**    | 1  | 0.002212 | 0.002212 | 0.4551  | 0.508  |
+# | **Residuals** | 19 | 0.09232  | 0.004859 |   NA    |   NA   |
 # output results 
 kable(data.frame(unclass(summary(AOV914.bfactALL)), 
                    check.names = FALSE, 
@@ -141,9 +145,9 @@ pander(anova(LME914.bfactALL), style='rmarkdown') # anova table of lmer
 # | **(Intercept)** |   1   |  13   |  48.14  | 1.024e-05 |
 # |    **pCO2**     |   1   |   6   | 0.02091 |  0.8898   |
 # output results 
-kable(as.data.frame(anova(LME914.bfactALL))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_LME_RR_bfactor_ALL.png", zoom = 1.5)
+# kable(as.data.frame(anova(LME914.bfactALL))) %>%  # print a png of this table
+#   kable_styling() %>%
+#   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_LME_RR_bfactor_ALL.png", zoom = 1.5)
 
 # AIC model selection
 pander(AIC(LME914.bfactALL, AOV914.bfactALL), style='rmarkdown') # anova table of lmer
@@ -203,11 +207,18 @@ Resp_0930 <- Resp.Master %>%
   dplyr::mutate(pHxFood = paste(pH,Fed_Unfed, sep = "_")) %>% 
   dplyr::mutate(random_fact = as.factor(paste(Chamber_tank, Fed_Unfed, sep="_")))
 
-kable(Resp_0930 %>% dplyr::group_by(Chamber_tank, Food) %>% dplyr::summarise(n())) # tank replication - lowest value was 2 for 7.5_D unfed
+kable(Resp_0930 %>% dplyr::group_by(Chamber_tank, Fed_Unfed) %>% dplyr::summarise(n())) # tank replication - lowest value was 2 for 7.5_D unfed
 
-Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2"))
-
-
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2", "Fed_Unfed"))
+# 500 μatm	High food	19	0.08614212	0.04664712	0.01070158	0.02248319
+# 500 μatm	Low food	14	0.07446157	0.04203543	0.01123444	0.02427054
+# 800 μatm	High food	19	0.12394695	0.07472190	0.01714238	0.03601481
+# 800 μatm	Low food	13	0.08622311	0.08609035	0.02387717	0.0520
+Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pCO2", "Fed_Unfed"))
+# 500 μatm	High food	19	0.02029274	0.012767128	0.002928980	0.006153559
+# 500 μatm	Low food	14	0.01350541	0.008766077	0.002342833	0.005061382
+# 800 μatm	High food	19	0.02719411	0.015975476	0.003665026	0.007699933
+# 800 μatm	Low food	13	0.01426890	0.014730817	0.004085593	0.008901743
 ```
 
 ### Statistical models
@@ -253,15 +264,9 @@ AOV930.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~
                        pCO2 * Fed_Unfed, 
                      data=Resp_0930) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV930.bfactALL)) # non-normal - 0.0001165
-leveneTest(AOV930.bfactALL) # homogeneity of variance (equal variance) - 0.354
-pander(aov(AOV930.bfactALL), style='rmarkdown') # table for anova test
-# |       &nbsp;       | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
-# |:------------------:|:--:|:---------:|:---------:|:-------:|:------:|
-# |      **pCO2**      | 1  |  0.00456  |  0.00456  |  3.061  | 0.0852 |
-# |   **Fed_Unfed**    | 1  | 0.002573  | 0.002573  |  1.727  | 0.1937 |
-# | **pCO2:Fed_Unfed** | 1  | 0.0008976 | 0.0008976 | 0.6027  | 0.4406 |
-# |   **Residuals**    | 61 |  0.09085  | 0.001489  |   NA    |   NA   |
+shapiro.test(residuals(AOV930.bfactALL)) # non-normal - 0.0001944
+leveneTest(AOV930.bfactALL) # homogeneity of variance (equal variance) - 0.365
+# run the non parametric
 SRH930.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~ 
                        pCO2 * Fed_Unfed, 
                      data=Resp_0930) # run mod
@@ -269,32 +274,16 @@ SRH930.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~
 pander(print(SRH930.bfactALL), style='rmarkdown') # table for SRH test
 # |       &nbsp;       | Df | Sum Sq |   H    | p.value |
 # |:------------------:|:--:|:------:|:------:|:-------:|
-# |      **pCO2**      | 1  | 305.7  | 0.8551 | 0.3551  |
-# |   **Fed_Unfed**    | 1  |  1167  | 3.264  | 0.07083 |
-# | **pCO2:Fed_Unfed** | 1  | 411.5  | 1.151  | 0.2833  |
-# |   **Residuals**    | 61 | 20974  |   NA   |   NA    |
+# |      **pCO2**      | 1  | 295.2  | 0.8257 | 0.3635  |
+# |   **Fed_Unfed**    | 1  |  1383  | 3.867  | 0.04923 |
+# | **pCO2:Fed_Unfed** | 1  | 405.7  | 1.135  | 0.2867  |
+# |   **Residuals**    | 61 | 20773  |   NA   |   NA    |
 # output results 
 kable(data.frame(unclass(print(SRH930.bfactALL)), 
                    check.names = FALSE, 
                    stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_SRH_RR_bfactor_ALL.png", zoom = 1.5)
-
-# Linear mixed effects model with random effect of Replicate 
-LME930.bfactALL<-lme(resp_umol_hr_bFactorNormLength ~ 
-                     pCO2*Fed_Unfed, 
-                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
-                     data=Resp_0930) 
-# check model assumptions
-shapiro.test(residuals(LME930.bfactALL)) # non-normal - 0.0003778 
-leveneTest(residuals(LME930.bfactALL) ~ Resp_0930$pCO2) # 0.1021 
-leveneTest(residuals(LME930.bfactALL) ~ Resp_0930$Fed_Unfed) # 0.8869 
-# AIC model selection
-pander(AIC(AOV930.bfactALL, LME930.bfactALL), style='rmarkdown') # anova table of lmer
-# |       &nbsp;        | df |  AIC   |
-# |:-------------------:|:--:|:------:|
-# | **AOV930.bfactALL** | 5  | -232.8 |
-# | **LME930.bfactALL** | 6  | -201.3 |
 
 
 
@@ -422,8 +411,16 @@ Resp_1026 <- Resp.Master %>%
 
 kable(Resp_1026 %>% dplyr::group_by(Chamber_tank, Fed_Unfed) %>% dplyr::summarise(n())) # tank replication
 
-Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2","Fed_Unfed"))
-
+Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2", "Fed_Unfed"))
+# 500 μatm	High food	8	0.06654692	0.01569754	0.005549918	0.01312347
+# 500 μatm	Low food	7	0.05031502	0.02884012	0.010900542	0.02667267
+# 800 μatm	High food	6	0.09383471	0.05018298	0.020487116	0.05266381
+# 800 μatm	Low food	8	0.05709843	0.02716047	0.009602677	0.02270672
+Resp_1026 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pCO2", "Fed_Unfed"))
+# 500 μatm	High food	8	0.045939505	0.015998508	0.005656327	0.013375087
+# 500 μatm	Low food	7	0.009712373	0.006445488	0.002436165	0.005961082
+# 800 μatm	High food	6	0.051158106	0.026602999	0.010860629	0.027918136
+# 800 μatm	Low food	8	0.012445245	0.006443678	0.002278184	0.005387049
 
 ```
 
@@ -471,15 +468,9 @@ AOV1026.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~
                        pCO2 * Fed_Unfed, 
                      data=Resp_1026) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV1026.bfactALL)) # normal - .8932
-leveneTest(AOV1026.bfactALL) # homogeneity of variance (equal variance) - 0.1017
-pander(aov(AOV1026.bfactALL), style='rmarkdown') # table for anova test
-# |       &nbsp;       | Df |  Sum Sq   |  Mean Sq  | F value |  Pr(>F)  |
-# |:------------------:|:--:|:---------:|:---------:|:-------:|:--------:|
-# |      **pCO2**      | 1  | 6.793e-05 | 6.793e-05 | 0.4361  |  0.5144  |
-# |   **Fed_Unfed**    | 1  | 0.003074  | 0.003074  |  19.74  | 0.000127 |
-# | **pCO2:Fed_Unfed** | 1  | 2.537e-06 | 2.537e-06 | 0.01628 |  0.8994  |
-# |   **Residuals**    | 28 | 0.004361  | 0.0001558 |   NA    |    NA    |
+shapiro.test(residuals(AOV1026.bfactALL)) # normal - 0.8054
+leveneTest(AOV1026.bfactALL) # homogeneity of variance (equal variance) - 0.01797 *
+# run non parametric
 SRH1026.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~ 
                        pCO2 * Fed_Unfed, 
                      data=Resp_1026) # run mod
@@ -499,12 +490,10 @@ kable(data.frame(unclass(print(SRH1026.bfactALL)),
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20211026_figs_tables/20211026_SRH_RR_bfactor_ALL.png", zoom = 1.5)
 
 
-
-# In summary, we looked at our non-normal LME and AOV and again found the simple model outweighs the variance 
-# explained when the random factor was addressedin the LME, thus we will moved forward with the simple model 
-# as opposed to transforming the data, used the Scheirer-Ray-Hare Test as a nonparametric two-factor test 
-# the outcome of which did not change relative to the non-normal AOV 
-# result: report the SRH test 
+# food supply diff - report this percent difference alonside the significant effect
+Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars="Fed_Unfed")
+perc_diff <- (0.07824169 - 0.05393284)/0.07824169*100
+perc_diff #31.06892 %
 
 
 # plot

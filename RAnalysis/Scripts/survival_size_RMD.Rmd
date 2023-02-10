@@ -56,6 +56,10 @@ survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repo
 # Structure of the data - to check that variables are properly assigned to factor or variable
 # str(length)
 
+min(length$Length_um/1000) # 1.011402
+max(length$Length_um/1000) # 20.36
+
+nrow(length %>% dplyr::filter(Length_um/1000 < 3)) # 1417
 ```
 
 # condition Index
@@ -64,13 +68,25 @@ survival_juvenile          <-read.csv(file="C:/Users/samjg/Documents/Github_repo
 
 ```{r Condition index data, statistics, plotting, include=FALSE}
 
+
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# CONDITION INDEX :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+# call the data (all)
+CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>% 
+  dplyr::select(c('pH','CI','Tank_Replicate', "Shell_length_mm")) %>% 
+  dplyr::mutate(Age = "64DPF") %>% 
+  dplyr::mutate(random_eff = (as.factor(paste(pH,Tank_Replicate, sep ='_')))) %>% 
+  dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) %>% 
+  dplyr::select(-Tank_Replicate)
+# call the data (means)
 CI_1026_means <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>%  
 summarySE(measurevar="CI", groupvars=c("pH")) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% # cahmber volumes on different dates with
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
       dplyr::mutate(Age = 92)
-    
-
-
+# plot the means 
 ggplot(data=CI_1026_means, aes(x=Age, y=CI, color=pCO2)) +
   geom_line( stat = "identity", size=1.0)+
   geom_point(position=position_dodge(.5))+ 
@@ -82,21 +98,7 @@ ggplot(data=CI_1026_means, aes(x=Age, y=CI, color=pCO2)) +
   scale_y_continuous(name ="Condition index [(Dry tissue / dry shell) *100]")+
   theme(text = element_text(size=15))
 
-
-
-CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>% 
-  dplyr::select(c('pH','CI','Tank_Replicate', "Shell_length_mm")) %>% 
-  dplyr::mutate(Age = "64DPF") %>% 
-  dplyr::mutate(random_eff = (as.factor(paste(pH,Tank_Replicate, sep ='_')))) %>% 
-  dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) %>% 
-  dplyr::select(-Tank_Replicate)
-
-
-CI_1026$pH <- as.factor(CI_1026$pH)
-
-
 # Prep for stats
-
 CI_1026.DATA <- CI_1026 %>% 
   dplyr::filter(Age %in% '64DPF') %>% # filter the data from 20211026
     dplyr::mutate(pCO2 = case_when(
@@ -105,8 +107,6 @@ CI_1026.DATA <- CI_1026 %>%
 CI_1026.DATA$pCO2 <- as.factor(CI_1026.DATA$pCO2)
 levels(CI_1026.DATA$random_eff) # should be 8 levels A B C D within 7.5 and 8 
 levels(CI_1026.DATA$pCO2)
-View(CI_1026.DATA)
-
 # one-way ANOVA
 AOVCI <- aov(CI ~ 
                pCO2, 
@@ -126,6 +126,164 @@ pander(print(KWCI), style='rmarkdown') # table for SRH test
 CI_1026.DATA %>% summarySE(measurevar="CI", groupvars= c("pCO2"))  # view summary means 
 ((11.30190- 10.15005) / 11.30190) * 100 # 10.19165 % difference 
 
+
+
+# DENSITY PLOT 
+
+
+
+df_mean <- CI_1026.DATA %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::summarize(average = mean(CI)) %>%
+  dplyr::ungroup()
+
+p.box <- ggplot(CI_1026.DATA, aes(x = pCO2, y = (CI))) + 
+  geom_boxplot() + 
+  geom_point(data= df_mean, 
+             mapping = aes(x = pCO2, y = (average)),
+             color="red") 
+
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = (df_mean$average)) %>% 
+  mutate(pCO2 = factor(x, labels = levels(CI_1026.DATA$pCO2), ordered = TRUE)) %>%
+  select(-x)
+
+denisty_box_CI <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = CI_1026.DATA, aes(x = CI, fill=pCO2, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            #xlim(5, 25) +
+                            facet_grid(pCO2 ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(x = "Dry shell weight (g)", y = "frequency")  +
+                            scale_fill_manual(values=c("grey85", "grey40"))
+denisty_box_CI
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_density_plot.pdf"), width = 4, height = 4)
+denisty_box_CI # print the model diagnostics 
+dev.off()
+
+
+
+
+
+```
+
+
+
+```{r dry shell weight data, analysis, plotting, include=FALSE}
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# DRY SHELL WEIGHT  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# call the data (all)
+DSW_1026 <- len.dryweight.CI_1026 %>%  
+  dplyr::filter(shell_or_tissue %in% 'shell') %>% 
+  dplyr::select('Date_sampled','pH','Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
+  dplyr::mutate(DSW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
+  na.omit() %>%  
+  dplyr::mutate(Age = "64DPF") %>% 
+  dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) 
+# call the data (means)
+DSW_1026_means <- len.dryweight.CI_1026 %>%  
+  dplyr::filter(shell_or_tissue %in% 'shell') %>% 
+  dplyr::select('Date_sampled','pH','Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
+  dplyr::mutate(DSW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
+  na.omit() %>% 
+  summarySE(measurevar="DSW_corrected", groupvars=c("pH")) %>% 
+      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
+      dplyr::mutate(Age = 92)
+# plot the means 
+ggplot(data=DSW_1026_means, aes(x=Age, y=DSW_corrected, color=pCO2)) +
+  geom_line( stat = "identity", size=1.0)+
+  geom_point(position=position_dodge(.5))+ 
+  scale_color_manual(values=c("forestgreen","darkorange2"))+
+  geom_errorbar(aes(ymin=DSW_corrected-se, ymax=DSW_corrected+se), width=.2,
+                position=position_dodge(.5))+
+  theme_classic() +  
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_y_continuous(name ="Dry shell weight (g)")+
+  theme(text = element_text(size=15))
+
+# Prep for stats
+DSW_1026.DATA <- DSW_1026 %>% 
+  dplyr::filter(Age %in% '64DPF') %>% # filter the data from 20211026
+    dplyr::mutate(pCO2 = case_when(
+    pH == 8 ~ "500 μatm", 
+    pH == 7.5 ~ "800 μatm"))
+DSW_1026.DATA$pCO2 <- as.factor(DSW_1026.DATA$pCO2)
+levels(DSW_1026.DATA$pCO2)
+# one-way ANOVA
+AOV_DSW <- aov(DSW_corrected ~  pCO2,  data=DSW_1026.DATA) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV_DSW)) # non - normal - 0.01948
+leveneTest(AOV_DSW) # homogeneity of variance (equal variance) - 9.953e-07 ***
+# need to run the non-parametric Kruskal Wallis
+KW_DSW <- kruskal.test(DSW_corrected ~ pCO2, data = DSW_1026.DATA) # run mod
+# all is good, lets see the results
+pander(print(KW_DSW), style='rmarkdown') # table for SRH test
+# | Test statistic | df |     P value      |
+# |:--------------:|:--:|:----------------:|
+# |     11.31      | 1  | 0.0007714  * * * |
+DSW_1026.DATA %>% summarySE(measurevar="DSW_corrected", groupvars= c("pCO2"))  # view summary means 
+((0.6452632- 0.3852239) / 0.6452632) * 100 # 40.29973 % difference 
+
+
+# DENSITY PLOT 
+
+
+
+df_mean <- DSW_1026.DATA %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::summarize(average = mean(DSW_corrected)) %>%
+  dplyr::ungroup()
+
+p.box <- ggplot(DSW_1026.DATA, aes(x = pCO2, y = (DSW_corrected))) + 
+  geom_boxplot() + 
+  geom_point(data= df_mean, 
+             mapping = aes(x = pCO2, y = (average)),
+             color="red") 
+
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = (df_mean$average)) %>% 
+  mutate(pCO2 = factor(x, labels = levels(DSW_1026.DATA$pCO2), ordered = TRUE)) %>%
+  select(-x)
+
+denisty_box_DSW <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = DSW_1026.DATA, aes(x = DSW_corrected, fill=pCO2, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 1.5) +
+                            facet_grid(pCO2 ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(x = "Dry shell weight (g)", y = "frequency")  +
+                            scale_fill_manual(values=c("grey85", "grey40"))
+denisty_box_DSW
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_DSW_density_plot.pdf"), width = 4, height = 4)
+denisty_box_DSW # print the model diagnostics 
+dev.off()
 
 ```
 

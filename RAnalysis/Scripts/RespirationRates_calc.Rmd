@@ -63,6 +63,11 @@ resp.data_merged        <- merge(resp.data, resp.ref_length_merged) %>% # out ma
                                                             factor(ifelse(filetype == "csv", "SDR_data", "LoLigo_data"))) # asign SDR for all csv files and Loligo for all txt files
 kable(head(resp.data_merged)) # print in a R markdown format to view
 
+# View(resp.data_merged)
+min(as.numeric(resp.data_merged$Length_um/1000)) # 1.011402
+max(resp.data_merged$Length_um/1000) # 20.36
+
+(nrow(resp.data_merged %>% dplyr::filter(Length_um/1000 < 3)) /nrow(resp.data_merged) ) *100 # 45.86466 % of data < 3mm length
 ```
 
 #### Visual diagnostic plots to correct poor data (11 data points to change..)
@@ -179,7 +184,7 @@ blanks_means <- blanks_all_raw %>%
                       BLANK.mean_Lz = mean(abs(Lz)),
                       n = n()) %>% 
     dplyr::arrange(Date, Run)
-kable(blanks_means) # IMPORTANT! notice there are no blanks for pH 7.5  runs 2 and 3 on 10/26 and run 1  9 /14
+kable(blanks_means) # IMPORTANT! notice there are no blanks for pH 7.5  runs 2 on 10/26 and run 1  9 /14
 
 # we have some absent data, in this case 'dups_to_add' adds the opposite treatment blank (i.e. 7.5 no blank, assigned as 8's blank)
 dups_to_add <- blanks_means[c(5,8),] %>% # call blanks for pH 8 runs 2 and 3 on 10/26 and run 1  9 /14
@@ -279,7 +284,7 @@ to calculate resp using the sample methods across time, we used length^3 correct
 # FOR SHELL ENGTH WE WILL USE THE 'resp_umol_hr_biovolcalc' data to employ all resp data files across time! 
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # GET B FACTOR FOR ALL AVAILABLE INDIVIDUALS WITH LENGTH AND MO2 ::::::::::::::::::::::::::::::
-nrow(Resp.Master_OM) # 118
+nrow(Resp.Master_OM) # 115
 
 Resp.Master_bfactor_plotting <- Resp.Master_OM %>% 
   dplyr::mutate(log10_VO2     = log10(as.numeric(Resp.Master_OM$resp_umol_L_hr)) ) %>%  # assign resp value
@@ -292,16 +297,21 @@ Resp.Master_bfactor_plottingOM <- Resp.Master_bfactor_plotting %>%
 
 MO2_b.factorLENGTH_PLOT <- Resp.Master_bfactor_plotting %>% 
                            ggplot(aes(x=log10_Length, y=log10_VO2)) +
-                              geom_point() +
+                              geom_point(size=2) +
                               theme(panel.grid.major = element_blank(), 
                                     panel.grid.minor = element_blank())+ 
                               scale_x_continuous(name ="log10_Length; in mm") +
                               scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
                               theme_classic() +
-                              theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                              theme(legend.position="none",
+                                              element_line(linewidth = 0.5, 
+                                                           color = 'black'),
+                                              axis.title.y=element_text(size=12),
+                                              axis.text.x=element_text(size=(15)),
+                                              axis.text.y=element_text(size=(15))) + # legend.position="none",
                               ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
                                       (b.factor * log10_Length)") +
-                              geom_smooth(method = lm, color = 'red') +
+                              geom_smooth(method = lm, color = 'black') +
                               ggpmisc::stat_poly_eq(parse=T, 
                                                     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
                                                     label.x.npc = "left")
@@ -372,91 +382,53 @@ dev.off()
 
 
 
-
-#  NOW WITH THE SINGLE OUTLIER OMITTED 
-
-
-MO2_b.factorLENGTH_PLOT_OM <- Resp.Master_bfactor_plottingOM %>% 
-                           ggplot(aes(x=log10_Length, y=log10_VO2)) +
-                              geom_point() +
-                              theme(panel.grid.major = element_blank(), 
-                                    panel.grid.minor = element_blank())+ 
-                              scale_x_continuous(name ="log10_Length; in mm") +
-                              scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
-                              theme_classic() +
-                              theme(legend.position="none",axis.title.y=element_text(size=7)) +
-                              ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
-                                      (b.factor * log10_Length)") +
-                              geom_smooth(method = lm, color = 'red') +
-                              ggpmisc::stat_poly_eq(parse=T, 
-                                                    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
-                                                    label.x.npc = "left")
-MO2_b.factorLENGTH_PLOT_facetted_OM <- Resp.Master_bfactor_plottingOM %>% 
-                                     ggplot(aes(x=log10_Length, y=log10_VO2, color = pCO2)) +
-                                        geom_point() +
-                                        scale_color_manual(values=c("blue","orange")) +
-                                        theme(panel.grid.major = element_blank(), 
-                                              panel.grid.minor = element_blank())+ 
-                                        scale_x_continuous(name ="log10_Length; in mm") +
-                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
-                                        theme_classic() +
-                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
-                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
-                                                (b.factor * log10_Length)") +
-                                        geom_smooth(method = lm, color = 'red') +
-                                        ggpmisc::stat_poly_eq(parse=T, 
-                                                              aes(label = paste(..eq.label..,
-                                                                                ..rr.label.., sep = "~~~")),
-                                                              label.x.npc = "left") +
-                                        facet_wrap(~Food_OA)
-MO2_b.factorLENGTH_PLOT_facetted_food_OM <- Resp.Master_bfactor_plottingOM %>% 
-                                     ggplot(aes(x=log10_Length, y=log10_VO2)) + # omitted , color = pCO2
-                                        geom_point() +
+MO2_b.factorLENGTH_PLOT_facetted_ALL <- Resp.Master_bfactor_plotting %>% 
+                                     ggplot(aes(x=log10_Length, 
+                                                y=log10_VO2, 
+                                                color = Food_OA,
+                                                shape = Food_OA)) +
+                                        geom_point(size = 2) +
                                         #scale_color_manual(values=c("blue","orange")) +
+                                        scale_color_manual(values=c("black","black", "grey50", "grey50")) +
+                                        scale_shape_manual(values=c(19,1, 19, 1)) +
                                         theme(panel.grid.major = element_blank(), 
                                               panel.grid.minor = element_blank())+ 
                                         scale_x_continuous(name ="log10_Length; in mm") +
                                         scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
                                         theme_classic() +
-                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
+                                        theme(legend.position="none",
+                                              element_line(linewidth = 0.5, 
+                                                           color = 'black'),
+                                              axis.title.y=element_text(size=12),
+                                              axis.text.x=element_text(size=(15)),
+                                              axis.text.y=element_text(size=(15))) + # legend.position="none",
                                         ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
                                                 (b.factor * log10_Length)") +
-                                        geom_smooth(method = lm, color = 'red') +
+                                        geom_smooth(aes(group=Food_OA, 
+                                                        linetype=Fed_Unfed),
+                                                    method = lm, 
+                                                    #color = c("black","black", "grey50", "grey50"), 
+                                                    #linetype = c("solid","dashed", "solid", "dashed"),
+                                                    se=F) +
+                                        scale_linetype_discrete(name="Food x pCO2", 
+                                                    breaks=c("500 μatm_High food", 
+                                                             "500 μatm_Low food", 
+                                                             "800 μatm_High food", 
+                                                             "800 μatm_Low food"), 
+                                                    labels = c("high food x low pCO2", 
+                                                               "low food x low pCO2", 
+                                                               "high food x high pCO2",
+                                                               "high food x high pCO2")) +
                                         ggpmisc::stat_poly_eq(parse=T, 
                                                               aes(label = paste(..eq.label..,
                                                                                 ..rr.label.., sep = "~~~")),
-                                                              label.x.npc = "left") +
-                                        facet_wrap(~Fed_Unfed)
-MO2_b.factorLENGTH_PLOT_facetted_pCO2_OM <- Resp.Master_bfactor_plottingOM %>% 
-                                     ggplot(aes(x=log10_Length, y=log10_VO2)) +
-                                        geom_point() +
-                                        #scale_color_manual(values=c("blue","orange")) +
-                                        theme(panel.grid.major = element_blank(), 
-                                              panel.grid.minor = element_blank())+ 
-                                        scale_x_continuous(name ="log10_Length; in mm") +
-                                        scale_y_continuous(name ="log10_MO2; RR in umol L-1 hr-1)") +
-                                        theme_classic() +
-                                        theme(legend.position="none",axis.title.y=element_text(size=7)) +
-                                        ggtitle("Metabolic scaling: log10_MO2 = log10_a + 
-                                                (b.factor * log10_Length)") +
-                                        geom_smooth(method = lm, color = 'red') +
-                                        ggpmisc::stat_poly_eq(parse=T, 
-                                                              aes(label = paste(..eq.label..,
-                                                                                ..rr.label.., sep = "~~~")),
-                                                              label.x.npc = "left") +
-                                        facet_wrap(~pCO2)
+                                                              label.x.npc = "left")
 
-
- # OUTPUT PLOTS 
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/metabolic_scaling/MetabolicScaling_bFactor_Length_ALL_outlierOM.pdf"), width = 8, height = 25)
-print(ggarrange(MO2_b.factorLENGTH_PLOT_OM, 
-                MO2_b.factorLENGTH_PLOT_facetted_OM, 
-                MO2_b.factorLENGTH_PLOT_facetted_pCO2_OM,
-                MO2_b.factorLENGTH_PLOT_facetted_food_OM,
-                nrow = 4, ncol = 1)) # print the model diagnostics
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/metabolic_scaling/MetabolicScaling_bFactor_Length_ALL2.pdf"), width = 10, height = 5)
+print(ggarrange(MO2_b.factorLENGTH_PLOT, 
+                MO2_b.factorLENGTH_PLOT_facetted_ALL,
+                nrow = 1, ncol = 2)) 
 dev.off()
-
-
 # b factor == 1.46
 
 ```
@@ -522,7 +494,7 @@ Resp.Masterfinal <- Resp.Master_OM %>%
                                       resp_blankStand,
                                       resp_mg_L_hr, 
                                       resp_umol_L_hr,
-                                      resp_umol_hr_bFactorNormLength,
+                                      resp_µmol_L_mm_Length_hr,
                                       resp_umol_hr_bFactorNormLength)) %>% 
                       dplyr::rename(raw_resp_rate = Lpc)
 
