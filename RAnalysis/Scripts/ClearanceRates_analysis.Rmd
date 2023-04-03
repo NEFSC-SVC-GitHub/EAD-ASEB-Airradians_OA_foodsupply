@@ -75,28 +75,42 @@ ClearancRates_calc  <- read.csv(file="Output/ClearanceRates/ClearanceRate_Calc.c
 
 
 # Data - simple size corrected
+
+Total_FR_914_df      <- ClearancRates_calc %>% 
+  filter(Date %in% '20210914') %>%   
+  filter(Total_mL.hr.mmlength > 0) %>% mutate(type = 'Total') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Total_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength','Seston_mL.hr.mmlength')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+
 Ply_FR_914_df      <- ClearancRates_calc %>% 
   filter(Date %in% '20210914') %>%   
   filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength')) %>% 
+  dplyr::select(!c('Total_mL.hr.mmlength','Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Chaet_FR_914_df    <-  ClearancRates_calc %>% 
   filter(Date %in% '20210914') %>%   
   filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength')) %>% 
+  dplyr::select(!c('Ply_mL.hr.mmlength', 'Total_mL.hr.mmlength', 'Seston_mL.hr.mmlength')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Seston_FR_914_df   <-  ClearancRates_calc %>% 
   filter(Date %in% '20210914') %>%   
   filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength', 'Total_mL.hr.mmlength', 'Ply_mL.hr.mmlength')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 
+pander(Total_FR_914_df %>% summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:------:|
+# | 500 μatm |    fed    | 9  |       2.423       | 1.299 | 0.4329 | 0.9983 |
+# | 800 μatm |    fed    | 12 |        4.5        | 2.761 | 0.797  | 1.754  |
 pander(Ply_FR_914_df %>% summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
 # |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
@@ -115,27 +129,43 @@ pander(Seston_FR_914_df %>% summarySE(measurevar="CR_mL.hr.mmlength", groupvars=
 
 
 # Data - b factor normalized
+
+Total_FR_914_df.bfactor      <- ClearancRates_calc %>% 
+  filter(Date %in% '20210914') %>%   
+  filter(Total_mL.hr.mmlength > 0) %>% mutate(type = 'Total') %>% 
+  dplyr::rename(CR_mL.hr.bfactor = Total_mL.hr.bfactor) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor', 'Seston_mL.hr.bfactor')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
+
 Ply_FR_914_df.bfactor      <- ClearancRates_calc %>% 
   filter(Date %in% '20210914') %>%   
   filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Ply_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Chaet_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor', 'Seston_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Chaet_FR_914_df.bfactor    <-  ClearancRates_calc %>% 
   filter(Date %in% '20210914') %>%   
   filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Chaet_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Ply_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Ply_mL.hr.bfactor', 'Total_mL.hr.bfactor', 'Seston_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Seston_FR_914_df.bfactor   <-  ClearancRates_calc %>% 
   filter(Date %in% '20210914') %>%   
   filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Seston_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor', 'Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
+
+pander(Total_FR_914_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 9  |       5.47       | 2.246 | 0.7486 | 1.726 |
+# | 800 μatm |    fed    | 12 |      11.02       | 6.432 | 1.857  | 4.087 |
 
 pander(Ply_FR_914_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
@@ -158,6 +188,31 @@ pander(Seston_FR_914_df.bfactor %>%
 ```
 
 ```{r 20210914 CR ANALYSIS, echo = T}
+
+
+
+# total  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+# Ply - one-way anova
+Total_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
+                      data=Total_FR_914_df.bfactor) #nlme
+shapiro.test(resid(Total_AOVmod_0914)) # 0.2137
+leveneTest(Total_AOVmod_0914) # 0.03883 *
+
+Total_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
+                      data=Total_FR_914_df.bfactor) #nlme
+
+pander(anova(Total_AOVmod_0914), style='rmarkdown') # anova table of lme
+# |    &nbsp;     | Df | Sum Sq | Mean Sq | F value |  Pr(>F)  |
+# |:-------------:|:--:|:------:|:-------:|:-------:|:--------:|
+# |   **pCO2**    | 1  | 400.8  |  400.8  |  13.13  | 0.002766 |
+# | **Residuals** | 14 | 427.3  |  30.52  |   NA    |    NA    |
+kable(as.data.frame(anova(Total_AOVmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_Total_CR_OneWayANOVA_Table.png", zoom = 1.5)
+
+
 
 # ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -233,7 +288,7 @@ kable(as.data.frame(anova(Seston_AOVmod_0914))) %>%  # print a png of this table
 
 
 # simple size corrected data 
-Master_914_plotting         <- rbind(Chaet_FR_914_df, Ply_FR_914_df, Seston_FR_914_df)
+Master_914_plotting         <- rbind(Total_FR_914_df, Chaet_FR_914_df, Ply_FR_914_df, Seston_FR_914_df)
 Master_914_plotting$pHxfood <- paste(Master_914_plotting$pH, Master_914_plotting$Fed_Unfed, sep = '_')
 
 CR_914_boxplot <- Master_914_plotting %>% 
@@ -251,7 +306,7 @@ CR_914_boxplot <- Master_914_plotting %>%
 CR_914_boxplot
 
 # b factor normalized data 
-Master_914_plotting.bfactor         <- rbind(Chaet_FR_914_df.bfactor, Ply_FR_914_df.bfactor, Seston_FR_914_df.bfactor)
+Master_914_plotting.bfactor         <- rbind(Total_FR_914_df.bfactor,Chaet_FR_914_df.bfactor, Ply_FR_914_df.bfactor, Seston_FR_914_df.bfactor)
 Master_914_plotting.bfactor$pHxfood <- paste(Master_914_plotting.bfactor$pH, Master_914_plotting.bfactor$Fed_Unfed, sep = '_')
 
 CR_914_boxplot.bfactor <- Master_914_plotting.bfactor %>% 
@@ -292,12 +347,20 @@ dev.off()
 
 # Data - simple size corrected
 
+Total_FR_930_df      <- ClearancRates_calc %>% 
+  filter(Date %in% '20210930') %>%  
+  filter(Total_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'Total') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Total_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength', 'Seston_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
 Ply_FR_930_df      <- ClearancRates_calc %>% 
   filter(Date %in% '20210930') %>%  
   filter(Ply_mL.hr.mmlength > 0) %>% 
   mutate(type = 'ply') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Total_mL.hr.mmlength', 'Seston_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Chaet_FR_930_df    <- ClearancRates_calc %>% 
@@ -305,7 +368,7 @@ Chaet_FR_930_df    <- ClearancRates_calc %>%
   filter(Chaet_mL.hr.mmlength > 0) %>% 
   mutate(type = 'chaet') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::select(!c('Ply_mL.hr.mmlength','Total_mL.hr.mmlength', 'Seston_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Seston_FR_930_df   <- ClearancRates_calc %>% 
@@ -313,11 +376,18 @@ Seston_FR_930_df   <- ClearancRates_calc %>%
   filter(Seston_mL.hr.mmlength > 0) %>% 
   mutate(type = 'seston') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Total_mL.hr.mmlength', 'Ply_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
 
-
+pander(Total_FR_930_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
+# | 500 μatm |    fed    | 15 |       6.461       | 6.868 | 1.773  | 3.803 |
+# | 500 μatm |   unfed   | 12 |       1.435       | 2.005 | 0.5789 | 1.274 |
+# | 800 μatm |    fed    | 18 |       6.413       | 8.15  | 1.921  | 4.053 |
+# | 800 μatm |   unfed   | 12 |       1.943       | 1.744 | 0.5034 | 1.108 |
 pander(Ply_FR_930_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |  se   |  ci   |
@@ -344,58 +414,73 @@ pander(Seston_FR_930_df %>%
 # | 800 μatm |   unfed   | 11 |       4.18        | 5.228 | 1.576  | 3.512 |
 
 # Data - b factor normalized
+Total_FR_930_df.bfactor      <- ClearancRates_calc %>% 
+  filter(Date %in% '20210930') %>%  
+  filter(Total_mL.hr.mmlength > 0) %>% mutate(type = 'Total') %>% 
+  dplyr::rename(CR_mL.hr.bfactor = Total_mL.hr.bfactor) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
 Ply_FR_930_df.bfactor      <- ClearancRates_calc %>% 
   filter(Date %in% '20210930') %>%  
   filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Ply_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Chaet_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor', 'Seston_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Chaet_FR_930_df.bfactor    <-  ClearancRates_calc %>% 
   filter(Date %in% '20210930') %>%  
   filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Chaet_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Ply_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Ply_mL.hr.bfactor','Total_mL.hr.bfactor', 'Seston_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Seston_FR_930_df.bfactor   <-  ClearancRates_calc %>% 
   filter(Date %in% '20210930') %>%  
   filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Seston_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor', 'Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
+pander(Total_FR_930_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 15 |      17.17       | 16.47 | 4.253 | 9.121 |
+# | 500 μatm |   unfed   | 12 |      4.844       | 6.058 | 1.749 | 3.849 |
+# | 800 μatm |    fed    | 18 |       18.1       | 19.75 | 4.656 | 9.823 |
+# | 800 μatm |   unfed   | 12 |      8.482       | 10.04 | 2.898 | 6.378 |
 pander(Ply_FR_930_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 4  |      9.261       | 10.21 | 5.104 | 16.24 |
-# | 500 μatm |   unfed   | 1  |      9.245       |  NA   |  NA   |  NA   |
-# | 800 μatm |    fed    | 11 |      11.09       | 7.857 | 2.369 | 5.279 |
-# | 800 μatm |   unfed   | 4  |      4.873       | 5.519 | 2.759 | 8.782 |
+# | 500 μatm |    fed    | 4  |      16.07       | 17.71 | 8.856 | 28.18 |
+# | 500 μatm |   unfed   | 1  |      16.04       |  NA   |  NA   |  NA   |
+# | 800 μatm |    fed    | 11 |      19.25       | 13.63 | 4.11  | 9.159 |
+# | 800 μatm |   unfed   | 4  |      8.455       | 9.576 | 4.788 | 15.24 |
 pander(Chaet_FR_930_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
-# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
-# |:--------:|:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
-# | 500 μatm |    fed    | 20 |      10.07       | 8.875 | 1.984  | 4.153 |
-# | 500 μatm |   unfed   | 18 |      5.662       | 3.322 | 0.7829 | 1.652 |
-# | 800 μatm |    fed    | 19 |       10.4       | 11.79 | 2.705  | 5.684 |
-# | 800 μatm |   unfed   | 11 |      5.986       | 7.862 |  2.37  | 5.282 |
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 20 |      17.47       | 15.4  | 3.443 | 7.207 |
+# | 500 μatm |   unfed   | 18 |      9.824       | 5.763 | 1.358 | 2.866 |
+# | 800 μatm |    fed    | 19 |      18.04       | 20.46 | 4.694 | 9.862 |
+# | 800 μatm |   unfed   | 11 |      10.39       | 13.64 | 4.113 | 9.164 |
 pander(Chaet_FR_930_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")), style='rmarkdown')
-# | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
-# |:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
-# |    fed    | 39 |      10.23       | 10.26 | 1.643  | 3.326 |
-# |   unfed   | 29 |      5.785       | 5.366 | 0.9965 | 2.041 |
+# | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# |    fed    | 39 |      17.75       | 17.8  | 2.851 | 5.771 |
+# |   unfed   | 29 |      10.04       | 9.311 | 1.729 | 3.542 |
   
 pander(Seston_FR_930_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 11 |      8.402       | 5.484 | 1.654 | 3.684 |
-# | 500 μatm |   unfed   | 15 |      6.462       | 6.707 | 1.732 | 3.714 |
-# | 800 μatm |    fed    | 13 |      6.228       | 6.476 | 1.796 | 3.913 |
-# | 800 μatm |   unfed   | 11 |      11.42       | 17.34 | 5.229 | 11.65 |
+# | 500 μatm |    fed    | 11 |      14.58       | 9.516 | 2.869 | 6.393 |
+# | 500 μatm |   unfed   | 15 |      11.21       | 11.64 | 3.005 | 6.444 |
+# | 800 μatm |    fed    | 13 |      10.81       | 11.24 | 3.116 | 6.79  |
+# | 800 μatm |   unfed   | 11 |      19.81       | 30.09 | 9.073 | 20.22 |
 ```
 
 ```{r 20210930 CR analysis, echo = T}
@@ -407,6 +492,29 @@ pander(Seston_FR_930_df.bfactor %>%
 
 
 
+# total :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+library(rcompanion)
+# Ply - one-way anova
+Total_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                      data=Total_FR_930_df.bfactor) 
+shapiro.test(resid(Total_AOVmod_0930)) # 1.282e-07
+leveneTest(Total_AOVmod_0930) # 0.1185
+# need to run the non parametric Scheirer-Ray-Hare Test
+Total_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                      data=Total_FR_930_df.bfactor)
+pander(print(Total_SRHmod_0930), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
+# |:------------------:|:--:|:------:|:------:|:-------:|
+# |      **pCO2**      | 1  | 272.2  | 0.9882 | 0.3202  |
+# |   **Fed_Unfed**    | 1  |  2654  | 9.634  | 0.00191 |
+# | **pCO2:Fed_Unfed** | 1  | 318.6  | 1.157  | 0.2822  |
+# |   **Residuals**    | 53 | 12100  |   NA   |   NA    |
+kable(as.data.frame(print(Total_SRHmod_0930))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Total_CR_SRH_Table.png", zoom = 1.5)
+
 # ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
@@ -415,7 +523,7 @@ library(rcompanion)
 Ply_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Ply_FR_930_df.bfactor) 
 shapiro.test(resid(Ply_AOVmod_0930)) # 0.009967
-leveneTest(Ply_AOVmod_0930) # 0.8947
+leveneTest(Ply_AOVmod_0930) # 0.723
 pander(anova(Ply_AOVmod_0930), style='rmarkdown') # anova table of lme
 # need to run the non parametric Scheirer-Ray-Hare Test
 Ply_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
@@ -441,7 +549,7 @@ kable(as.data.frame(print(Ply_SRHmod_0930))) %>%  # print a png of this table
 Chaet_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Chaet_FR_930_df.bfactor) 
 shapiro.test(resid(Chaet_AOVmod_0930)) # 7.288e-10
-leveneTest(Chaet_AOVmod_0930) # 0.3424 *
+leveneTest(Chaet_AOVmod_0930) #0.1219
 # need to run the non parametric Scheirer-Ray-Hare Test
 Chaet_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Chaet_FR_930_df.bfactor)
@@ -499,7 +607,7 @@ kable(as.data.frame(print(Seston_SRHmod_0930))) %>%  # print a png of this table
 
 
 
-Master_930_plotting         <- rbind(Chaet_FR_930_df, Ply_FR_930_df, Seston_FR_930_df)
+Master_930_plotting         <- rbind(Total_FR_930_df,Chaet_FR_930_df, Ply_FR_930_df, Seston_FR_930_df)
 Master_930_plotting$pHxfood <- paste(Master_930_plotting$pH, Master_930_plotting$Fed_Unfed, sep = '_')
 CR_930_boxplot <- Master_930_plotting %>% 
   ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
@@ -517,7 +625,8 @@ CR_930_boxplot
 
 
 # b factor normalized data 
-Master_930_plotting.bfactor         <- rbind(Chaet_FR_930_df.bfactor, 
+Master_930_plotting.bfactor         <- rbind(Total_FR_930_df.bfactor,
+                                             Chaet_FR_930_df.bfactor, 
                                              Ply_FR_930_df.bfactor, 
                                              Seston_FR_930_df.bfactor)
 Master_930_plotting.bfactor$pHxfood <- paste(Master_930_plotting.bfactor$pH, Master_930_plotting.bfactor$Fed_Unfed, sep = '_')
@@ -571,12 +680,20 @@ dev.off()
 
 # Data - simple size corrected
 
+Total_FR_1026_df      <- ClearancRates_calc %>% 
+  filter(Date %in% '20211026') %>%  
+  filter(Total_mL.hr.mmlength > 0) %>% 
+  mutate(type = 'Total') %>% 
+  dplyr::rename(CR_mL.hr.mmlength = Total_mL.hr.mmlength) %>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength', 'Seston_mL.hr.mmlength'))%>% 
+  dplyr::mutate(pH = as.factor(pH))
+
 Ply_FR_1026_df      <- ClearancRates_calc %>% 
   filter(Date %in% '20211026') %>%  
   filter(Ply_mL.hr.mmlength > 0) %>% 
   mutate(type = 'ply') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Total_mL.hr.mmlength', 'Seston_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Chaet_FR_1026_df    <- ClearancRates_calc %>% 
@@ -584,7 +701,7 @@ Chaet_FR_1026_df    <- ClearancRates_calc %>%
   filter(Chaet_mL.hr.mmlength > 0) %>% 
   mutate(type = 'chaet') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
+  dplyr::select(!c('Ply_mL.hr.mmlength','Total_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Seston_FR_1026_df   <- ClearancRates_calc %>% 
@@ -592,10 +709,18 @@ Seston_FR_1026_df   <- ClearancRates_calc %>%
   filter(Seston_mL.hr.mmlength > 0) %>% 
   mutate(type = 'seston') %>% 
   dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
+  dplyr::select(!c('Chaet_mL.hr.mmlength','Total_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
   dplyr::mutate(pH = as.factor(pH))
 
 
+pander(Total_FR_1026_df %>% 
+         summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |   sd   |  se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:------:|:-----:|:------:|
+# | 500 μatm |    fed    | 8  |       12.72       | 3.775  | 1.335 | 3.156  |
+# | 500 μatm |   unfed   | 1  |       0.658       |   NA   |  NA   |   NA   |
+# | 800 μatm |    fed    | 10 |       17.96       | 13.83  | 4.373 | 9.892  |
+# | 800 μatm |   unfed   | 7  |       1.46        | 0.9789 | 0.37  | 0.9054 |
 
 pander(Ply_FR_1026_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
@@ -634,28 +759,42 @@ pander(Seston_FR_1026_df %>%
 
 
 # Data - b factor normalized
+Total_FR_1026_df.bfactor      <- ClearancRates_calc %>% 
+  filter(Date %in% '20211026') %>%  
+  filter(Total_mL.hr.mmlength > 0) %>% mutate(type = 'Total') %>% 
+  dplyr::rename(CR_mL.hr.bfactor = Total_mL.hr.bfactor) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::mutate(pH = as.factor(pH))
+
 Ply_FR_1026_df.bfactor      <- ClearancRates_calc %>% 
   filter(Date %in% '20211026') %>%  
   filter(Ply_mL.hr.mmlength > 0) %>% mutate(type = 'ply') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Ply_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Chaet_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Chaet_FR_1026_df.bfactor    <-  ClearancRates_calc %>% 
   filter(Date %in% '20211026') %>%  
   filter(Chaet_mL.hr.mmlength > 0) %>% mutate(type = 'chaet') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Chaet_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Ply_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Ply_mL.hr.bfactor','Total_mL.hr.bfactor','Seston_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
 Seston_FR_1026_df.bfactor   <-  ClearancRates_calc %>% 
   filter(Date %in% '20211026') %>%  
   filter(Seston_mL.hr.mmlength > 0) %>% mutate(type = 'seston') %>% 
   dplyr::rename(CR_mL.hr.bfactor = Seston_mL.hr.bfactor) %>% 
-  dplyr::select(!c('Chaet_mL.hr.bfactor','Ply_mL.hr.bfactor')) %>% 
+  dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor','Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
-
+pander(Total_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 μatm |    fed    | 8  |      63.17       | 23.53 | 8.32  | 19.67 |
+# | 500 μatm |   unfed   | 1  |      11.88       |  NA   |  NA   |  NA   |
+# | 800 μatm |    fed    | 10 |      99.59       | 65.21 | 20.62 | 46.65 |
+# | 800 μatm |   unfed   | 7  |      18.58       | 13.5  | 5.104 | 12.49 |
 pander(Ply_FR_1026_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
@@ -695,10 +834,33 @@ pander(Seston_FR_1026_df.bfactor %>%
 # Two-way models (Kruskal Wallis for nonparametric if needed) :::::
 # ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-# ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 library(rcompanion)
+
+# total :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# Total - one-way anova
+Total_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                      data=Total_FR_1026_df.bfactor) 
+shapiro.test(resid(Total_AOVmod_1026)) # 0.1179
+leveneTest(Total_AOVmod_1026) # 0.01947 *
+# need to run the non parametric Scheirer-Ray-Hare Test
+Total_SRHmod_1026 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                      data=Total_FR_1026_df.bfactor)
+pander(print(Total_SRHmod_1026), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq |    H    | p.value  |
+# |:------------------:|:--:|:------:|:-------:|:--------:|
+# |      **pCO2**      | 1  |  33.7  | 0.5761  |  0.4479  |
+# |   **Fed_Unfed**    | 1  | 596.5  |  10.2   | 0.001407 |
+# | **pCO2:Fed_Unfed** | 1  | 3.964  | 0.06776 |  0.7946  |
+# |   **Residuals**    | 22 | 858.6  |   NA    |    NA    |
+  kable(as.data.frame(print(Total_SRHmod_1026))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Total_CR_SRH_Table.png", zoom = 1.5)
+  
+# ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 # Ply - one-way anova
 Ply_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Ply_FR_1026_df.bfactor) 
@@ -808,7 +970,8 @@ kable(as.data.frame(print(Seston_FR_1026_df.bfactor %>%
 
 
 
-Master_1026_plotting         <- rbind(Chaet_FR_1026_df, 
+Master_1026_plotting         <- rbind(Total_FR_1026_df,
+                                      Chaet_FR_1026_df, 
                                       Ply_FR_1026_df, 
                                       Seston_FR_1026_df)
 Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pCO2, Master_1026_plotting$Fed_Unfed, sep = '_')
@@ -828,7 +991,8 @@ CR_1026_boxplot
 
 
 # b factor normalized data 
-Master_1026_plotting.bfactor         <- rbind(Chaet_FR_1026_df.bfactor, 
+Master_1026_plotting.bfactor         <- rbind(Total_FR_1026_df.bfactor,
+                                              Chaet_FR_1026_df.bfactor, 
                                              Ply_FR_1026_df.bfactor, 
                                              Seston_FR_1026_df.bfactor)
 Master_1026_plotting.bfactor$pHxfood <- paste(Master_1026_plotting.bfactor$pCO2, Master_1026_plotting.bfactor$Fed_Unfed, sep = '_')
