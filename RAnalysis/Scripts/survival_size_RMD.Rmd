@@ -7,7 +7,7 @@ output:
     latex_engine: xelatex
 ---
 
-Last updates: october 6, 2021
+<!-- Last updates: october 6, 2021 -->
 
 
 ## Load libraries
@@ -35,6 +35,7 @@ library(ggpubr)
 library(tidyr)
 library(nlme)
 library(car)
+library(rcompanion) # to run the Schrier -Ray-Hare non parametric 2 way 
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
@@ -62,7 +63,9 @@ max(length$Length_um/1000) # 20.36
 nrow(length %>% dplyr::filter(Length_um/1000 < 3)) # 1417
 ```
 
-# condition Index
+# First lets plot and run stats on the single time-point data.. (CI and dry shell weight)
+
+## Condition Index (only one time point on Oct 26 2021)
 
 * plot and statistics 
 
@@ -179,6 +182,9 @@ dev.off()
 ```
 
 
+## Dry shell weight  (only one time point on Oct 26 2021)
+
+* plot and statistics 
 
 ```{r dry shell weight data, analysis, plotting, include=FALSE}
 #  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -253,7 +259,7 @@ df_mean <- DSW_1026.DATA %>%
 p.box <- ggplot(DSW_1026.DATA, aes(x = pCO2, y = (DSW_corrected))) + 
   geom_boxplot() + 
   geom_point(data= df_mean, 
-             mapping = aes(x = pCO2, y = (average)),
+             mapping = aes(x = pCO2, y = (average)),]
              color="red") 
 
 p.box.data <- layer_data(p.box) %>%
@@ -288,7 +294,138 @@ dev.off()
 ```
 
 
+
+
 # Food limitation x pCO2 experiment (50 - 92 dpf)
+
+## Growth rate 
+
+* animals at '51 DPF' were reared under low and high pCO2 BUT were not split to low and high food yet, 
+this is our time 'zero' to correct the subseuent timepoints (wihtin pCO2) for a growth rate calculation 
+
+* Example: 400 uatm at 51 DPF is the first growth value for all subseqnt DPF under 400 uatm - oth at high and low food
+
+```{r, Shell growth rate}
+# Length ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Length_Means <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed"))
+Length_Means <- Length_Means %>% 
+  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
+
+Length_Means_byTank  <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed", "Replicate")) %>% 
+    dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
+
+Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51) # these are the mean shell lengths we want to use to subtract from av lengths within pCO2
+
+Av_7.5FedA <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[1,6] # pH 7.5 Rep (tank) A
+Av_7.5FedB <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[2,6] # pH 7.5 Rep (tank) B
+Av_7.5FedC <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[3,6] # pH 7.5 Rep (tank) C
+Av_7.5FedD <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[4,6] # pH 7.5 Rep (tank) D
+
+Av_8.0FedA <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[5,6] # pH 8.0 Rep (tank) A
+Av_8.0FedB <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[6,6] # pH 8.0 Rep (tank) B
+Av_8.0FedC <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[7,6] # pH 8.0 Rep (tank) C
+Av_8.0FedD <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[8,6] # pH 8.0 Rep (tank) D
+
+Growth_rate <- Length_Means_byTank %>% 
+  dplyr::mutate(Start_Length_um = 
+                  case_when( (pH == 7.5 & Replicate == 'A') ~ Av_7.5FedA, # pH = 7.5, insert this starting length value 
+                             (pH == 7.5 & Replicate == 'B') ~ Av_7.5FedB, # Note: two conditional case_when statements apply BOTH with & and inside ()
+                             (pH == 7.5 & Replicate == 'C') ~ Av_7.5FedC,
+                             (pH == 7.5 & Replicate == 'D') ~ Av_7.5FedD,
+                             
+                             (pH == 8.0 & Replicate == 'A') ~ Av_8.0FedA,
+                             (pH == 8.0 & Replicate == 'B') ~ Av_8.0FedB,
+                             (pH == 8.0 & Replicate == 'C') ~ Av_8.0FedC,
+                             (pH == 8.0 & Replicate == 'D') ~ Av_8.0FedD)) %>% # pH = 7.5, insert this starting length value 
+  dplyr::mutate(Growth_rate_umperday = (Length_um - Start_Length_um) / (Age_DPF - 51)) %>% 
+  dplyr::filter(!(Age_DPF %in% 51)) %>%  # we no longer need this first time point of length - just == zero for growth!
+  dplyr::select(!c(N,sd,se,ci)) # cut down necessary columns - however remember the N was 4, a mean from each replicate tank mean
+
+
+# STATISTICS
+
+## 64 DPF
+Growth_rate_64DPF <- Growth_rate %>% dplyr::filter(Age_DPF %in% 64) # the data 
+GR_DPF64_MOD      <- lm(Growth_rate_umperday ~ pCO2*Fed_Unfed,data=Growth_rate_64DPF)
+shapiro.test(resid(GR_DPF64_MOD)) # 0.3609 normal
+leveneTest(GR_DPF64_MOD) # 0.02278 * -  homogeneity of variance FAILED
+GR_DPF64_MOD_SRH  <- scheirerRayHare(Growth_rate_umperday ~ pCO2*Fed_Unfed,data=Growth_rate_64DPF)
+GR_DPF64_MOD_SRH # food effect 
+#                 Df Sum Sq       H p.value
+# pCO2            1      1  0.0441 0.83363
+# Fed_Unfed       1    256 11.2941 0.00078
+# pCO2:Fed_Unfed  1      4  0.1765 0.67442
+summarySE(Growth_rate_64DPF, measurevar="Growth_rate_umperday", groupvars=c("Fed_Unfed"))
+# High food	98.800270	+- 5.802124 (SE) - um per day
+# Low food	-3.658014 +- 3.113321 (SE) - um per day
+
+## 92 DPF
+Growth_rate_92DPF <- Growth_rate %>% dplyr::filter(Age_DPF %in% 92) # the data 
+GR_DPF92_MOD      <- lm(Growth_rate_umperday ~ pCO2*Fed_Unfed,data=Growth_rate_92DPF)
+shapiro.test(resid(GR_DPF92_MOD)) # 0.3329 normal
+leveneTest(GR_DPF92_MOD) # 0.09306 -  homogeneity of variance PASS
+summary(aov(GR_DPF92_MOD)) # food effect
+#                 Df Sum Sq Mean Sq F value   Pr(>F)    
+# pCO2            1     31      31   0.178    0.680    
+# Fed_Unfed       1  76696   76696 439.801 8.01e-11 ***
+# pCO2:Fed_Unfed  1     41      41   0.233    0.638    
+# Residuals      12   2093     174 
+summarySE(Growth_rate_92DPF, measurevar="Growth_rate_umperday", groupvars=c("Fed_Unfed"))
+# High food	158.14751	+- 5.690852 (SE) - um per day
+# Low food	19.67748 +- 2.502746 (SE) - um per day
+
+# PLOTTING
+
+Growth_rate_Means_byTreat <- summarySE(Growth_rate, measurevar="Growth_rate_umperday", groupvars=c("Age_DPF", "pH", "pCO2", "Fed_Unfed"))
+Growth_rate_Means_byTreat
+
+
+GrowthRate_Means_plot <- ggplot(data=Growth_rate_Means_byTreat, aes(x=Age_DPF, y=(Growth_rate_umperday/1000), color=pCO2)) +
+  geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+  geom_point()+ 
+  scale_color_manual(values=c("black","black")) +
+  geom_errorbar(aes(ymin=(Growth_rate_umperday/1000)-(se/1000), 
+                    ymax=(Growth_rate_umperday/1000)+(se/1000)), width=.2,
+                position=position_dodge(.1))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_x_continuous(name ="Age (days)") +
+  scale_y_continuous(name ="Shell growth rate (mm per day)")  + 
+  scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
+  theme_classic() +
+  #theme(legend.position="none") +
+  # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+  facet_wrap(~pCO2)
+GrowthRate_Means_plot
+
+
+GrowthRate_Means_plot_D92 <- Growth_rate_Means_byTreat %>% 
+  dplyr::filter(Age_DPF %in% 92) %>% 
+  ggplot(aes(x=Age_DPF, y=(Growth_rate_umperday/1000), color=pCO2)) +
+  geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+  geom_point()+ 
+  scale_color_manual(values=c("black","black")) +
+  geom_errorbar(aes(ymin=(Growth_rate_umperday/1000)-(se/1000), 
+                    ymax=(Growth_rate_umperday/1000)+(se/1000)), width=.2,
+                position=position_dodge(.1))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_x_continuous(name ="Age (days)") +
+  scale_y_continuous(name ="Shell growth rate (mm per day)")  + 
+  scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
+  theme_classic() +
+  #theme(legend.position="none") +
+  # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+  facet_wrap(~pCO2)
+GrowthRate_Means_plot_D92
+
+
+```
+
+
+
+# PLOTTING  (survival + shell size)
 
 ## Survival plot (all)
 
@@ -337,13 +474,11 @@ dev.off()
 ```
 
 ##  Shell length plot (all)
+
 ```{r foodxpCO2 shell size  mean SE plots}
 # Length ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Length_Means <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed"))
-Length_Means <- Length_Means %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
+# Use 'Length_Means' summary data in the growth rate chunk above
 
 ## Use geom_line and geom_point to plot over time
 Length_All_plot <- ggplot(data=Length_Means, aes(x=Age_DPF, y=(Length_um/1000), color=pCO2)) +
@@ -361,18 +496,20 @@ Length_All_plot <- ggplot(data=Length_Means, aes(x=Age_DPF, y=(Length_um/1000), 
   # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
   facet_wrap(~pCO2)
 Length_All_plot
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_length_FoodxOA.pdf"))
+pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/Juvenile_length_FoodxOA.pdf"))
 Length_All_plot
 dev.off()
 
 ```
 
 
-# Statistical analysis (survival + shell size)
 
 
 
-# 9/14/2021 F1 juvenile scallops (50 DPF; Day 0)
+# STATISTICS (survival + shell size)
+
+
+## 9/14/2021 F1 juvenile scallops (50 DPF; Day 0)
 
 **About**
 
