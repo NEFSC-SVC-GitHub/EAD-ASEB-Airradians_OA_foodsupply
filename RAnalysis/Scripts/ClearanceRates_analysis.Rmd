@@ -159,6 +159,7 @@ Seston_FR_914_df.bfactor   <-  ClearancRates_calc %>%
   dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor', 'Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
+((11.02 - 5.47)/11.42)*100 # 48.59895
 
 pander(Total_FR_914_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
@@ -173,6 +174,7 @@ pander(Ply_FR_914_df.bfactor %>%
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
 # | 500 μatm |    fed    | 6  |      10.92       | 6.501 | 2.654 | 6.822 |
 # | 800 μatm |    fed    | 10 |      12.29       | 6.136 | 1.94  | 4.389 |
+((11.52-6.545)/11.52)*100
 pander(Chaet_FR_914_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |   se   |  ci   |
@@ -194,21 +196,18 @@ pander(Seston_FR_914_df.bfactor %>%
 # total  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
-# Ply - one-way anova
+# Total - one-way anova
 Total_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
                       data=Total_FR_914_df.bfactor) #nlme
 shapiro.test(resid(Total_AOVmod_0914)) # 0.2137
 leveneTest(Total_AOVmod_0914) # 0.03883 *
+Total_KWmod_0914 <- kruskal.test(CR_mL.hr.bfactor ~pCO2, data = Total_FR_914_df.bfactor) # run mod
+pander(print(Total_KWmod_0914), style='rmarkdown') # table for SRH test
+# | Test statistic | df |  P value   |
+# |:--------------:|:--:|:----------:|
+# |     4.854      | 1  | 0.02759  * |
 
-Total_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
-                      data=Total_FR_914_df.bfactor) #nlme
-
-pander(anova(Total_AOVmod_0914), style='rmarkdown') # anova table of lme
-# |    &nbsp;     | Df | Sum Sq | Mean Sq | F value |  Pr(>F)  |
-# |:-------------:|:--:|:------:|:-------:|:-------:|:--------:|
-# |   **pCO2**    | 1  | 400.8  |  400.8  |  13.13  | 0.002766 |
-# | **Residuals** | 14 | 427.3  |  30.52  |   NA    |    NA    |
-kable(as.data.frame(anova(Total_AOVmod_0914))) %>%  # print a png of this table
+kable(as.data.frame(anova(Total_KWmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_Total_CR_OneWayANOVA_Table.png", zoom = 1.5)
 
@@ -247,7 +246,7 @@ shapiro.test(resid(Chaet_AOVmod_0914)) # 0.19
 leveneTest(Chaet_AOVmod_0914) # 0.03809 *
 # run the non[parametric Kruskal Wallis 
 Chaet_KWmod_0914 <- kruskal.test(CR_mL.hr.bfactor ~pCO2, data = Chaet_FR_914_df.bfactor) # run mod
-pander(print(Chaet_KWmod_0914), style='rmarkdown') # table for SRH test
+pander(print(Chaet_KWmod_0914), style='rmarkdown') # table for K test
 # | Test statistic | df | P value |
 # |:--------------:|:--:|:-------:|
 # |     3.186      | 1  | 0.07429 | # marginal effect
@@ -382,20 +381,21 @@ Seston_FR_930_df   <- ClearancRates_calc %>%
 
 pander(Total_FR_930_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
-# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
-# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
-# | 500 μatm |    fed    | 15 |       6.461       | 6.868 | 1.773  | 3.803 |
-# | 500 μatm |   unfed   | 12 |       1.435       | 2.005 | 0.5789 | 1.274 |
-# | 800 μatm |    fed    | 18 |       6.413       | 8.15  | 1.921  | 4.053 |
-# | 800 μatm |   unfed   | 12 |       1.943       | 1.744 | 0.5034 | 1.108 |
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:------:|
+# | 500 μatm |    fed    | 20 |       5.775       | 6.478 | 1.449  | 3.032  |
+# | 500 μatm |   unfed   | 16 |       2.191       | 1.871 | 0.4679 | 0.9972 |
+# | 800 μatm |    fed    | 18 |       6.413       | 8.15  | 1.921  | 4.053  |
+# | 800 μatm |   unfed   | 12 |       1.943       | 1.744 | 0.5034 | 1.108  |
 pander(Ply_FR_930_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:-----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 4  |       6.507       | 7.332 | 3.666 | 11.67 |
-# | 500 μatm |   unfed   | 1  |       4.219       |  NA   |  NA   |  NA   |
+# | 500 μatm |    fed    | 13 |       4.416       | 5.617 | 1.558 | 3.394 |
+# | 500 μatm |   unfed   | 5  |       3.395       | 4.413 | 1.973 | 5.479 |
 # | 800 μatm |    fed    | 11 |       6.803       | 5.429 | 1.637 | 3.647 |
 # | 800 μatm |   unfed   | 4  |       2.187       | 2.42  | 1.21  | 3.851 |
+
 pander(Chaet_FR_930_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |   ci   |
@@ -442,20 +442,22 @@ Seston_FR_930_df.bfactor   <-  ClearancRates_calc %>%
   dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor', 'Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
+
+((16.92-8.179)/16.92)*100 # 51.66076
 pander(Total_FR_930_df.bfactor %>% 
-         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 15 |      17.17       | 16.47 | 4.253 | 9.121 |
-# | 500 μatm |   unfed   | 12 |      4.844       | 6.058 | 1.749 | 3.849 |
+# | 500 μatm |    fed    | 20 |      15.86       | 15.52 | 3.471 | 7.265 |
+# | 500 μatm |   unfed   | 16 |      7.951       | 5.675 | 1.419 | 3.024 |
 # | 800 μatm |    fed    | 18 |       18.1       | 19.75 | 4.656 | 9.823 |
 # | 800 μatm |   unfed   | 12 |      8.482       | 10.04 | 2.898 | 6.378 |
 pander(Ply_FR_930_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 4  |      16.07       | 17.71 | 8.856 | 28.18 |
-# | 500 μatm |   unfed   | 1  |      16.04       |  NA   |  NA   |  NA   |
+# | 500 μatm |    fed    | 13 |      11.75       | 13.51 | 3.747 | 8.163 |
+# | 500 μatm |   unfed   | 5  |      12.34       | 16.71 | 7.474 | 20.75 |
 # | 800 μatm |    fed    | 11 |      19.25       | 13.63 | 4.11  | 9.159 |
 # | 800 μatm |   unfed   | 4  |      8.455       | 9.576 | 4.788 | 15.24 |
 pander(Chaet_FR_930_df.bfactor %>% 
@@ -466,6 +468,8 @@ pander(Chaet_FR_930_df.bfactor %>%
 # | 500 μatm |   unfed   | 18 |      9.824       | 5.763 | 1.358 | 2.866 |
 # | 800 μatm |    fed    | 19 |      18.04       | 20.46 | 4.694 | 9.862 |
 # | 800 μatm |   unfed   | 11 |      10.39       | 13.64 | 4.113 | 9.164 |
+
+((17.75-10.04)/17.75)*100 # 43.43662
 pander(Chaet_FR_930_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")), style='rmarkdown')
 # | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
@@ -499,8 +503,8 @@ library(rcompanion)
 # Ply - one-way anova
 Total_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Total_FR_930_df.bfactor) 
-shapiro.test(resid(Total_AOVmod_0930)) # 1.282e-07
-leveneTest(Total_AOVmod_0930) # 0.1185
+shapiro.test(resid(Total_AOVmod_0930)) # 2.129e-08
+leveneTest(Total_AOVmod_0930) # 0.08744 .
 # need to run the non parametric Scheirer-Ray-Hare Test
 Total_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Total_FR_930_df.bfactor)
@@ -517,14 +521,13 @@ kable(as.data.frame(print(Total_SRHmod_0930))) %>%  # print a png of this table
 
 # ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-
+5.133e-05
 library(rcompanion)
 # Ply - one-way anova
 Ply_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Ply_FR_930_df.bfactor) 
-shapiro.test(resid(Ply_AOVmod_0930)) # 0.009967
-leveneTest(Ply_AOVmod_0930) # 0.723
-pander(anova(Ply_AOVmod_0930), style='rmarkdown') # anova table of lme
+shapiro.test(resid(Ply_AOVmod_0930)) #  5.133e-05
+leveneTest(Ply_AOVmod_0930) # 0.9666
 # need to run the non parametric Scheirer-Ray-Hare Test
 Ply_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Ply_FR_930_df.bfactor)
@@ -715,21 +718,21 @@ Seston_FR_1026_df   <- ClearancRates_calc %>%
 
 pander(Total_FR_1026_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
-# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |   sd   |  se   |   ci   |
-# |:--------:|:---------:|:--:|:-----------------:|:------:|:-----:|:------:|
-# | 500 μatm |    fed    | 8  |       12.72       | 3.775  | 1.335 | 3.156  |
-# | 500 μatm |   unfed   | 1  |       0.658       |   NA   |  NA   |   NA   |
-# | 800 μatm |    fed    | 10 |       17.96       | 13.83  | 4.373 | 9.892  |
-# | 800 μatm |   unfed   | 7  |       1.46        | 0.9789 | 0.37  | 0.9054 |
+# |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |   sd   |   se   |   ci   |
+# |:--------:|:---------:|:--:|:-----------------:|:------:|:------:|:------:|
+# | 500 μatm |    fed    | 8  |       12.89       | 3.782  | 1.337  | 3.162  |
+# | 500 μatm |   unfed   | 2  |      0.8691       | 0.9871 | 0.698  | 8.868  |
+# | 800 μatm |    fed    | 10 |       18.17       |  13.8  | 4.364  | 9.872  |
+# | 800 μatm |   unfed   | 7  |       1.994       | 1.036  | 0.3917 | 0.9585 |
 
 pander(Ply_FR_1026_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |  sd   |   se   |  ci   |
 # |:--------:|:---------:|:--:|:-----------------:|:-----:|:------:|:-----:|
-# | 500 μatm |    fed    | 8  |       41.3        | 19.73 | 6.975  | 16.49 |
-# | 500 μatm |   unfed   | 6  |       4.917       | 3.732 | 1.524  | 3.917 |
-# | 800 μatm |    fed    | 10 |       41.87       | 37.23 | 11.77  | 26.64 |
-# | 800 μatm |   unfed   | 7  |       2.603       | 2.28  | 0.8619 | 2.109 |
+# | 500 μatm |    fed    | 8  |       41.78       | 19.71 | 6.969  | 16.48 |
+# | 500 μatm |   unfed   | 7  |       6.111       | 4.378 | 1.655  | 4.049 |
+# | 800 μatm |    fed    | 10 |       42.92       | 37.15 | 11.75  | 26.58 |
+# | 800 μatm |   unfed   | 7  |       5.22        | 2.507 | 0.9476 | 2.319 |
 pander(Chaet_FR_1026_df %>% 
          summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.mmlength |   sd   |   se   |   ci   |
@@ -787,22 +790,42 @@ Seston_FR_1026_df.bfactor   <-  ClearancRates_calc %>%
   dplyr::select(!c('Chaet_mL.hr.bfactor','Total_mL.hr.bfactor','Ply_mL.hr.bfactor')) %>% 
   dplyr::mutate(pH = as.factor(pH))
 
+
+
 pander(Total_FR_1026_df.bfactor %>% 
-         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2","Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 8  |      63.17       | 23.53 | 8.32  | 19.67 |
-# | 500 μatm |   unfed   | 1  |      11.88       |  NA   |  NA   |  NA   |
-# | 800 μatm |    fed    | 10 |      99.59       | 65.21 | 20.62 | 46.65 |
-# | 800 μatm |   unfed   | 7  |      18.58       | 13.5  | 5.104 | 12.49 |
+# | 500 μatm |    fed    | 8  |      64.04       | 23.74 | 8.393 | 19.85 |
+# | 500 μatm |   unfed   | 2  |      15.66       | 17.87 | 12.64 | 160.6 |
+# | 800 μatm |    fed    | 10 |      100.9       | 64.98 | 20.55 | 46.48 |
+# | 800 μatm |   unfed   | 7  |      25.16       | 14.89 | 5.627 | 13.77 |
+((84.52-23.05)/84.52)*100 # 72.72835
+pander(Total_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("Fed_Unfed")), style='rmarkdown')
+# | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# |    fed    | 18 |      84.52       | 53.13 | 12.52 | 26.42 |
+# |   unfed   | 9  |      23.05       | 14.96 | 4.986 | 11.5  |
+
+
 pander(Ply_FR_1026_df.bfactor %>% 
-         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2","Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
-# | 500 μatm |    fed    | 8  |      201.5       | 102.2 | 36.15 | 85.47 |
-# | 500 μatm |   unfed   | 6  |      81.12       | 68.24 | 27.86 | 71.62 |
-# | 800 μatm |    fed    | 10 |      238.3       | 213.8 | 67.61 | 152.9 |
-# | 800 μatm |   unfed   | 7  |      33.12       | 29.3  | 11.07 | 27.09 |
+# | 500 μatm |    fed    | 8  |      203.9       | 102.4 | 36.2  | 85.61 |
+# | 500 μatm |   unfed   | 7  |       98.7       | 81.56 | 30.83 | 75.43 |
+# | 800 μatm |    fed    | 10 |      244.8       | 213.2 | 67.42 | 152.5 |
+# | 800 μatm |   unfed   | 7  |      65.34       | 35.15 | 13.29 | 32.51 |
+((226.6 -82.02 )/226.6)*100 # 63.80406
+pander(Ply_FR_1026_df.bfactor %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("Fed_Unfed")), style='rmarkdown')
+# | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:---------:|:--:|:----------------:|:-----:|:-----:|:-----:|
+# |    fed    | 18 |      226.6       | 169.8 | 40.01 | 84.42 |
+# |   unfed   | 14 |      82.02       | 62.77 | 16.78 | 36.24 |
+
+
 pander(Chaet_FR_1026_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
 # |   pCO2   | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
@@ -811,6 +834,8 @@ pander(Chaet_FR_1026_df.bfactor %>%
 # | 500 μatm |   unfed   | 3  |      33.45       | 16.23 | 9.371 | 40.32 |
 # | 800 μatm |    fed    | 10 |      102.3       | 63.87 | 20.2  | 45.69 |
 # | 800 μatm |   unfed   | 7  |      25.87       | 15.19 | 5.742 | 14.05 |
+
+((85.59 -28.14)/85.59)*100 # 67.12233
 pander(Chaet_FR_1026_df.bfactor %>% 
          summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")), style='rmarkdown')
 # | Fed_Unfed | N  | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
@@ -839,22 +864,22 @@ pander(Seston_FR_1026_df.bfactor %>%
 library(rcompanion)
 
 # total :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
+0.1277
 # Total - one-way anova
 Total_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Total_FR_1026_df.bfactor) 
-shapiro.test(resid(Total_AOVmod_1026)) # 0.1179
-leveneTest(Total_AOVmod_1026) # 0.01947 *
+shapiro.test(resid(Total_AOVmod_1026)) # 0.1277
+leveneTest(Total_AOVmod_1026) # 0.02123 *
 # need to run the non parametric Scheirer-Ray-Hare Test
 Total_SRHmod_1026 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Total_FR_1026_df.bfactor)
 pander(print(Total_SRHmod_1026), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |    H    | p.value  |
-# |:------------------:|:--:|:------:|:-------:|:--------:|
-# |      **pCO2**      | 1  |  33.7  | 0.5761  |  0.4479  |
-# |   **Fed_Unfed**    | 1  | 596.5  |  10.2   | 0.001407 |
-# | **pCO2:Fed_Unfed** | 1  | 3.964  | 0.06776 |  0.7946  |
-# |   **Residuals**    | 22 | 858.6  |   NA    |    NA    |
+# |       &nbsp;       | Df | Sum Sq  |     H     | p.value  |
+# |:------------------:|:--:|:-------:|:---------:|:--------:|
+# |      **pCO2**      | 1  |  45.68  |  0.7251   |  0.3945  |
+# |   **Fed_Unfed**    | 1  |  664.4  |   10.55   | 0.001164 |
+# | **pCO2:Fed_Unfed** | 1  | 0.02012 | 0.0003194 |  0.9857  |
+# |   **Residuals**    | 23 |  972.1  |    NA     |    NA    |
   kable(as.data.frame(print(Total_SRHmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Total_CR_SRH_Table.png", zoom = 1.5)
@@ -864,18 +889,18 @@ pander(print(Total_SRHmod_1026), style='rmarkdown') # table for SRH test
 # Ply - one-way anova
 Ply_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Ply_FR_1026_df.bfactor) 
-shapiro.test(resid(Ply_AOVmod_1026)) # 0.3444
-leveneTest(Ply_AOVmod_1026) # 0.0008148 ***
+shapiro.test(resid(Ply_AOVmod_1026)) # 0.4122
+leveneTest(Ply_AOVmod_1026) # 0.001524  ***
 # need to run the non parametric Scheirer-Ray-Hare Test
 Ply_SRHmod_1026 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
                       data=Ply_FR_1026_df.bfactor)
 pander(print(Ply_SRHmod_1026), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |   H    | p.value  |
-# |:------------------:|:--:|:------:|:------:|:--------:|
-# |      **pCO2**      | 1  | 70.73  | 0.8556 |  0.355   |
-# |   **Fed_Unfed**    | 1  | 772.9  | 9.349  | 0.002231 |
-# | **pCO2:Fed_Unfed** | 1  | 36.55  | 0.4422 |  0.5061  |
-# |   **Residuals**    | 27 |  1608  |   NA   |    NA    |
+# |       &nbsp;       | Df | Sum Sq |    H    | p.value |
+# |:------------------:|:--:|:------:|:-------:|:-------:|
+# |      **pCO2**      | 1  | 18.46  | 0.2098  | 0.6469  |
+# |   **Fed_Unfed**    | 1  | 545.9  |  6.203  | 0.01275 |
+# | **pCO2:Fed_Unfed** | 1  | 0.9111 | 0.01035 |  0.919  |
+# |   **Residuals**    | 28 |  2172  |   NA    |   NA    |
 kable(as.data.frame(print(Ply_SRHmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Ply_CR_SRH_Table.png", zoom = 1.5)

@@ -207,7 +207,7 @@ SlopePlots_914_Total_ChaetPly <- ClearanceRate_Master[!is.na(ClearanceRate_Maste
   dplyr::mutate(Time._min = as.numeric(as.character(time))) %>% 
   ggplot(aes(Time._min, Total_cell.ml, color=Replicate)) + 
   geom_point(shape=1, color = "black")+ 
-  ggtitle("RAW DATA - Chaetoceros: F1s Feeding Rate 20210914")+
+  ggtitle("RAW DATA - Total cells: F1s Feeding Rate 20210914")+
   labs(y = expression(Live~algae~cells~"("~cells~mL^{-1}~")"), 
        x = expression(Time~"("~minutes~")")) + 
   theme(plot.title= element_text(size =16, face ="bold", 
@@ -640,9 +640,101 @@ for (i in 1:nrow(loop_BLANKS)) { # for each unique identifier....
  } 
 
 
+
+
+
+
+#  LETS LOOK AT ALL THE DATA AND ASSESS THE BLANKS FOR OUTLIERS 
+
+
+
+# total chlorophyll - view figure of all 
+ggplot(aes(x=as.factor(pH), y=CR.Blank_Total, group=as.factor(pH)), data=meanBLANKS.Master) +
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+# - some negatives - make these zero 
+# - abnormal high values above 0.7 - omit
+meanBLANKS.Master %>% 
+  dplyr::mutate(CR.Blank_Total = if_else(CR.Blank_Total < 0, 0, CR.Blank_Total)) %>% # make all negative values 0 
+  dplyr::filter(!(CR.Blank_Total > 0.7)) %>%  # omits 3 values greater than 0.7
+  ggplot(aes(x=as.factor(pH), y=CR.Blank_Total, group=as.factor(pH))) + # now lets see the fig mang!
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+
+
+
+
+# chaetoceros
+ggplot(aes(x=as.factor(pH), y=CR.Blank_Chaet, group=as.factor(pH)), data=meanBLANKS.Master) +
+  geom_boxplot() +
+  geom_point() +
+  theme_bw()+
+  facet_wrap(~Date)
+# - make negative values zero 
+# - no other changes 
+meanBLANKS.Master %>% 
+  dplyr::mutate(CR.Blank_Chaet = if_else(CR.Blank_Chaet < 0, 0, CR.Blank_Chaet)) %>% # make all negative values 0 
+  ggplot(aes(x=as.factor(pH), y=CR.Blank_Chaet, group=as.factor(pH))) + # now lets see the fig mang!
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+
+
+
+
+
+# ply 
+ggplot(aes(x=as.factor(pH), y=CR.Blank_Ply, group=as.factor(pH)), data=meanBLANKS.Master) +
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+# - make negative values zero 
+# - omit outliers higher than 2.35 (N = 3)
+meanBLANKS.Master %>% 
+  dplyr::mutate(CR.Blank_Ply = if_else(CR.Blank_Ply < 0, 0, CR.Blank_Ply)) %>% # make all negative values 0 
+  dplyr::filter(!(CR.Blank_Ply > 2)) %>%  # omits 3 values greater than 2
+  ggplot(aes(x=as.factor(pH), y=CR.Blank_Ply, group=as.factor(pH))) + # now lets see the fig mang!
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+
+
+
+
+
+
+
+# seston
+ggplot(aes(x=as.factor(pH), y=CR.Blank_Seston, group=as.factor(pH)), data=meanBLANKS.Master) +
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+# - make negative values zero 
+meanBLANKS.Master %>% 
+  dplyr::mutate(CR.Blank_Seston = if_else(CR.Blank_Seston < 0, 0, CR.Blank_Seston)) %>% # make all negative values 0 
+ # dplyr::filter(!(CR.Blank_Seston > 2)) %>%  # omits 3 values greater than 2
+  ggplot(aes(x=as.factor(pH), y=CR.Blank_Seston, group=as.factor(pH))) + # now lets see the fig mang!
+  geom_boxplot() +
+  theme_bw()+
+  geom_point() +
+  facet_wrap(~Date)
+
+
+
+
+
 meanBLANKS.Total <- data.frame(meanBLANKS.Master) %>% 
                       dplyr::group_by(Date, pH) %>% 
                       mutate(CR.Blank_Total = if_else(CR.Blank_Total < 0, 0, CR.Blank_Total)) %>% # make all negative values 0 
+                      dplyr::filter(!(CR.Blank_Total > 0.7)) %>%  # omits 3 values greater than 0.7
                       dplyr::summarise(
                        meanBlank  = mean(CR.Blank_Total),
                        sdBlank    = sd(CR.Blank_Total),
@@ -663,7 +755,8 @@ meanBLANKS.Chaet <- data.frame(meanBLANKS.Master) %>%
 
 meanBLANKS.Ply   <- data.frame(meanBLANKS.Master) %>% 
                           dplyr::group_by(Date, pH) %>% 
-                          mutate(CR.Blank_Ply = if_else(CR.Blank_Ply < 0, 0, CR.Blank_Ply)) %>% # make all negative values 0 
+                          mutate(CR.Blank_Ply = if_else(CR.Blank_Ply < 0, 0, CR.Blank_Ply)) %>% # make all negative values 0 ]
+                          dplyr::filter(!(CR.Blank_Ply > 2)) %>%  # omits 3 values greater than 2
                           dplyr::summarise(
                            meanBlank  = mean(CR.Blank_Ply),
                            sdBlank    = sd(CR.Blank_Ply),
