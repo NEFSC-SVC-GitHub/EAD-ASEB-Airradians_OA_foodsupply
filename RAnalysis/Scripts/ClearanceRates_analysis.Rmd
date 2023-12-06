@@ -50,6 +50,19 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 # Master_data       <- read.csv(file="Data/Clearance_rates/ClearanceRates_MasterData.csv", header=T) # master data file
 ClearancRates_calc  <- read.csv(file="Output/ClearanceRates/ClearanceRate_Calc.csv", header=T) # master data file
 
+# what is our N at each timepoint? 
+#20210914 - timepoint Day 0
+ClearancRates_calc %>% dplyr::filter(Date == '20210914') %>% 
+                       summarySE(measurevar="Length_um", 
+                                 groupvars=c("Replicate", "pH", "Fed_Unfed")) # N = 3 per replicate
+#20210930 - timepoint Day 14
+ClearancRates_calc %>% dplyr::filter(Date == '20210930') %>% 
+                       summarySE(measurevar="Length_um", 
+                                 groupvars=c("Replicate", "pH", "Fed_Unfed")) # N = 4-5 per replicate
+#20211026 - timepoint Day 42
+ClearancRates_calc %>% dplyr::filter(Date == '20211026') %>% 
+                       summarySE(measurevar="Length_um", 
+                                 groupvars=c("Replicate", "pH", "Fed_Unfed")) # N = 2-3 per replicate
 ```
 
 
@@ -187,6 +200,15 @@ pander(Seston_FR_914_df.bfactor %>%
 # |:--------:|:---------:|:--:|:----------------:|:-----:|:------:|:-----:|
 # | 500 μatm |    fed    | 11 |      6.056       | 2.884 | 0.8694 | 1.937 |
 # | 800 μatm |    fed    | 12 |       8.82       | 5.238 | 1.512  | 3.328 |
+
+
+Master_914_plotting         <- rbind(Total_FR_914_df,
+                                      Chaet_FR_914_df, 
+                                      Ply_FR_914_df, 
+                                      Seston_FR_914_df)
+Master_914_plotting$pHxfood <- paste(Master_914_plotting$pCO2, Master_914_plotting$Fed_Unfed, sep = '_')
+
+
 ```
 
 ```{r 20210914 CR ANALYSIS, echo = T}
@@ -197,19 +219,25 @@ pander(Seston_FR_914_df.bfactor %>%
 
 
 # Total - one-way anova
-Total_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
-                      data=Total_FR_914_df.bfactor) #nlme
-shapiro.test(resid(Total_AOVmod_0914)) # 0.2137
-leveneTest(Total_AOVmod_0914) # 0.03883 *
-Total_KWmod_0914 <- kruskal.test(CR_mL.hr.bfactor ~pCO2, data = Total_FR_914_df.bfactor) # run mod
-pander(print(Total_KWmod_0914), style='rmarkdown') # table for SRH test
-# | Test statistic | df |  P value   |
-# |:--------------:|:--:|:----------:|
-# |     4.854      | 1  | 0.02759  * |
+Total_FR_914_df.bfactor_MEAN <- Total_FR_914_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Total_AOVmod_0914            <-aov(CR_mL.hr.bfactor ~ pCO2,
+                                   data=Total_FR_914_df.bfactor_MEAN) #nlme
+shapiro.test(resid(Total_AOVmod_0914)) # 0.6055
+leveneTest(Total_AOVmod_0914) # 0.2651
+pander(print(Total_AOVmod_0914), style='rmarkdown') # table for SRH test
+# |    &nbsp;     | Df | Sum Sq | Mean Sq | F value | Pr(>F)  |
+# |:-------------:|:--:|:------:|:-------:|:-------:|:-------:|
+# |   **pCO2**    | 1  |  65.7  |  65.7   |  10.58  | 0.01741 |
+# | **Residuals** | 6  | 37.26  |  6.21   |   NA    |   NA    |
 
 kable(as.data.frame(anova(Total_KWmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_Total_CR_OneWayANOVA_Table.png", zoom = 1.5)
+
+# pCO2 diff - report this percent difference alonside the MARGINAL effect
+Total_FR_914_df.bfactor_MEAN %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars="pCO2")
+perc_diff <- (11.519315 - 6.576001)/11.519315*100
+perc_diff #42.91326 %v
 
 
 
@@ -217,15 +245,16 @@ kable(as.data.frame(anova(Total_KWmod_0914))) %>%  # print a png of this table
 
 
 # Ply - one-way anova
-Ply_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
-                      data=Ply_FR_914_df.bfactor) #nlme
-shapiro.test(resid(Ply_AOVmod_0914)) # 0.1574
-leveneTest(Ply_AOVmod_0914) # 0.8947
+Ply_FR_914_df.bfactor_MEAN <- Ply_FR_914_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Ply_AOVmod_0914            <-aov(CR_mL.hr.bfactor ~ pCO2,
+                                 data=Ply_FR_914_df.bfactor_MEAN) #nlme
+shapiro.test(resid(Ply_AOVmod_0914)) # 0.1686
+leveneTest(Ply_AOVmod_0914) # 0.3539
 pander(anova(Ply_AOVmod_0914), style='rmarkdown') # anova table of lme
 # |    &nbsp;     | Df | Sum Sq | Mean Sq | F value | Pr(>F) |
 # |:-------------:|:--:|:------:|:-------:|:-------:|:------:|
-# |   **pCO2**    | 1  | 6.958  |  6.958  | 0.1771  | 0.6803 |
-# | **Residuals** | 14 | 550.1  |  39.29  |   NA    |   NA   |
+# |   **pCO2**    | 1  | 1.125  |  1.125  | 0.03592 | 0.8559 |
+# | **Residuals** | 6  |  188   |  31.33  |   NA    |   NA   |
 kable(as.data.frame(anova(Ply_AOVmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_Ply_CR_OneWayANOVA_Table.png", zoom = 1.5)
@@ -240,35 +269,41 @@ kable(as.data.frame(anova(Ply_AOVmod_0914))) %>%  # print a png of this table
 
 
 # Chaet - one-way anova
-Chaet_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
-                      data=Chaet_FR_914_df.bfactor) #nlme
-shapiro.test(resid(Chaet_AOVmod_0914)) # 0.19
-leveneTest(Chaet_AOVmod_0914) # 0.03809 *
-# run the non[parametric Kruskal Wallis 
-Chaet_KWmod_0914 <- kruskal.test(CR_mL.hr.bfactor ~pCO2, data = Chaet_FR_914_df.bfactor) # run mod
-pander(print(Chaet_KWmod_0914), style='rmarkdown') # table for K test
-# | Test statistic | df | P value |
-# |:--------------:|:--:|:-------:|
-# |     3.186      | 1  | 0.07429 | # marginal effect
+Chaet_FR_914_df.bfactor_MEAN <- Chaet_FR_914_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Chaet_AOVmod_0914            <-aov(CR_mL.hr.bfactor ~ pCO2,
+                                   data=Chaet_FR_914_df.bfactor_MEAN) #nlme
+shapiro.test(resid(Chaet_AOVmod_0914)) # 0.8881
+leveneTest(Chaet_AOVmod_0914) #0.3802
+pander(print(Chaet_AOVmod_0914), style='rmarkdown') # table for K test
+# |    &nbsp;     | Df | Sum Sq | Mean Sq | F value | Pr(>F)  |
+# |:-------------:|:--:|:------:|:-------:|:-------:|:-------:|
+# |   **pCO2**    | 1  | 48.87  |  48.87  |  7.494  | 0.03385 |
+# | **Residuals** | 6  | 39.13  |  6.521  |   NA    |   NA    |
 # pCO2 diff - report this percent difference alonside the MARGINAL effect
-Chaet_FR_914_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars="pCO2")
-perc_diff <- (11.519315 - 6.545472)/11.519315*100
-perc_diff #43.17829 %
+Chaet_FR_914_df.bfactor_MEAN %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars="pCO2")
+perc_diff <- (11.519315 - 6.576001)/11.519315*100
+perc_diff #42.91326 %v
+
+kable(as.data.frame(anova(Chaet_AOVmod_0914))) %>%  # print a png of this table
+  kable_styling() %>%
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_Chaet_CR_OneWayANOVA_Table.png", zoom = 1.5)
+
 
 
 # seston  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 # Seston - one-way anova
-Seston_AOVmod_0914 <-aov(CR_mL.hr.bfactor ~ pCO2,
-                      data=Seston_FR_914_df.bfactor) #nlme
-shapiro.test(resid(Seston_AOVmod_0914)) # 0.7196
-leveneTest(Seston_AOVmod_0914) # 0.09577 .
+Seston_FR_914_df.bfactor_MEAN <- Seston_FR_914_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Seston_AOVmod_0914            <- aov(CR_mL.hr.bfactor ~ pCO2,
+                                     data=Seston_FR_914_df.bfactor_MEAN) #nlme
+shapiro.test(resid(Seston_AOVmod_0914)) # 0.9325
+leveneTest(Seston_AOVmod_0914) # 0.4152
 pander(aov(Seston_AOVmod_0914), style='rmarkdown') # table for SRH test
 # |    &nbsp;     | Df | Sum Sq | Mean Sq | F value | Pr(>F) |
 # |:-------------:|:--:|:------:|:-------:|:-------:|:------:|
-# |   **pCO2**    | 1  | 43.85  |  43.85  |  2.392  | 0.1369 |
-# | **Residuals** | 21 |  385   |  18.33  |   NA    |   NA   |
+# |   **pCO2**    | 1  | 17.99  |  17.99  |  2.496  | 0.1652 |
+# | **Residuals** | 6  | 43.24  |  7.207  |   NA    |   NA   |
 kable(as.data.frame(anova(Seston_AOVmod_0914))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_Seston_CR_OneWayANOVA_Table.png", zoom = 1.5)
@@ -340,7 +375,6 @@ dev.off()
 
 
 ## 20210930 Clearance Rate data 
-
 
 ```{r 20210930 CR DATA SUMMARY, echo = T}
 
@@ -501,43 +535,41 @@ pander(Seston_FR_930_df.bfactor %>%
 
 library(rcompanion)
 # Ply - one-way anova
-Total_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Total_FR_930_df.bfactor) 
-shapiro.test(resid(Total_AOVmod_0930)) # 2.129e-08
-leveneTest(Total_AOVmod_0930) # 0.08744 .
-# need to run the non parametric Scheirer-Ray-Hare Test
-Total_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Total_FR_930_df.bfactor)
-pander(print(Total_SRHmod_0930), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
-# |:------------------:|:--:|:------:|:------:|:-------:|
-# |      **pCO2**      | 1  | 272.2  | 0.9882 | 0.3202  |
-# |   **Fed_Unfed**    | 1  |  2654  | 9.634  | 0.00191 |
-# | **pCO2:Fed_Unfed** | 1  | 318.6  | 1.157  | 0.2822  |
-# |   **Residuals**    | 53 | 12100  |   NA   |   NA    |
-kable(as.data.frame(print(Total_SRHmod_0930))) %>%  # print a png of this table
+Total_FR_930_df.bfactor_MEAN <- Total_FR_930_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Total_AOVmod_0930            <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                   data=Total_FR_930_df.bfactor_MEAN) 
+shapiro.test(resid(Total_AOVmod_0930)) # 0.1223
+leveneTest(Total_AOVmod_0930) # 0.6936
+pander(print(Total_AOVmod_0930), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df |  Sum Sq   |  Mean Sq  |  F value  | Pr(>F)  |
+# |:------------------:|:--:|:---------:|:---------:|:---------:|:-------:|
+# |      **pCO2**      | 1  |   28.2    |   28.2    |  0.6387   | 0.4397  |
+# |   **Fed_Unfed**    | 1  |   262.7   |   262.7   |   5.948   | 0.03122 |
+# | **pCO2:Fed_Unfed** | 1  | 0.0002145 | 0.0002145 | 4.858e-06 | 0.9983  |
+# |   **Residuals**    | 12 |   529.9   |   44.16   |    NA     |   NA    |
+kable(as.data.frame(anova(Total_AOVmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Total_CR_SRH_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Total_CR_OneWayANOVA_Table.png", zoom = 1.5)
 
 # ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-5.133e-05
 library(rcompanion)
 # Ply - one-way anova
-Ply_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Ply_FR_930_df.bfactor) 
-shapiro.test(resid(Ply_AOVmod_0930)) #  5.133e-05
-leveneTest(Ply_AOVmod_0930) # 0.9666
+Ply_FR_930_df.bfactor_MEAN <- Ply_FR_930_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Ply_AOVmod_0930              <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                   data=Ply_FR_930_df.bfactor_MEAN) 
+shapiro.test(resid(Ply_AOVmod_0930)) #  0.04916
+leveneTest(Ply_AOVmod_0930) # 0.9258
 # need to run the non parametric Scheirer-Ray-Hare Test
 Ply_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Ply_FR_930_df.bfactor)
+                      data=Ply_FR_930_df.bfactor_MEAN)
 pander(print(Ply_SRHmod_0930), style='rmarkdown') # table for SRH test
 # |       &nbsp;       | Df | Sum Sq |   H    | p.value |
 # |:------------------:|:--:|:------:|:------:|:-------:|
-# |      **pCO2**      | 1  | 4.876  | 0.1393 |  0.709  |
-# |   **Fed_Unfed**    | 1  | 36.88  | 1.054  | 0.3047  |
-# | **pCO2:Fed_Unfed** | 1  | 35.36  |  1.01  | 0.3149  |
-# |   **Residuals**    | 16 | 589.5  |   NA   |   NA    |
+# |      **pCO2**      | 1  |  12.8  | 0.844  | 0.3583  |
+# |   **Fed_Unfed**    | 1  | 6.857  | 0.4521 | 0.5013  |
+# | **pCO2:Fed_Unfed** | 1  |   12   | 0.7912 | 0.3737  |
+# |   **Residuals**    | 9  |  152   |   NA   |   NA    |
 kable(as.data.frame(print(Ply_SRHmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Ply_CR_SRH_Table.png", zoom = 1.5)
@@ -549,29 +581,21 @@ kable(as.data.frame(print(Ply_SRHmod_0930))) %>%  # print a png of this table
 
 
 # Chaet - one-way anova
-Chaet_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Chaet_FR_930_df.bfactor) 
-shapiro.test(resid(Chaet_AOVmod_0930)) # 7.288e-10
-leveneTest(Chaet_AOVmod_0930) #0.1219
-# need to run the non parametric Scheirer-Ray-Hare Test
-Chaet_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Chaet_FR_930_df.bfactor)
-pander(print(Chaet_SRHmod_0930), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |    H    | p.value |
-# |:------------------:|:--:|:------:|:-------:|:-------:|
-# |      **pCO2**      | 1  | 523.4  |  1.338  | 0.2473  |
-# |   **Fed_Unfed**    | 1  |  1513  |  3.871  | 0.04913 |
-# | **pCO2:Fed_Unfed** | 1  | 32.51  | 0.08314 | 0.7731  |
-# |   **Residuals**    | 64 | 24297  |   NA    |   NA    |
-kable(as.data.frame(print(Chaet_SRHmod_0930))) %>%  # print a png of this table
+Chaet_FR_930_df.bfactor_MEAN <- Chaet_FR_930_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Chaet_AOVmod_0930            <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                   data=Chaet_FR_930_df.bfactor_MEAN) 
+shapiro.test(resid(Chaet_AOVmod_0930)) # 0.3312
+leveneTest(Chaet_AOVmod_0930) #0.5328
+pander(print(Chaet_AOVmod_0930), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq | Mean Sq | F value | Pr(>F)  |
+# |:------------------:|:--:|:------:|:-------:|:-------:|:-------:|
+# |      **pCO2**      | 1  | 10.02  |  10.02  | 0.2151  | 0.6511  |
+# |   **Fed_Unfed**    | 1  | 183.4  |  183.4  |  3.936  | 0.07062 |
+# | **pCO2:Fed_Unfed** | 1  | 3.981  |  3.981  | 0.08545 |  0.775  |
+# |   **Residuals**    | 12 | 559.1  |  46.59  |   NA    |   NA    |
+kable(as.data.frame(anova(Chaet_AOVmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Chaet_CR_SRH_Table.png", zoom = 1.5)
-
-kable(as.data.frame(print(Chaet_FR_930_df.bfactor %>% 
-        summarySE(measurevar="CR_mL.hr.bfactor", groupvars="Fed_Unfed")))) %>% 
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Chaet_CR_SRH_Summary.png", zoom = 1.5)
-
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Chaet_CR_OneWayANOVA_Table.png", zoom = 1.5)
 
 
 
@@ -580,21 +604,21 @@ kable(as.data.frame(print(Chaet_FR_930_df.bfactor %>%
 
 
 # Seston - one-way anova
-Seston_AOVmod_0930 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Seston_FR_930_df.bfactor) #nlme
-shapiro.test(resid(Seston_AOVmod_0930))# 1.131e-08
-leveneTest(Seston_AOVmod_0930) # 0.5302 .
-pander(aov(Seston_AOVmod_0930), style='rmarkdown') # table for SRH test
+Seston_FR_930_df.bfactor_MEAN <- Seston_FR_930_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Seston_AOVmod_0930            <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                    data=Seston_FR_930_df.bfactor_MEAN) #nlme
+shapiro.test(resid(Seston_AOVmod_0930))# 0.0004351
+leveneTest(Seston_AOVmod_0930) # 0.3645 .
 # need to run the non parametric Scheirer-Ray-Hare Test
 Seston_SRHmod_0930 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Seston_FR_930_df.bfactor)
+                      data=Seston_FR_930_df.bfactor_MEAN)
 pander(print(Seston_SRHmod_0930), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
-# |:------------------:|:--:|:------:|:------:|:-------:|
-# |      **pCO2**      | 1  | 55.58  | 0.2615 | 0.6091  |
-# |   **Fed_Unfed**    | 1  |  115   | 0.541  |  0.462  |
-# | **pCO2:Fed_Unfed** | 1  | 464.8  | 2.187  | 0.1391  |
-# |   **Residuals**    | 46 |  9794  |   NA   |   NA    |
+# |       &nbsp;       | Df | Sum Sq |    H    | p.value |
+# |:------------------:|:--:|:------:|:-------:|:-------:|
+# |      **pCO2**      | 1  |  2.25  | 0.09926 | 0.7527  |
+# |   **Fed_Unfed**    | 1  |  2.25  | 0.09926 | 0.7527  |
+# | **pCO2:Fed_Unfed** | 1  |   1    | 0.04412 | 0.8336  |
+# |   **Residuals**    | 12 | 334.5  |   NA    |   NA    |
 kable(as.data.frame(print(Seston_SRHmod_0930))) %>%  # print a png of this table
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210930_figs_tables/20210930_Seston_CR_SRH_Table.png", zoom = 1.5)
@@ -851,6 +875,16 @@ pander(Seston_FR_1026_df.bfactor %>%
 # | 500 μatm |   unfed   | 6 |      38.61       | 19.13 | 7.81  | 20.08 |
 # | 800 μatm |    fed    | 9 |      69.81       | 39.06 | 13.02 | 30.02 |
 # | 800 μatm |   unfed   | 6 |       22.5       | 19.96 | 8.147 | 20.94 |
+
+
+
+Master_1026_plotting         <- rbind(Total_FR_1026_df,
+                                      Chaet_FR_1026_df, 
+                                      Ply_FR_1026_df, 
+                                      Seston_FR_1026_df)
+Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pCO2, Master_1026_plotting$Fed_Unfed, sep = '_')
+
+
 ```
 
 ```{r 20211026 CR analysis, echo = T}
@@ -864,51 +898,68 @@ pander(Seston_FR_1026_df.bfactor %>%
 library(rcompanion)
 
 # total :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-0.1277
+# 0.1277
 # Total - one-way anova
+Total_FR_1026_df.bfactor_MEAN <- Total_FR_1026_df.bfactor %>% 
+  summarySE(measurevar="CR_mL.hr.bfactor", 
+            groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
 Total_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Total_FR_1026_df.bfactor) 
-shapiro.test(resid(Total_AOVmod_1026)) # 0.1277
-leveneTest(Total_AOVmod_1026) # 0.02123 *
-# need to run the non parametric Scheirer-Ray-Hare Test
-Total_SRHmod_1026 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Total_FR_1026_df.bfactor)
-pander(print(Total_SRHmod_1026), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq  |     H     | p.value  |
-# |:------------------:|:--:|:-------:|:---------:|:--------:|
-# |      **pCO2**      | 1  |  45.68  |  0.7251   |  0.3945  |
-# |   **Fed_Unfed**    | 1  |  664.4  |   10.55   | 0.001164 |
-# | **pCO2:Fed_Unfed** | 1  | 0.02012 | 0.0003194 |  0.9857  |
-# |   **Residuals**    | 23 |  972.1  |    NA     |    NA    |
-  kable(as.data.frame(print(Total_SRHmod_1026))) %>%  # print a png of this table
+                      data=Total_FR_1026_df.bfactor_MEAN) 
+shapiro.test(resid(Total_AOVmod_1026)) # 0.417
+leveneTest(Total_AOVmod_1026) # 0.9283
+
+pander(print(Total_AOVmod_1026), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq | Mean Sq | F value |  Pr(>F)   |
+# |:------------------:|:--:|:------:|:-------:|:-------:|:---------:|
+# |      **pCO2**      | 1  | 289.1  |  289.1  |  2.089  |  0.1823   |
+# |   **Fed_Unfed**    | 1  | 13034  |  13034  |  94.16  | 4.594e-06 |
+# | **pCO2:Fed_Unfed** | 1  |  441   |   441   |  3.186  |  0.1079   |
+# |   **Residuals**    | 9  |  1246  |  138.4  |   NA    |    NA     |
+  kable(as.data.frame(anova(Total_AOVmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Total_CR_SRH_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Total_CR_Twowayanova_Table.png", zoom = 1.5)
   
-# ply :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+print(Total_FR_1026_df.bfactor_MEAN %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")))
 
+# fed 	8	83.09019	23.39664	8.271961	19.56008
+# unfed	5	23.91014	10.02891	4.485065	12.45254
+# ((83.09019-23.91014)/83.09019)*100 # 71.22387
+
+  
+  
+  
+  
+# ply ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  
+  
+  
+  
 # Ply - one-way anova
-Ply_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Ply_FR_1026_df.bfactor) 
-shapiro.test(resid(Ply_AOVmod_1026)) # 0.4122
-leveneTest(Ply_AOVmod_1026) # 0.001524  ***
-# need to run the non parametric Scheirer-Ray-Hare Test
-Ply_SRHmod_1026 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Ply_FR_1026_df.bfactor)
-pander(print(Ply_SRHmod_1026), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |    H    | p.value |
-# |:------------------:|:--:|:------:|:-------:|:-------:|
-# |      **pCO2**      | 1  | 18.46  | 0.2098  | 0.6469  |
-# |   **Fed_Unfed**    | 1  | 545.9  |  6.203  | 0.01275 |
-# | **pCO2:Fed_Unfed** | 1  | 0.9111 | 0.01035 |  0.919  |
-# |   **Residuals**    | 28 |  2172  |   NA    |   NA    |
-kable(as.data.frame(print(Ply_SRHmod_1026))) %>%  # print a png of this table
+Ply_FR_1026_df.bfactor_MEAN <- Ply_FR_1026_df.bfactor %>% 
+                                summarySE(measurevar="CR_mL.hr.bfactor", 
+                                          groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Ply_AOVmod_1026             <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                   data=Ply_FR_1026_df.bfactor_MEAN) 
+shapiro.test(resid(Ply_AOVmod_1026)) # 0.7939
+leveneTest(Ply_AOVmod_1026) # 0.4584
+pander(print(Ply_AOVmod_1026), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq | Mean Sq | F value  |  Pr(>F)   |
+# |:------------------:|:--:|:------:|:-------:|:--------:|:---------:|
+# |      **pCO2**      | 1  | 20.07  |  20.07  | 0.005925 |  0.9399   |
+# |   **Fed_Unfed**    | 1  | 79147  |  79147  |  23.36   | 0.0004096 |
+# | **pCO2:Fed_Unfed** | 1  |  3944  |  3944   |  1.164   |  0.3018   |
+# |   **Residuals**    | 12 | 40655  |  3388   |    NA    |    NA     |
+kable(as.data.frame(anova(Ply_AOVmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Ply_CR_SRH_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Ply_CR_Twowayanova_Table.png", zoom = 1.5)
 
-kable(as.data.frame(print(Ply_FR_1026_df.bfactor %>% 
-        summarySE(measurevar="CR_mL.hr.bfactor", groupvars="Fed_Unfed")))) %>% 
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Ply_CR_SRH_Summary.png", zoom = 1.5)
+print(Ply_FR_1026_df.bfactor_MEAN %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=("Fed_Unfed")))
+
+# fed	  8	220.72887	57.46115	20.31559	48.03873
+# unfed	8	80.06365	55.42784	19.59670	46.33883
+((220.72887-80.06365)/220.72887)*100 # 63.7276
+
+
 
 
 
@@ -917,101 +968,125 @@ kable(as.data.frame(print(Ply_FR_1026_df.bfactor %>%
 
 
 # Chaet - two-way anova
-Chaet_AOVmod_1026 <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Chaet_FR_1026_df.bfactor) 
-shapiro.test(resid(Chaet_AOVmod_1026)) # 0.059
-leveneTest(Chaet_AOVmod_1026) # 0.02634 *
-# need to run the non parametric Scheirer-Ray-Hare Test
-Chaet_SRHmod_1026 <- scheirerRayHare(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Chaet_FR_1026_df.bfactor)
-pander(print(Chaet_SRHmod_1026), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |   H    | p.value  |
-# |:------------------:|:--:|:------:|:------:|:--------:|
-# |      **pCO2**      | 1  | 17.64  | 0.2607 |  0.6096  |
-# |   **Fed_Unfed**    | 1  | 654.5  | 9.672  | 0.001871 |
-# | **pCO2:Fed_Unfed** | 1  | 35.82  | 0.5294 |  0.4669  |
-# |   **Residuals**    | 24 |  1136  |   NA   |   v NA    |
-kable(as.data.frame(print(Chaet_SRHmod_1026))) %>%  # print a png of this table
+Chaet_FR_1026_df.bfactor_MEAN <- Chaet_FR_1026_df.bfactor %>% 
+                                  summarySE(measurevar="CR_mL.hr.bfactor", 
+                                            groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Chaet_AOVmod_1026             <-aov(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                    data=Chaet_FR_1026_df.bfactor_MEAN) 
+shapiro.test(resid(Chaet_AOVmod_1026)) # 0.7287
+leveneTest(Chaet_AOVmod_1026) # 0.6625
+pander(print(Chaet_AOVmod_1026), style='rmarkdown') # table for SRH test
+# |       &nbsp;       | Df | Sum Sq | Mean Sq | F value |  Pr(>F)  |
+# |:------------------:|:--:|:------:|:-------:|:-------:|:--------:|
+# |      **pCO2**      | 1  | 510.3  |  510.3  |  3.233  |  0.1024  |
+# |   **Fed_Unfed**    | 1  | 12290  |  12290  |  77.87  | 4.94e-06 |
+# | **pCO2:Fed_Unfed** | 1  |  1361  |  1361   |  8.624  | 0.01487  |
+# |   **Residuals**    | 10 |  1578  |  157.8  |   NA    |    NA    |
+
+kable(as.data.frame(anova(Chaet_AOVmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Chaet_CR_SRH_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Chaet_CR_Twowayanova_Table.png", zoom = 1.5)
 
-kable(as.data.frame(print(Chaet_FR_1026_df.bfactor %>% 
-        summarySE(measurevar="CR_mL.hr.bfactor", groupvars="Fed_Unfed")))) %>% 
+
+TukeyHSD(aov(Chaet_AOVmod_1026))
+# $`pCO2:Fed_Unfed`
+#                                     diff        lwr        upr     p adj
+# 800 ?atm:fed-500 ?atm:fed      38.819952   11.64189  65.998014 0.0064054 here
+# 500 ?atm:unfed-500 ?atm:fed   -35.971204  -69.25740  -2.685011 0.0337591 here
+# 800 ?atm:unfed-500 ?atm:fed   -38.400747  -65.57881 -11.222684 0.0068814 here
+# 500 ?atm:unfed-800 ?atm:fed   -74.791156 -108.07735 -41.504963 0.0002113 here
+# 800 ?atm:unfed-800 ?atm:fed   -77.220698 -104.39876 -50.042636 0.0000281 here
+# 800 ?atm:unfed-500 ?atm:unfed  -2.429543  -35.71574  30.856650 0.9958118
+library(emmeans) # posthoc letters!
+Chaet_1026_emmeans <- emmeans(Chaet_AOVmod_1026, pairwise ~ pCO2:Fed_Unfed)
+Chaet_1026_emmeans
+ # contrast                        estimate    SE df t.ratio p.value
+ # 500 ?atm fed - 800 ?atm fed       -38.82  8.88 10  -4.370  0.0064
+ # 500 ?atm fed - 500 ?atm unfed      35.97 10.88 10   3.306  0.0338
+ # 500 ?atm fed - 800 ?atm unfed      38.40  8.88 10   4.323  0.0069
+ # 800 ?atm fed - 500 ?atm unfed      74.79 10.88 10   6.874  0.0002
+ # 800 ?atm fed - 800 ?atm unfed      77.22  8.88 10   8.693  <.0001
+ # 500 ?atm unfed - 800 ?atm unfed     2.43 10.88 10   0.223  0.9958
+multcomp::cld(object = Chaet_1026_emmeans$emmeans,Letters = letters)
+ # pCO2     Fed_Unfed emmean   SE df lower.CL upper.CL .group
+ # 800 atm unfed       26.3 6.28 10    12.35     40.3  a    
+ # 500 atm unfed       28.8 8.88 10     8.98     48.6  a    
+ # 500 atm fed         64.7 6.28 10    50.75     78.7   b   
+ # 800 atm fed        103.6 6.28 10    89.57    117.6    c  
+
+
+kable(as.data.frame(print(Chaet_FR_1026_df.bfactor_MEAN %>% 
+        summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2","Fed_Unfed") )))) %>% 
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Chaet_CR_SRH_Summary.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Chaet_posthoc_Summary.png", zoom = 1.5)
+  
+
+# look at the data - percent difference - the posthoc effect
+pander(Chaet_FR_1026_df.bfactor_MEAN %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", 
+                   groupvars=c("pCO2", "Fed_Unfed")), style='rmarkdown')
+# |   pCO2   | Fed_Unfed | N | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:--------:|:---------:|:-:|:----------------:|:-----:|:-----:|:-----:|
+# | 500 ?atm |    fed    | 4 |      64.74       | 10.29 | 5.146 | 16.38 |
+# | 500 ?atm |   unfed   | 2 |      28.77       | 19.85 | 14.04 | 178.4 |
+# | 800 ?atm |    fed    | 4 |      79.36       | 46.67 | 23.33 | 74.26 | 
+# | 800 ?atm |   unfed   | 4 |      26.34       | 6.628 | 3.314 | 10.55 | 
+((79.36-64.74)/79.36)*100 # 18.42238 % higher clearance of chaet B by high OA high food than low OA high food
+((79.36-28.77)/79.36)*100 # 63.74748
+((79.36-26.34)/79.36)*100 # 66.80948
 
 
-
+# the food effect
+pander(Chaet_FR_1026_df.bfactor_MEAN %>% 
+         summarySE(measurevar="CR_mL.hr.bfactor", 
+                   groupvars=c("Fed_Unfed")), style='rmarkdown')
+# | Fed_Unfed | N | CR_mL.hr.bfactor |  sd   |  se   |  ci   |
+# |:---------:|:-:|:----------------:|:-----:|:-----:|:-----:|
+# |    fed    | 8 |      84.15       | 24.1  | 8.521 | 20.15 |
+# |   unfed   | 6 |      27.15       | 10.33 | 4.218 | 10.84 |
+((84.15-27.15)/84.15)*100 # 67.73619
+84.15/27.15
 
 # seston  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 
-# Seston - one-way anova
-Seston_AOVmod_1026 <-lm(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
-                      data=Seston_FR_1026_df.bfactor) #nlme
-shapiro.test(resid(Seston_AOVmod_1026))# 0.1163
-leveneTest(Seston_AOVmod_1026) # 0.553
+# Seston - two-way anova
+Seston_FR_1026_df.bfactor_MEAN <- Seston_FR_1026_df.bfactor %>% summarySE(measurevar="CR_mL.hr.bfactor", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
+Seston_AOVmod_1026             <-lm(CR_mL.hr.bfactor ~ pCO2 * Fed_Unfed,
+                                    data=Seston_FR_1026_df.bfactor_MEAN) #nlme
+shapiro.test(resid(Seston_AOVmod_1026))# 0.3258
+leveneTest(Seston_AOVmod_1026) # 0.1911
 pander(aov(Seston_AOVmod_1026), style='rmarkdown') # table for SRH test
 # |       &nbsp;       | Df | Sum Sq | Mean Sq | F value | Pr(>F)  |
 # |:------------------:|:--:|:------:|:-------:|:-------:|:-------:|
-# |      **pCO2**      | 1  |  1145  |  1145   |  1.55   | 0.2247  |
-# |   **Fed_Unfed**    | 1  |  4041  |  4041   |  5.47   | 0.02763 |
-# | **pCO2:Fed_Unfed** | 1  |  4017  |  4017   |  5.438  | 0.02806 |
-# |   **Residuals**    | 25 | 18470  |  738.8  |   NA    |   NA    |
+# |      **pCO2**      | 1  |  148   |   148   | 0.3303  | 0.5771  |
+# |   **Fed_Unfed**    | 1  |  1802  |  1802   |  4.021  | 0.07016 |
+# | **pCO2:Fed_Unfed** | 1  |  1618  |  1618   |  3.611  | 0.08392 |
+# |   **Residuals**    | 11 |  4930  |  448.1  |   NA    |   NA    |
 kable(as.data.frame(anova(Seston_AOVmod_1026))) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Seston_CR_AOV_Table.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Seston_CR_Twowayanova_Table.png", zoom = 1.5)
 
-TukeyHSD(aov(Seston_AOVmod_1026))
-# $`pCO2:Fed_Unfed`
-#                                      diff        lwr       upr     p adj
-# 800 μatm:fed-500 μatm:fed      31.7200471  -4.608842 68.048937 0.1027106
-# 500 μatm:unfed-500 μatm:fed     0.5181631 -39.859140 40.895466 0.9999837
-# 800 μatm:unfed-500 μatm:fed   -15.5902988 -55.967602 24.787004 0.7151471
-# 500 μatm:unfed-800 μatm:fed   -31.2018840 -70.606097  8.202329 0.1569984
-# 800 μatm:unfed-800 μatm:fed   -47.3103459 -86.714559 -7.906133 0.0143452
-# 800 μatm:unfed-500 μatm:unfed -16.1084619 -59.273615 27.056691 0.7357263
 
-library(emmeans) # posthoc letters!
-emmeans(Seston_AOVmod_1026, pairwise ~ pCO2:Fed_Unfed)
-# contrast                          estimate   SE df t.ratio p.value
-#  500 μatm fed - 800 μatm fed      -31.720 13.2 25  -2.402  0.1027
-#  500 μatm fed - 500 μatm unfed     -0.518 14.7 25  -0.035  1.0000
-#  500 μatm fed - 800 μatm unfed     15.590 14.7 25   1.062  0.7151
-#  800 μatm fed - 500 μatm unfed     31.202 14.3 25   2.178  0.1570
-#  800 μatm fed - 800 μatm unfed     47.310 14.3 25   3.303  0.0143 **
-#  500 μatm unfed - 800 μatm unfed   16.108 15.7 25   1.026  0.7357
-
-kable(as.data.frame(print(Seston_FR_1026_df.bfactor %>% 
-        summarySE(measurevar="CR_mL.hr.bfactor", groupvars=c("pCO2","Fed_Unfed") )))) %>% 
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_Seston_CR_AOV_Summary.png", zoom = 1.5)
-  
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 #  Plots  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
 
-
-Master_1026_plotting         <- rbind(Total_FR_1026_df,
-                                      Chaet_FR_1026_df, 
-                                      Ply_FR_1026_df, 
-                                      Seston_FR_1026_df)
-Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pCO2, Master_1026_plotting$Fed_Unfed, sep = '_')
-CR_1026_boxplot <- Master_1026_plotting %>% 
-  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
-  scale_fill_manual(values=c("grey50","grey50","white","white")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=10)) +
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance rate, F1 Scallops 20211026") +
-  facet_wrap(~type)
+CR_1026_boxplot              <- Master_1026_plotting %>% 
+                                      ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
+                                      theme(panel.grid=element_blank()) +
+                                      geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
+                                      scale_fill_manual(values=c("grey50","grey50","white","white")) +
+                                      geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
+                                      theme_classic() +
+                                      theme(axis.text=element_text(size=12),
+                                            axis.title=element_text(size=10)) +
+                                      stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
+                                      ggtitle("Clearance rate, F1 Scallops 20211026") +
+                                      facet_wrap(~type)
 CR_1026_boxplot
 
 
@@ -1023,28 +1098,28 @@ Master_1026_plotting.bfactor         <- rbind(Total_FR_1026_df.bfactor,
 Master_1026_plotting.bfactor$pHxfood <- paste(Master_1026_plotting.bfactor$pCO2, Master_1026_plotting.bfactor$Fed_Unfed, sep = '_')
 
 CR_1026_boxplot.bfactor <- Master_1026_plotting.bfactor %>% 
-  ggplot(aes(pHxfood , 
-             CR_mL.hr.bfactor , 
-             fill = pHxfood)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, 
-               alpha=0.1, 
-               aes(fill=pHxfood)) +
-  scale_fill_manual(values=c("grey50","grey50","white","white")) +
-  geom_point(shape = 21, 
-             size = 2, 
-             position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=10)) +
-  stat_summary(fun.y=mean, 
-               geom="point", 
-               shape=18, 
-               size=4, 
-               color="black", 
-               fill="white") +
-  ggtitle("Clearance rate (bfactor normalized), F1 Scallops 20211026") +
-  facet_wrap(~type)
+                              ggplot(aes(pHxfood , 
+                                         CR_mL.hr.bfactor , 
+                                         fill = pHxfood)) +
+                              theme(panel.grid=element_blank()) +
+                              geom_boxplot(size=0.2, 
+                                           alpha=0.1, 
+                                           aes(fill=pHxfood)) +
+                              scale_fill_manual(values=c("grey50","grey50","white","white")) +
+                              geom_point(shape = 21, 
+                                         size = 2, 
+                                         position = position_jitterdodge(jitter.width = 0.1)) +
+                              theme_classic() +
+                              theme(axis.text=element_text(size=12),
+                                    axis.title=element_text(size=10)) +
+                              stat_summary(fun.y=mean, 
+                                           geom="point", 
+                                           shape=18, 
+                                           size=4, 
+                                           color="black", 
+                                           fill="white") +
+                              ggtitle("Clearance rate (bfactor normalized), F1 Scallops 20211026") +
+                              facet_wrap(~type)
 CR_1026_boxplot.bfactor
 
 
@@ -1059,281 +1134,25 @@ pdf(paste0("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsuppl
 ggarrange(CR_1026_boxplot.bfactor)
 dev.off()
 
-```
 
-```{r 20211026 CR analysis, echo = T}
 
-
-
-
-
-
-# Data
-Ply_FR_1026_df      <- ClearancRates_calc %>% 
-  filter(Date %in% '20211026') %>% 
-  filter(Ply_mL.hr.mmlength > 0) %>% 
-  mutate(type = 'ply') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Ply_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
-  dplyr::mutate(pH = as.factor(pH))
-
-Chaet_FR_1026_df    <- ClearancRates_calc %>% 
-  filter(Date %in% '20211026') %>% 
-  filter(Chaet_mL.hr.mmlength > 0) %>% 
-  mutate(type = 'chaet') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Chaet_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Ply_mL.hr.mmlength','Seston_mL.hr.mmlength'))%>% 
-  dplyr::mutate(pH = as.factor(pH))
-
-Seston_FR_1026_df   <- ClearancRates_calc %>% 
-  filter(Date %in% '20211026') %>% 
-  filter(Seston_mL.hr.mmlength > 0) %>% 
-  mutate(type = 'seston') %>% 
-  dplyr::rename(CR_mL.hr.mmlength = Seston_mL.hr.mmlength) %>% 
-  dplyr::select(!c('Chaet_mL.hr.mmlength','Ply_mL.hr.mmlength'))%>% 
-  dplyr::mutate(pH = as.factor(pH))
-
-
-
-
-
-
-
-
-
-# ply ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
-# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
-# no effect of pH treatment 
-
-# Ply - Linear Mixed Effects Model
-Ply_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Ply_FR_1026_df) #nlme
-shapiro.test(resid(Ply_LMEmod_1026)) # 0.06153
-leveneTest(residuals(Ply_LMEmod_1026) ~ Ply_FR_1026_df$pH) # 0.05927 
-pander(anova(Ply_LMEmod_1026), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | numDF | denDF | F-value  |  p-value  |
-# |:----------------:|:-----:|:-----:|:--------:|:---------:|
-# | **(Intercept)**  |   1   |  15   |  36.13   | 2.384e-05 |
-# |      **pH**      |   1   |  12   | 4.12e-07 |  0.9995   |
-# |  **Fed_Unfed**   |   1   |  12   |  19.18   | 0.0008971 |
-# | **pH:Fed_Unfed** |   1   |  12   | 0.02747  |  0.8711   |
-Ply_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Ply_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output)
-leveneTest(residuals(Ply_LMERmod_1026) ~ Ply_FR_1026_df$pH) # 0.05927 
-shapiro.test(resid(Ply_LMERmod_1026)) # 0.06153
-summary(Ply_LMERmod_1026) # view for the portion of random effecting the variance - zero
-pander(anova(Ply_LMERmod_1026), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value |  Pr(>F)   |
-# |:----------------:|:------:|:-------:|:-----:|:-----:|:-------:|:---------:|
-# |      **pH**      | 5.684  |  5.684  |   1   |  31   | 0.01151 |  0.9152   |
-# |  **Fed_Unfed**   | 10705  |  10705  |   1   |  31   |  21.69  | 5.729e-05 | *
-# | **pH:Fed_Unfed** | 15.57  |  15.57  |   1   |  31   | 0.03155 |  0.8602   |
-
-# Ply - two-way anova
-Ply_ANOVAmod_1026 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Ply_FR_1026_df)
-leveneTest(Ply_ANOVAmod_1026) # 3.311e-06 ***
-shapiro.test(resid(Ply_ANOVAmod_1026)) # 0.06153
-hist(resid(Ply_ANOVAmod_1026)) #  looks normal but the variance  tho...
-Ply_ANOVAmod_1026_TRANSFORMED <-aov(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Ply_FR_1026_df)
-leveneTest(Ply_ANOVAmod_1026_TRANSFORMED) # 0.254 - resolved!
-shapiro.test(resid(Ply_ANOVAmod_1026_TRANSFORMED)) # 0.00239 - but not we arent normal...
-summary(Ply_ANOVAmod_1026_TRANSFORMED)
-#              Df Sum Sq Mean Sq F value Pr(>F)
-# pH            1  0.000   0.000   0.000  0.994
-# Fed_Unfed     1  3.427   3.427   2.848  0.111
-# pH:Fed_Unfed  1  0.775   0.775   0.644  0.434
-
-
-# AIC - determine the use of the random factor in the linear mixed effects model
-AIC(Ply_ANOVAmod_1026, Ply_LMERmod_1026) # the LME model is 1 point lower  in explaining the variance 
-
-
-kable(as.data.frame(anova(Ply_LMERmod_1026))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_PLY_CR_LME_Diagnostics.pdf"))
-check_model(Ply_LMERmod_1026) # print the model diagnostics 
-dev.off()
-
-
-
-
-
-
-
-# chaet  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
-# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
-# no effect of pH treatment (marginal effect < 0.1)
-
-# chaet - Linear Mixed Effects Model
-Chaet_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df) #nlme
-shapiro.test(resid(Chaet_LMEmod_1026)) #9.188e-05
-leveneTest(residuals(Chaet_LMEmod_1026) ~ Chaet_FR_1026_df$pH) # 0.1017
-pander(anova(Chaet_LMEmod_1026), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  14   |  45.77  | 9.091e-06 |
-# |      **pH**      |   1   |  10   | 0.2495  |  0.6282   |
-# |  **Fed_Unfed**   |   1   |  10   |  17.84  | 0.001763  |
-# | **pH:Fed_Unfed** |   1   |  10   | 0.5351  |  0.4813   | 
-Chaet_LMEmod_1026_T <-lme(asin(sqrt(CR_mL.hr.mmlength/100)) ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df) #nlme
-shapiro.test(resid(Chaet_LMEmod_1026_T)) #9.188e-05
-leveneTest(residuals(Chaet_LMEmod_1026_T) ~ Chaet_FR_1026_df$pH) # 0.1017
-pander(anova(Chaet_LMEmod_1026_T), style='rmarkdown') # anova table of lmer
-
-# perhaps an outlier> there is a value over twice greater than the second highest 
-max(Chaet_FR_1026_df$CR_mL.hr.mmlength) # 47.66838 
-Chaet_FR_1026_df_OM <- Chaet_FR_1026_df %>% dplyr::filter(CR_mL.hr.mmlength < (47.66838 - 0.001)) 
-Chaet_LMEmod_1026_OM <-lme(asin(sqrt(CR_mL.hr.mmlength/100)) ~ pH * Fed_Unfed, random=~1|random_fact, data=Chaet_FR_1026_df_OM) #nlme
-shapiro.test(resid(Chaet_LMEmod_1026_OM)) #9.188e-05
-leveneTest(residuals(Chaet_LMEmod_1026_OM) ~ Chaet_FR_1026_df_OM$pH) # 0.1017
-pander(anova(Chaet_LMEmod_1026_OM), style='rmarkdown') # anova table of lmer
-
-Chaet_LMERmod_1026_OM <- lmer((CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Chaet_FR_1026_df_OM, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Chaet_LMERmod_1026_OM) ~ Chaet_FR_1026_df_OM$pH) # 0.1279
-shapiro.test(resid(Chaet_LMERmod_1026_OM)) # 0.002004 - NON NORMAL
-qqnorm(resid(Chaet_LMERmod_1026_OM))
-summary(Chaet_LMERmod_1026_TRANSFORMED) # random factor accounts fo 0 percent of the variance
-pander(anova(Chaet_LMERmod_1026), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value  |  Pr(>F)  |
-# |:----------------:|:------:|:-------:|:-----:|:-----:|:--------:|:--------:|
-# |      **pH**      | 0.1305 | 0.1305  |   1   |  68   | 0.004056 |  0.9494  |
-# |  **Fed_Unfed**   | 236.4  |  236.4  |   1   |  68   |  7.348   | 0.008493 |
-# | **pH:Fed_Unfed** | 0.5861 | 0.5861  |   1   |  68   | 0.01821  |  0.893   |
-
-# Chaet - two-way anova
-Chaet_ANOVAmod_1026 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Chaet_FR_1026_df)
-leveneTest(Chaet_ANOVAmod_1026) # 0.06993 
-shapiro.test(resid(Chaet_ANOVAmod_1026)) # 3.877e-10
-hist(resid(Chaet_ANOVAmod_1026)) # positive skew
-Chaet_ANOVAmod_1026_TRANSFORMED <-aov(sqrt(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Chaet_FR_1026_df)
-leveneTest(Chaet_ANOVAmod_1026_TRANSFORMED) # 0.3323  
-shapiro.test(resid(Chaet_ANOVAmod_1026_TRANSFORMED)) # 0.0003287
-summary(Chaet_ANOVAmod_1026_TRANSFORMED)
-#              Df Sum Sq Mean Sq F value  Pr(>F)   
-# pH            1   0.49   0.489   0.509 0.47830   
-# Fed_Unfed     1   6.89   6.890   7.169 0.00941 **
-# pH:Fed_Unfed  1   0.00   0.001   0.001 0.97241   
-# Residuals    64  61.51   0.961 
-
-# AIC - determine the use of the random factor in the linear mixed effects model
-AIC(Chaet_ANOVAmod_1026, Chaet_LMERmod_1026) # the one way anova is the better fit model - NOTE: meet with team regarding this, may want to report the LME since values are so close
-
-kable(as.data.frame(anova(Chaet_ANOVAmod_1026))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_OneWayANOVA_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_CHAET_CR_OneWayANOVA_Diagnostics.pdf"))
-check_model(Chaet_ANOVAmod_1026) # print the model diagnostics 
-dev.off()
-
-
-# seston  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-# SUMMARY: one way anova lower AIC than including the random tank effect in KME model,
-# model assumptions (normal residuals and heteroskedascity) all normal, no transformation to resolve
-# no effect of pH treatment (marginal effect < 0.1)
-
-
-
-
-# Seston - Linear Mixed Effects Model
-Seston_LMEmod_1026 <-lme(CR_mL.hr.mmlength ~ pH * Fed_Unfed, random=~1|random_fact, data=Seston_FR_1026_df) #nlme
-leveneTest(residuals(Seston_LMEmod_1026) ~ Seston_FR_1026_df$pH) # 0.6573
-shapiro.test(resid(Seston_LMEmod_1026)) #  0.1157
-pander(anova(Seston_LMEmod_1026), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:----------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)**  |   1   |  14   |  61.2   | 1.775e-06 |
-# |      **pH**      |   1   |  11   |  1.138  |  0.3089   |
-# |  **Fed_Unfed**   |   1   |  11   |  19.33  | 0.001068  |
-# | **pH:Fed_Unfed** |   1   |  11   |  2.006  |  0.1843   |
-Seston_LMERmod_1026 <- lmer(CR_mL.hr.mmlength ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Seston_LMERmod_1026) ~ Seston_FR_1026_df$pH) # 0.3292
-shapiro.test(resid(Seston_LMERmod_1026)) # 3.709e-07 - NON NORMAL
-hist(resid(Seston_LMERmod_1026)) # strongly positive skew
-Seston_LMERmod_1026_TRANSFORMED <- lmer(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed + (1|random_fact), data=Seston_FR_1026_df, REML = FALSE) # lme4 (can run leenes test with this package output), TRUE when NOT addressing AIC for model selection
-leveneTest(residuals(Seston_LMERmod_1026_TRANSFORMED) ~ Seston_FR_1026_df$pH) # 0.0726 
-shapiro.test(resid(Seston_LMERmod_1026_TRANSFORMED)) #0.9171
-summary(Seston_LMERmod_1026_TRANSFORMED) # view for the portion of random effecting the variance
-(0.002531   /(0.002531   + 1.128288   ) )* 100 # random factor accounts fo 0.2238201 percent of the variance
-pander(anova(Seston_LMERmod_1026_TRANSFORMED), style='rmarkdown') # anova table of lmer
-# |      &nbsp;      | Sum Sq | Mean Sq | NumDF | DenDF | F value | Pr(>F)  |
-# |:----------------:|:------:|:-------:|:-----:|:-----:|:-------:|:-------:|
-# |      **pH**      | 0.7943 | 0.7943  |   1   | 13.67 |  0.704  | 0.4159  |
-# |  **Fed_Unfed**   | 0.8955 | 0.8955  |   1   | 13.67 | 0.7936  | 0.3884  |
-# | **pH:Fed_Unfed** | 4.295  |  4.295  |   1   | 13.67 |  3.806  | 0.07186 |
-
-# Seston - one-way anova
-Seston_ANOVAmod_1026 <-aov(CR_mL.hr.mmlength ~ pH * Fed_Unfed, data=Seston_FR_1026_df)
-leveneTest(Seston_ANOVAmod_1026) # 0.7281
-shapiro.test(resid(Seston_ANOVAmod_1026)) # 3.709e-07 - NON NORMAL
-hist(resid(Seston_ANOVAmod_1026)) # positive skew
-Seston_ANOVAmod_1026_TRANSFORMED <-aov(log(CR_mL.hr.mmlength) ~ pH * Fed_Unfed, data=Seston_FR_1026_df)
-leveneTest(Seston_ANOVAmod_1026_TRANSFORMED) # 0.1502
-shapiro.test(resid(Seston_ANOVAmod_1026_TRANSFORMED)) # 0.9191
-summary(Seston_ANOVAmod_1026_TRANSFORMED)
-#              Df Sum Sq Mean Sq F value Pr(>F)  
-# pH            1   0.51   0.512   0.416 0.5219  
-# Fed_Unfed     1   1.03   1.033   0.840 0.3642  
-# pH:Fed_Unfed  1   4.33   4.330   3.522 0.0669 .
-# Residuals    46  56.54   1.229 
-
-# AIC - determine the use of the random factor in the linear mixed effects model
-AIC(Seston_ANOVAmod_1026, Seston_LMERmod_1026) # the one way anova is the better fit model
-
-kable(as.data.frame(anova(Seston_ANOVAmod_1026))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_OneWayANOVA_Table.png", zoom = 1.5)
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/20211026_SESTON_CR_OneWayANOVA_Diagnostics.pdf"))
-check_model(Seston_ANOVAmod_1026) # print the model diagnostics 
-dev.off()
-
-
-
-
-
-
-
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#  Plots                      ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-
-
-Master_1026_plotting         <- rbind(Chaet_FR_1026_df, Ply_FR_1026_df, Seston_FR_1026_df)
-Master_1026_plotting$pHxfood <- paste(Master_1026_plotting$pH, Master_1026_plotting$Fed_Unfed, sep = '_')
-CR_1026_boxplot <- Master_1026_plotting %>% 
-  ggplot(aes(pHxfood , CR_mL.hr.mmlength , fill = pHxfood)) +
-  theme(panel.grid=element_blank()) +
-  geom_boxplot(size=0.2, alpha=0.1, aes(fill=pHxfood)) +
-  scale_fill_manual(values=c("grey50","grey50","white","white")) +
-  geom_point(shape = 21, size = 2, position = position_jitterdodge(jitter.width = 0.1)) +
-  theme_classic() +
-  theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=10)) +
-  stat_summary(fun.y=mean, geom="point", shape=18, size=4, color="black", fill="white") +
-  ggtitle("Clearance rate, F1 Scallops 20211026") +
-  facet_wrap(~type)
-CR_1026_boxplot
-
-
-# Save plots :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-pdf(paste0("C:/Users/samuel.gurr/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20211026_figs_tables/2011026_CR_Boxplots.pdf"), width = 10)
-ggarrange(CR_1026_boxplot)
-dev.off()
+CR_1026_Seston.bfactor <- Master_1026_plotting.bfactor %>% 
+                              dplyr::filter(type%in%'chaet') %>% 
+                                  ggplot(aes(Fed_Unfed, 
+                                             CR_mL.hr.bfactor , 
+                                             fill = pH,
+                                             group = pHxfood)) +
+                                  geom_boxplot(size=0.2, 
+                                               alpha=0.1, 
+                                               aes(fill=pH)) +
+                                  scale_fill_manual(values=c("grey50","grey50","white","white")) +#geom_point(posit+
+                                  geom_point(position = position_jitterdodge(jitter.width = 0.1)) +
+                                  # geom_line(aes(Fed_Unfed)) +
+                                  theme_classic() +
+                                  theme(axis.text=element_text(size=12),
+                                        axis.title=element_text(size=10)) +
+                                  ggtitle("Clearance rate (bfactor normalized), F1 Scallops 20211026") 
+CR_1026_Seston.bfactor
 
 
 ```
@@ -1350,28 +1169,32 @@ chaet_clearance_master <- rbind(Chaet_FR_914_df,Chaet_FR_930_df, Chaet_FR_1026_d
 
 # Length_um
 SumTable_ChaetClear <- chaet_clearance_master[!is.na(chaet_clearance_master$CR_mL.hr.mmlength),] %>%  
-            summarySE(measurevar="CR_mL.hr.mmlength", groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
-            dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, Date == '20210930' ~ 66, Date == '20211026' ~ 92)) 
+                          dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+                          summarySE(measurevar="CR_mL.hr.mmlength", 
+                                    groupvars=c("Date", "pCO2", "Fed_Unfed")) %>% 
+                          dplyr::mutate(Age = case_when(Date == '20210914' ~ 50, 
+                                                        Date == '20210930' ~ 66, 
+                                                        Date == '20211026' ~ 92)) 
 SumTable_ChaetClear$pCO2 <- factor(SumTable_ChaetClear$pCO2, c("500 μatm","800 μatm"))
 ## Use geom_line and geom_point to plot over time
 ChaetClear_time    <- ggplot(data=SumTable_ChaetClear, aes(x=Age, y=CR_mL.hr.mmlength, color=pCO2)) +
-            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-            geom_point()+ 
-            scale_color_manual(values=c("forestgreen","darkorange2"))+
-            geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
-                          position=position_dodge(.1))+
-            theme_bw() +  
-            theme(panel.grid.major = element_blank(), 
-                  panel.grid.minor = element_blank(), 
-                  plot.title = element_text(size=10)) + 
-            labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
-            scale_x_continuous(name ="Age (d)") +
-            labs(title =  "Clearance of Chaetocerous over time..", 
-                 y = "Shell length (mm)") +
-            scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
-            theme(legend.position="none") +
-            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-            facet_wrap(~pCO2)
+                              geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+                              geom_point()+ 
+                              scale_color_manual(values=c("forestgreen","darkorange2"))+
+                              geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
+                                            position=position_dodge(.1))+
+                              theme_bw() +  
+                              theme(panel.grid.major = element_blank(), 
+                                    panel.grid.minor = element_blank(), 
+                                    plot.title = element_text(size=10)) + 
+                              labs(y = expression(mL^{-1}~mm^{-1}%.%hr^{-1})) +
+                              scale_x_continuous(name ="Age (d)") +
+                              labs(title =  "Clearance of Chaetocerous over time..", 
+                                   y = "Clearance rate") +
+                              scale_linetype_manual(values = c("fed" = "solid", "unfed" = "dashed"))  +
+                              theme(legend.position="none") +
+                              # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+                              facet_wrap(~pCO2)
 ChaetClear_time
 
 
@@ -1381,7 +1204,7 @@ ChaetClear_time    <- SumTable_ChaetClear %>%
                              fill = pCO2)) +
                   geom_boxplot(alpha = 0.5, # color hue
                              width=0.6, # boxplot width
-                             outlier.size=0) # make outliers small
+                             outlier.size=0) +# make outliers small
                   scale_color_manual(values=c("forestgreen","darkorange2"))+
                   geom_errorbar(aes(ymin=CR_mL.hr.mmlength-se, ymax=CR_mL.hr.mmlength+se), width=.2,
                                 position=position_dodge(.1))+
@@ -1486,6 +1309,70 @@ dev.off()
 
 
 ## Density plots
+
+
+```{r, 20210930 Density plots }
+library(dplyr)
+library(tidyr)
+
+# Master_914_plotting <- ClearancRates_calc %>% dplyr::filter(Date %in% '20210914') %>% mutate(pHxfood = paste(pH, Fed_Unfed, sep = "_"))
+CHAET_plotting      <- Master_914_plotting %>% dplyr::filter(type %in% 'chaet')
+PLY_plotting        <- Master_914_plotting %>% dplyr::filter(type %in% 'ply')
+SESTON_plotting     <- Master_914_plotting %>% dplyr::filter(type %in% 'seston')
+
+
+
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Chaetoceros                  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+Master_914_plotting$pHxfood <- as.factor(Master_914_plotting$pHxfood)
+
+# simply corrected for shell length
+df_mean_CHAET <- Master_914_plotting %>%
+                    dplyr::group_by(pHxfood) %>% 
+                    dplyr::summarize(average = mean(Chaet_mL.hr.bfactor)) %>%
+                    dplyr::ungroup()
+p.box_CHAET <- ggplot(Master_914_plotting, aes(x = pHxfood, y = Chaet_mL.hr.bfactor)) + geom_boxplot() + geom_point(data= df_mean_CHAET, mapping = aes(x = pHxfood, y = average),
+             color="red") 
+p.box.data.CHAET <- layer_data(p.box_CHAET) %>%
+                        select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+                        dplyr::rename(mean = flipped_aes) %>% 
+                        dplyr::mutate(mean  = df_mean_CHAET$average) %>% 
+                        mutate(pHxfood = factor(x, labels = levels(Master_914_plotting$pHxfood), ordered = TRUE)) %>%
+                        select(-x)
+
+p.box.data.CHAET %>% unnest(outliers)
+
+
+density.plot_CR_CHAET_914 <-ggplot(p.box.data.CHAET) +
+                                # manually plot flipped boxplot
+                                geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                                geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pHxfood),color = "black") +
+                                geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                                # vertical lines at Q1 / Q2 / Q3
+                                geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                                # density plot
+                                geom_density(data = Master_914_plotting, aes(x = Chaet_mL.hr.bfactor, group=pHxfood, fill=pHxfood, ..scaled..), alpha=.4, adjust=1.5) +
+                                #  theme
+                                theme_classic() +
+                                xlim(0, 30) +
+                                facet_grid(pHxfood ~ .) +
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                                labs(title = "F1 Scallops: Clearance rates (Chaetoceros) 50 DPF", 
+                                     x = expression(Clearance~rate~"("~Chaetoceros~cells~mL^{-1}%.%~mm~shell~length^{-1}%.%hr^{-1}~")"),
+                                     y = "Scaled density") +
+                                scale_fill_manual(values=c("grey85", "grey40"))
+density.plot_CR_CHAET_914
+
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/ClearanceRates/20210914_figs_tables/20210914_CR_CHAET_density_plot.pdf"), width = 5, height = 5)
+density.plot_CR_CHAET_914 # print the model diagnostics 
+dev.off()
+
+
+
+```
+
 
 ```{r, 20210930 Density plots }
 library(dplyr)
@@ -1594,9 +1481,9 @@ library(dplyr)
 library(tidyr)
 
 Master_1026_plotting$pHxfood <- as.factor(Master_1026_plotting$pHxfood)
-CHAET_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'chaet')
-PLY_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'ply')
-SESTON_plotting <- Master_1026_plotting %>% dplyr::filter(type %in% 'seston')
+CHAET_plotting   <- Master_1026_plotting %>% dplyr::filter(type %in% 'chaet')
+PLY_plotting     <- Master_1026_plotting %>% dplyr::filter(type %in% 'ply')
+SESTON_plotting  <- Master_1026_plotting %>% dplyr::filter(type %in% 'seston')
 
 
 

@@ -64,8 +64,8 @@ resp.data_merged        <- merge(resp.data, resp.ref_length_merged) %>% # out ma
 kable(head(resp.data_merged)) # print in a R markdown format to view
 
 # View(resp.data_merged)
-min(as.numeric(resp.data_merged$Length_um/1000)) # 1.011402
-max(resp.data_merged$Length_um/1000) # 20.36
+min(na.omit(resp.data_merged$Length_um/1000)) # 1.68043
+max(na.omit(resp.data_merged$Length_um)/1000) # 14.31
 
 (nrow(resp.data_merged %>% dplyr::filter(Length_um/1000 < 3)) /nrow(resp.data_merged) ) *100 # 45.86466 % of data < 3mm length
 ```
@@ -146,7 +146,11 @@ resp.data_merged[111,c(1:6)] # -0.07603444
 resp.data_merged[96 ,c(1:6)] # -0.0296	
 
 # View(resp.data_merged)
+
 ```
+
+
+
 
 #### Calculate blank rates, view means by day pH_treatment and instrument
 
@@ -194,6 +198,56 @@ blanks_means <- rbind(blanks_means, dups_to_add) %>% # bind on the rows
 kable(blanks_means) # you can now see that each Date, Run, has a pH 8 and pH 7.5 blank
 ```
 
+
+# data for archiving  - includes the raw resp rates but NOT the mean blank vlaues 
+```{r archive data file}
+View(resp.data_merged)
+RR_raw_samples <- resp.data_merged %>% 
+                    dplyr::select(Date, pH, Food, Replicate, Channel, Run, Plate, Number, Length_um, Lpc, filetype) %>% 
+                    dplyr::mutate(Food = case_when(Food == 'fed' ~ 'High',
+                                                   Food == 'unfed' ~ 'Low',
+                                                   Date == '9/14/2021' ~ 'High')) %>% 
+                    dplyr::mutate(pH = case_when(pH == 8.0 ~ 'Low', pH == 7.5 ~ 'Elevated')) %>% dplyr::rename(pCO2 = pH) %>% 
+                    dplyr::rename(RR_raw  = Lpc) %>% 
+                    dplyr::arrange(Date, Run, Plate, Channel)
+
+RR_raw_blanks  <- blanks_all_raw %>% 
+                    dplyr::select(Date, pH, Food, Channel, Run, Plate, Lpc, filetype) %>% 
+                    dplyr::mutate(Food = case_when(Food == 'fed' ~ 'High',
+                                                   Food == 'unfed' ~ 'Low',
+                                                   Date == '9/14/2021' ~ 'High')) %>% 
+                    dplyr::mutate(pH = case_when(pH == 8.0 ~ 'Low', pH == 7.5 ~ 'Elevated')) %>% dplyr::rename(pCO2 = pH) %>% 
+                    dplyr::mutate(Replicate = 'Blank') %>% 
+                    dplyr::rename(RR_raw  = Lpc) %>% 
+                    dplyr::arrange(Date, Run, Plate, Channel)
+library(lubridate)
+mdy(RR_raw_blanks$Date)
+as.Date(mdy(RR_raw_blanks$Date), format = "yyyymmdd")
+format(mdy(RR_raw_blanks$Date), "%Y%m%d")
+
+RR_Raw_Archive <-  merge(RR_raw_samples, RR_raw_blanks, all=T) %>% 
+            dplyr::mutate(RR_vessel_volume_mL = case_when(
+                            filetype == "LoLigo_data" & Date %in% c('9/14/2021','9/30/2021') ~ 2.2,# fed F1 foodxOA
+                            filetype == "SDR_data" & Date %in% c('9/30/2021','10/26/2021')~ 1.7, # 24-well plate - 1700ul 
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH1' ~ 68.55323, # F1 data
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH2' ~ 68.85583,
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH3' ~ 68.87473,
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH4' ~ 68.95481,
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH5' ~ 68.57288,
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH6' ~ 68.01878,
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH7' ~ 68.54551, 
+                            filetype == "LoLigo_data" & Date %in% c('10/26/2021') & Channel == 'CH8' ~ 68.53297)) %>% # custom vessels 
+            dplyr::mutate(Date = format(mdy(Date), "%Y%m%d")) %>% 
+            dplyr::arrange(Date, Run, Plate, Channel, filetype) %>% 
+            relocate(Number,Length_um, RR_vessel_volume_mL, .before=RR_raw) %>% 
+            dplyr::select(-filetype)
+
+
+write.csv(RR_Raw_Archive, "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Data/Respiration/Resp_raw_archive.csv")
+ 
+ 
+RR_Raw_Archive
+```
 
 #### Merge blanks with the master file by Date, pCO2 treatment, and filetype
 

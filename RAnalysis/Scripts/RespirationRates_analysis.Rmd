@@ -38,6 +38,22 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 
 # Resp.Master_OM    <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # personnel computer 
 Resp.Master  <- read.csv(file="C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/Calculated_Resp_Master.csv", header=T) # work computer
+
+# what is our N at each timepoint? 
+#9/30/2021 - timepoint Day 0
+Resp.Master %>% dplyr::filter(Date == '9/14/2021') %>% 
+                       summarySE(measurevar="Length_um", 
+                                 groupvars=c("Replicate", "pH", "Fed_Unfed")) # N = 2-3 per replicate
+#9/30/2021 - timepoint Day 14
+Resp.Master %>% dplyr::filter(Date == '9/30/2021') %>% 
+                       summarySE(measurevar="Length_um", 
+                                 groupvars=c("Replicate", "pH", "Fed_Unfed")) # N = 3-5 per replicate
+#10/26/2021 - timepoint Day 42
+Resp.Master %>% dplyr::filter(Date == '10/26/2021') %>% 
+                       summarySE(measurevar="Length_um", 
+                                 groupvars=c("Replicate", "pH", "Fed_Unfed")) # N = 2-3 per replicate
+
+
 ```
 
 
@@ -101,8 +117,8 @@ Resp_0914 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pCO
 
 
 # plot the replicates (visual diagnostics of random factor)
-Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=("pCO2"))
-Resp914_bLengthALL_reps<- ggboxplot(Resp_0914, 
+Resp_0914_menas         <- Resp_0914 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=(c("Replicate", "pCO2")))
+Resp914_bLengthALL_reps <- ggboxplot(Resp_0914, 
                                     x = "pCO2", 
                                     y = "resp_umol_hr_bFactorNormLength", 
                                     color = "Replicate",
@@ -113,16 +129,16 @@ Resp914_bLengthALL_reps
 # One-way ANOVA (without the random effect) 
 AOV914.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~ 
                        pCO2, 
-                     data=Resp_0914) # run mod
+                     data=Resp_0914_menas) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.6853
-leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.4684
+shapiro.test(residuals(AOV914.bfactALL)) # normal - 0.3459
+leveneTest(AOV914.bfactALL) # homogeneity of variance (equal variance) - 0.5633
 # all is good, lets see the results
 pander(anova(AOV914.bfactALL), style='rmarkdown') # anova table of lm
-# |    &nbsp;     | Df |  Sum Sq  | Mean Sq  | F value | Pr(>F) |
-# |:-------------:|:--:|:--------:|:--------:|:-------:|:------:|
-# |   **pCO2**    | 1  | 0.002212 | 0.002212 | 0.4551  | 0.508  |
-# | **Residuals** | 19 | 0.09232  | 0.004859 |   NA    |   NA   |
+# |    &nbsp;     | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
+# |:-------------:|:--:|:---------:|:---------:|:-------:|:------:|
+# |   **pCO2**    | 1  | 0.0002315 | 0.0002315 | 0.06877 | 0.8019 |
+# | **Residuals** | 6  |  0.0202   | 0.003367  |   NA    |   NA   |
 # output results 
 kable(data.frame(unclass(summary(AOV914.bfactALL)), 
                    check.names = FALSE, 
@@ -130,31 +146,10 @@ kable(data.frame(unclass(summary(AOV914.bfactALL)),
   kable_styling() %>%
   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_AOV_RR_bfactor_ALL.png", zoom = 1.5)
 
-# Linear mixed effects model with random effect of Replicate 
-LME914.bfactALL<-lme(resp_umol_hr_bFactorNormLength.ALL ~ 
-                     pCO2, 
-                     random=~1|Chamber_tank, # with the random effect as an LME model (Chamber_tank = replicate as 7.5_A, 7.5_B)
-                     data=Resp_0914) 
-# check model assumptions
-shapiro.test(residuals(LME914.bfactALL)) # normal - 0.9466
-leveneTest(residuals(LME914.bfactALL) ~ Resp_0914$pCO2) # 0.2723 
-# all is good, lets see the results
-pander(anova(LME914.bfactALL), style='rmarkdown') # anova table of lmer
-# |     &nbsp;      | numDF | denDF | F-value |  p-value  |
-# |:---------------:|:-----:|:-----:|:-------:|:---------:|
-# | **(Intercept)** |   1   |  13   |  48.14  | 1.024e-05 |
-# |    **pCO2**     |   1   |   6   | 0.02091 |  0.8898   |
-# output results 
-# kable(as.data.frame(anova(LME914.bfactALL))) %>%  # print a png of this table
-#   kable_styling() %>%
-#   save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_LME_RR_bfactor_ALL.png", zoom = 1.5)
 
-# AIC model selection
-pander(AIC(LME914.bfactALL, AOV914.bfactALL), style='rmarkdown') # anova table of lmer
-# |       &nbsp;        | df |  AIC   |
-# |:-------------------:|:--:|:------:|
-# | **LME914.bfactALL** | 4  | -58.44 |
-# | **AOV914.bfactALL** | 3  | -70.3  |  # for negative AIC, the lower the AIC the best fit the model - the simple AOV is better 
+Resp_0914_menas %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=(c("pCO2")))
+# 500 μatm	4	0.1556832	0.06784226	0.03392113	
+# 800 μatm	4	0.1449237	0.04615994	0.02307997	
 
 # plot
 Resp914_Length <- ggplot(Resp_0914, 
@@ -183,6 +178,57 @@ ggarrange(Resp914_Length,Resp914_bLengthALL_reps,nrow = 2) %>%
 
 ```
 
+### density plot; 50 DPF b factor all 
+
+```{r, Day 0 density respiration plot }
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+
+Resp_0914$pCO2 <- as.factor(Resp_0914$pCO2)
+
+df_mean <- Resp_0914 %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::summarize(average = mean(resp_umol_hr_bFactorNormLength)) %>%
+  dplyr::ungroup()
+p.box <- ggplot(Resp_0914, aes(x = pCO2, y = resp_umol_hr_bFactorNormLength)) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pCO2, y = average),
+             color="red") 
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = df_mean$average) %>% 
+  mutate(pCO2 = factor(x, labels = levels(Resp_0914$pCO2), ordered = TRUE)) %>%
+  select(-x)
+
+p.box.data %>% unnest(outliers)
+
+denisty_box_resp_50DPF <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.15, yend = -0.15)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.3, ymax = 0,  fill = pCO2),color = "black") +
+                            # geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.15), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = Resp_0914, aes(x = resp_umol_hr_bFactorNormLength, group=pCO2, fill=pCO2, ..scaled..), alpha=.4, adjust=1.5) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 0.4) +
+                            facet_grid(pCO2 ~ .) +
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            labs(title = "F1 Scallops: respiration rates 50 DPF - b factor ALL", 
+                                 x = expression(Respiration~rate~"("~μmol~L^{-1}~O[2]%.%mm^{-1}~shell~length%.% hr^{-1}~")"),
+                                 y = "Scaled density") +
+                            scale_fill_manual(values=c("grey85", "grey40"))
+denisty_box_resp_50DPF
+
+
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210914_figs_tables/20210914_RRbfactorALL_density_plot.pdf"), width = 5, height = 5)
+denisty_box_resp_50DPF # print the model diagnostics 
+dev.off()
+
+
+```
 
 
 
@@ -209,6 +255,7 @@ Resp_0930 <- Resp.Master %>%
 
 kable(Resp_0930 %>% dplyr::group_by(Chamber_tank, Fed_Unfed) %>% dplyr::summarise(n())) # tank replication - lowest value was 2 for 7.5_D unfed
 
+Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("Replicate", "pCO2", "Fed_Unfed")) # N = 3-5 per replicate
 Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2", "Fed_Unfed"))
 # 500 μatm	High food	19	0.08614212	0.04664712	0.01070158	0.02248319
 # 500 μatm	Low food	14	0.07446157	0.04203543	0.01123444	0.02427054
@@ -237,14 +284,7 @@ Resp_0930 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pCO
 # https://rcompanion.org/handbook/F_14.html
 library(rcompanion) # install.packages('rcompanion')
 library(FSA)
-install.packages('FSA')
-
-
-
-
-
-
-
+# install.packages('FSA')
 
 
 # b FACTOR ALL  'resp_umol_hr_bFactorNormLength.ALL' ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -260,30 +300,27 @@ Resp930_bLengthALL_reps <- ggboxplot(Resp_0930,
 Resp930_bLengthALL_reps
 
 # One-way ANOVA (without the random effect) 
+Resp_0930_means <- Resp_0930 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
 AOV930.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~ 
                        pCO2 * Fed_Unfed, 
-                     data=Resp_0930) # run mod
+                     data=Resp_0930_means) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV930.bfactALL)) # non-normal - 0.0001944
-leveneTest(AOV930.bfactALL) # homogeneity of variance (equal variance) - 0.365
-# run the non parametric
-SRH930.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~ 
-                       pCO2 * Fed_Unfed, 
-                     data=Resp_0930) # run mod
-# all is good, lets see the results
-pander(print(SRH930.bfactALL), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
-# |:------------------:|:--:|:------:|:------:|:-------:|
-# |      **pCO2**      | 1  | 295.2  | 0.8257 | 0.3635  |
-# |   **Fed_Unfed**    | 1  |  1383  | 3.867  | 0.04923 |
-# | **pCO2:Fed_Unfed** | 1  | 405.7  | 1.135  | 0.2867  |
-# |   **Residuals**    | 61 | 20773  |   NA   |   NA    |
-# output results 
-kable(data.frame(unclass(print(SRH930.bfactALL)), 
+shapiro.test(residuals(AOV930.bfactALL)) # non-normal - 0.4293
+leveneTest(AOV930.bfactALL) # 0.3586
+pander(anova(AOV930.bfactALL), style='rmarkdown') # anova table of lm# run the non parametric
+# |       &nbsp;       | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F) |
+# |:------------------:|:--:|:---------:|:---------:|:-------:|:------:|
+# |      **pCO2**      | 1  | 0.002403  | 0.002403  |  2.164  | 0.167  |
+# |   **Fed_Unfed**    | 1  | 0.002821  | 0.002821  |  2.541  | 0.1369 |
+# | **pCO2:Fed_Unfed** | 1  | 0.0007556 | 0.0007556 | 0.6805  | 0.4255 |
+# |   **Residuals**    | 12 |  0.01332  |  0.00111  |   NA    |   NA   |
+
+#output
+kable(data.frame(unclass(summary(AOV930.bfactALL)), 
                    check.names = FALSE, 
                    stringsAsFactors = FALSE)  ) %>%  # print a png of this table
   kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_SRH_RR_bfactor_ALL.png", zoom = 1.5)
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Respiration/20210930_figs_tables/20210930_AOV_RR_bfactor_ALL.png", zoom = 1.5)
 
 
 
@@ -411,6 +448,7 @@ Resp_1026 <- Resp.Master %>%
 
 kable(Resp_1026 %>% dplyr::group_by(Chamber_tank, Fed_Unfed) %>% dplyr::summarise(n())) # tank replication
 
+Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("Replicate", "pCO2", "Fed_Unfed")) # N = 1-2 per replicate
 Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("pCO2", "Fed_Unfed"))
 # 500 μatm	High food	8	0.06654692	0.01569754	0.005549918	0.01312347
 # 500 μatm	Low food	7	0.05031502	0.02884012	0.010900542	0.02667267
@@ -441,13 +479,7 @@ Resp_1026 %>% summarySE(measurevar="resp_µmol_L_mm_Length_hr", groupvars=c("pCO
 # https://rcompanion.org/handbook/F_14.html
 library(rcompanion) # install.packages('rcompanion')
 library(FSA)
-install.packages('FSA')
-
-
-
-
-
-
+# install.packages('FSA')
 
 
 
@@ -464,24 +496,25 @@ Resp1026_bLengthALL_reps <- ggboxplot(Resp_1026,
 Resp1026_bLengthALL_reps
 
 # One-way ANOVA (without the random effect) 
+Resp_1026_means <- Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=(c("Replicate", "Fed_Unfed", "pCO2")))
 AOV1026.bfactALL <- aov(resp_umol_hr_bFactorNormLength ~ 
                        pCO2 * Fed_Unfed, 
-                     data=Resp_1026) # run mod
+                     data=Resp_1026_means) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV1026.bfactALL)) # normal - 0.8054
-leveneTest(AOV1026.bfactALL) # homogeneity of variance (equal variance) - 0.01797 *
+shapiro.test(residuals(AOV1026.bfactALL)) # normal - 0.03366
+leveneTest(AOV1026.bfactALL) # homogeneity of variance (equal variance) - 0.07115 .
 # run non parametric
 SRH1026.bfactALL <- scheirerRayHare(resp_umol_hr_bFactorNormLength ~ 
                        pCO2 * Fed_Unfed, 
-                     data=Resp_1026) # run mod
+                     data=Resp_1026_means) # run mod
 # all is good, lets see the results
 pander(print(SRH1026.bfactALL), style='rmarkdown') # table for SRH test
-# |       &nbsp;       | Df | Sum Sq |   H    | p.value |
-# |:------------------:|:--:|:------:|:------:|:-------:|
-# |      **pCO2**      | 1  | 35.19  | 0.4854 |  0.486  |
-# |   **Fed_Unfed**    | 1  | 204.4  | 2.819  | 0.09317 |
-# | **pCO2:Fed_Unfed** | 1  | 17.19  | 0.2371 | 0.6263  |
-# |   **Residuals**    | 25 |  1789  |   NA   |   NA    |
+# |       &nbsp;       | Df | Sum Sq |    H    | p.value |
+# |:------------------:|:--:|:------:|:-------:|:-------:|
+# |      **pCO2**      | 1  | 20.25  | 0.8934  | 0.3446  |
+# |   **Fed_Unfed**    | 1  | 90.25  |  3.982  |  0.046  |
+# | **pCO2:Fed_Unfed** | 1  |   1    | 0.04412 | 0.8336  |
+# |   **Residuals**    | 12 | 228.5  |   NA    |   NA    |
 # output results 
 kable(data.frame(unclass(print(SRH1026.bfactALL)), 
                    check.names = FALSE, 
@@ -491,9 +524,9 @@ kable(data.frame(unclass(print(SRH1026.bfactALL)),
 
 
 # food supply diff - report this percent difference alonside the significant effect
-Resp_1026 %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars="Fed_Unfed")
-perc_diff <- (0.07824169 - 0.05393284)/0.07824169*100
-perc_diff #31.06892 %
+Resp_1026_means %>% summarySE(measurevar="resp_umol_hr_bFactorNormLength", groupvars=c("Fed_Unfed"))
+perc_diff <- (0.08590237 - 0.05255883)/0.08590237*100
+perc_diff #38.81562 %
 
 
 # plot

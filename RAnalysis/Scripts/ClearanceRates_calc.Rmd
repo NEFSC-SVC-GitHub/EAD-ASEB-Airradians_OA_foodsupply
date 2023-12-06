@@ -828,15 +828,19 @@ for (i in 1:nrow(loop_914)) {
   
     # Total
     A.Total               <- blanks$meanBlank[blanks$Type == 'Total']
-   
+    
+                             # here we account for initial cell sinking that can give us an artificially high cell count at time zero, in some cases the next interval of time 
+                             # in our CR time series is MUCH lower, we do not want to assume this is a large algae consumption event in such a small interval (after visual inspection of raw data!)
+                             # so we use 1.25*min to account for this, if the first two values are close, the TRUE statment is taken (max od first two, often time point at time 0), if the 
+                             # statment is false we take the min value of the first two timepoints, meaning that a large sinking/sticking algae event occur first after added to the CR vessel
     C0_Total              <- if ( (max(c(dat[1,]$Total_cell.ml, dat[2,]$Total_cell.ml))) < (1.25*  (min(c(dat[1,]$Total_cell.ml, dat[2,]$Total_cell.ml)))) )  { 
                                C0_Total <-  (max(c(dat[1,]$Total_cell.ml, dat[2,]$Total_cell.ml))) 
                                } else (C0_Total <-  (min(c(dat[1,]$Total_cell.ml, dat[2,]$Total_cell.ml)))) # C0 for the Total 
-    
+                             # the end total is the minim of the last two values in the time series to account for noise or psedofeces measurements post scallop clap (visual inspection of the raw data!)
     Cend_Total            <- (min(c(dat[t_end_min1,]$Total_cell.ml, dat[t_end,]$Total_cell.ml)))
-    
+                             # the time at the C) explained above
     t0_Total              <- dat$time[dat$Total_cell.ml==C0_Total]
-    
+                             # total time accoutning for our assigned C0 and Cend values
     t_Total               <- max((dat$time[dat$Total_cell.ml==Cend_Total]) - t0_Total) # call max becasue (although unlikely) there can be a case of the same count - calling multiple values
     
     # no corrected

@@ -42,7 +42,7 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 ```
 
 ## Set Path
-```{r setup, include=TRUE}
+```{r, include=TRUE}
 setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis") # Work computer
 
 # setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA/RAnalysis") # Work computer
@@ -65,123 +65,6 @@ nrow(length %>% dplyr::filter(Length_um/1000 < 3)) # 1417
 
 # First lets plot and run stats on the single time-point data.. (CI and dry shell weight)
 
-## Condition Index (only one time point on Oct 26 2021)
-
-* plot and statistics 
-
-```{r Condition index data, statistics, plotting, include=FALSE}
-
-
-#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# CONDITION INDEX :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-
-# call the data (all)
-CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>% 
-  dplyr::select(c('pH','CI','Tank_Replicate', "Shell_length_mm")) %>% 
-  dplyr::mutate(Age = "64DPF") %>% 
-  dplyr::mutate(random_eff = (as.factor(paste(pH,Tank_Replicate, sep ='_')))) %>% 
-  dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) %>% 
-  dplyr::select(-Tank_Replicate)
-# call the data (means)
-CI_1026_means <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$CI),] %>%  
-summarySE(measurevar="CI", groupvars=c("pH")) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
-      dplyr::mutate(Age = 92)
-# plot the means 
-ggplot(data=CI_1026_means, aes(x=Age, y=CI, color=pCO2)) +
-  geom_line( stat = "identity", size=1.0)+
-  geom_point(position=position_dodge(.5))+ 
-  scale_color_manual(values=c("forestgreen","darkorange2"))+
-  geom_errorbar(aes(ymin=CI-se, ymax=CI+se), width=.2,
-                position=position_dodge(.5))+
-  theme_classic() +  
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
-  scale_y_continuous(name ="Condition index [(Dry tissue / dry shell) *100]")+
-  theme(text = element_text(size=15))
-
-# Prep for stats
-CI_1026.DATA <- CI_1026 %>% 
-  dplyr::filter(Age %in% '64DPF') %>% # filter the data from 20211026
-    dplyr::mutate(pCO2 = case_when(
-    pH == 8 ~ "500 μatm", 
-    pH == 7.5 ~ "800 μatm"))
-CI_1026.DATA$pCO2 <- as.factor(CI_1026.DATA$pCO2)
-levels(CI_1026.DATA$random_eff) # should be 8 levels A B C D within 7.5 and 8 
-levels(CI_1026.DATA$pCO2)
-# one-way ANOVA
-AOVCI <- aov(CI ~ 
-               pCO2, 
-             data=CI_1026.DATA) # run mod
-# check model assumptions
-shapiro.test(residuals(AOVCI)) # non - normal - 8.769e-07
-leveneTest(AOVCI) # homogeneity of variance (equal variance) - 0.5031
-# need to run the non-parametric Kruskal Wallis
-KWCI <- kruskal.test(CI ~ 
-                       pCO2, 
-                     data = CI_1026.DATA) # run mod
-# all is good, lets see the results
-pander(print(KWCI), style='rmarkdown') # table for SRH test
-# | Test statistic | df |    P value    |
-# |:--------------:|:--:|:-------------:|
-# |     8.068      | 1  | 0.004506  * * |
-CI_1026.DATA %>% summarySE(measurevar="CI", groupvars= c("pCO2"))  # view summary means 
-((11.30190- 10.15005) / 11.30190) * 100 # 10.19165 % difference 
-
-
-
-# DENSITY PLOT 
-
-
-
-df_mean <- CI_1026.DATA %>% 
-  dplyr::group_by(pCO2) %>% 
-  dplyr::summarize(average = mean(CI)) %>%
-  dplyr::ungroup()
-
-p.box <- ggplot(CI_1026.DATA, aes(x = pCO2, y = (CI))) + 
-  geom_boxplot() + 
-  geom_point(data= df_mean, 
-             mapping = aes(x = pCO2, y = (average)),
-             color="red") 
-
-p.box.data <- layer_data(p.box) %>%
-  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
-  dplyr::rename(mean = flipped_aes) %>% 
-  dplyr::mutate(mean  = (df_mean$average)) %>% 
-  mutate(pCO2 = factor(x, labels = levels(CI_1026.DATA$pCO2), ordered = TRUE)) %>%
-  select(-x)
-
-denisty_box_CI <-ggplot(p.box.data) +
-                            # manually plot flipped boxplot
-                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
-                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
-                            # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
-                            # density plot
-                            geom_density(data = CI_1026.DATA, aes(x = CI, fill=pCO2, ..scaled..), alpha=.4) +
-                            #  theme
-                            theme_classic() +
-                            #xlim(5, 25) +
-                            facet_grid(pCO2 ~ .) +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
-                            labs(x = "Dry shell weight (g)", y = "frequency")  +
-                            scale_fill_manual(values=c("grey85", "grey40"))
-denisty_box_CI
-# export the plot
-pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_density_plot.pdf"), width = 4, height = 4)
-denisty_box_CI # print the model diagnostics 
-dev.off()
-
-
-
-
-
-```
-
-
 ## Dry shell weight  (only one time point on Oct 26 2021)
 
 * plot and statistics 
@@ -196,26 +79,34 @@ dev.off()
 
 # call the data (all)
 DSW_1026 <- len.dryweight.CI_1026 %>%  
-  dplyr::filter(shell_or_tissue %in% 'shell') %>% 
-  dplyr::select('Date_sampled','pH','Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
-  dplyr::mutate(DSW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
-  na.omit() %>%  
-  dplyr::mutate(Age = "64DPF") %>% 
-  dplyr::mutate(pH_Age = (as.factor(paste(pH,Age, sep = '_')))) 
+              dplyr::filter(shell_or_tissue %in% 'shell') %>% 
+              dplyr::select('Date_sampled','pH','Tank_Replicate',
+                            'Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
+              dplyr::mutate(DSW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
+              na.omit() %>%  
+              dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) 
+
+DSW_1026$pCO2 <- as.factor(DSW_1026$pCO2)
+
+
 # call the data (means)
 DSW_1026_means <- len.dryweight.CI_1026 %>%  
-  dplyr::filter(shell_or_tissue %in% 'shell') %>% 
-  dplyr::select('Date_sampled','pH','Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
-  dplyr::mutate(DSW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
-  na.omit() %>% 
-  summarySE(measurevar="DSW_corrected", groupvars=c("pH")) %>% 
-      dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
-      dplyr::mutate(Age = 92)
+                    dplyr::filter(shell_or_tissue %in% 'shell') %>% 
+                    dplyr::select('Date_sampled','pH','Tank_Replicate',
+                                  'Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
+                    dplyr::mutate(DSW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
+                    na.omit() %>% 
+                    summarySE(measurevar="DSW_corrected", groupvars=c("Tank_Replicate","pH")) %>% 
+                        dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
+                        dplyr::mutate(Age = 92)
+
+DSW_1026_means$pCO2 <- as.factor(DSW_1026_means$pCO2)
+
 # plot the means 
-ggplot(data=DSW_1026_means, aes(x=Age, y=DSW_corrected, color=pCO2)) +
+ggplot(data=DSW_1026_means, aes(x=pCO2, y=DSW_corrected, color=Tank_Replicate)) +
   geom_line( stat = "identity", size=1.0)+
   geom_point(position=position_dodge(.5))+ 
-  scale_color_manual(values=c("forestgreen","darkorange2"))+
+  # scale_color_manual(values=c("forestgreen","darkorange2"))+
   geom_errorbar(aes(ymin=DSW_corrected-se, ymax=DSW_corrected+se), width=.2,
                 position=position_dodge(.5))+
   theme_classic() +  
@@ -223,66 +114,64 @@ ggplot(data=DSW_1026_means, aes(x=Age, y=DSW_corrected, color=pCO2)) +
   scale_y_continuous(name ="Dry shell weight (g)")+
   theme(text = element_text(size=15))
 
-# Prep for stats
-DSW_1026.DATA <- DSW_1026 %>% 
-  dplyr::filter(Age %in% '64DPF') %>% # filter the data from 20211026
-    dplyr::mutate(pCO2 = case_when(
-    pH == 8 ~ "500 μatm", 
-    pH == 7.5 ~ "800 μatm"))
-DSW_1026.DATA$pCO2 <- as.factor(DSW_1026.DATA$pCO2)
-levels(DSW_1026.DATA$pCO2)
 # one-way ANOVA
-AOV_DSW <- aov(DSW_corrected ~  pCO2,  data=DSW_1026.DATA) # run mod
+AOV_DSW <- aov(DSW_corrected ~  pCO2,  
+              data=DSW_1026_means) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV_DSW)) # non - normal - 0.01948
-leveneTest(AOV_DSW) # homogeneity of variance (equal variance) - 9.953e-07 ***
+shapiro.test(residuals(AOV_DSW)) # normal - 0.5211
+leveneTest(AOV_DSW) # homogeneity of variance (equal variance) - 0.04778 *
 # need to run the non-parametric Kruskal Wallis
-KW_DSW <- kruskal.test(DSW_corrected ~ pCO2, data = DSW_1026.DATA) # run mod
+KW_DSW <- kruskal.test(DSW_corrected ~ pCO2, data = DSW_1026_means) # run mod
 # all is good, lets see the results
 pander(print(KW_DSW), style='rmarkdown') # table for SRH test
-# | Test statistic | df |     P value      |
-# |:--------------:|:--:|:----------------:|
-# |     11.31      | 1  | 0.0007714  * * * |
-DSW_1026.DATA %>% summarySE(measurevar="DSW_corrected", groupvars= c("pCO2"))  # view summary means 
-((0.6452632- 0.3852239) / 0.6452632) * 100 # 40.29973 % difference 
+# | Test statistic | df |  P value   |
+# |:--------------:|:--:|:----------:|
+# |     5.333      | 1  | 0.02092  * |
+DSW_1026_means %>% summarySE(measurevar="DSW_corrected", groupvars= c("pCO2"))  # view summary means 
+((0.6845062- 0.3850634) / 0.6845062) * 100 # 43.74581 % difference 
 
 
 # DENSITY PLOT 
 
 
 
-df_mean <- DSW_1026.DATA %>% 
+df_mean <- DSW_1026 %>% 
   dplyr::group_by(pCO2) %>% 
   dplyr::summarize(average = mean(DSW_corrected)) %>%
   dplyr::ungroup()
 
-p.box <- ggplot(DSW_1026.DATA, aes(x = pCO2, y = (DSW_corrected))) + 
+p.box <- ggplot(DSW_1026, aes(x = pCO2, y = (DSW_corrected))) + 
   geom_boxplot() + 
   geom_point(data= df_mean, 
-             mapping = aes(x = pCO2, y = (average)),]
+             mapping = aes(x = pCO2, y = (average)),
              color="red") 
 
 p.box.data <- layer_data(p.box) %>%
   select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
   dplyr::rename(mean = flipped_aes) %>% 
   dplyr::mutate(mean  = (df_mean$average)) %>% 
-  mutate(pCO2 = factor(x, labels = levels(DSW_1026.DATA$pCO2), ordered = TRUE)) %>%
+  mutate(pCO2 = factor(x, labels = levels(DSW_1026$pCO2), ordered = TRUE)) %>%
   select(-x)
 
 denisty_box_DSW <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
-                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, 
+                                          ymax = -0.15,  fill = pCO2),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), 
+                                       aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
                             # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% 
+                                         gather(key, value, -pCO2), aes(xintercept = value)) +
                             # density plot
-                            geom_density(data = DSW_1026.DATA, aes(x = DSW_corrected, fill=pCO2, ..scaled..), alpha=.4) +
+                            geom_density(data = DSW_1026, aes(x = DSW_corrected, fill=pCO2, ..scaled..), alpha=.4) +
                             #  theme
                             theme_classic() +
                             xlim(0, 1.5) +
                             facet_grid(pCO2 ~ .) +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(), 
+                                  legend.position = "none", plot.title = element_text(size=10))+
                             labs(x = "Dry shell weight (g)", y = "frequency")  +
                             scale_fill_manual(values=c("grey85", "grey40"))
 denisty_box_DSW
@@ -294,6 +183,228 @@ dev.off()
 ```
 
 
+## Dry tissue weight  (only one time point on Oct 26 2021)
+
+* plot and statistics 
+
+```{r dry tissue weight data, analysis, plotting, include=FALSE}
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# DRY TISSUE WEIGHT  :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+
+# call the data (all)
+DTW_1026 <- len.dryweight.CI_1026 %>%  
+              dplyr::filter(shell_or_tissue %in% 'tissue') %>% 
+              dplyr::select('Date_sampled','pH','Tank_Replicate',
+                            'Dry_Sample_Weight_mg', 'Shell_length_mm','shell_or_tissue') %>% 
+              dplyr::mutate(DTW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
+              dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
+              na.omit()
+DTW_1026$pCO2 <- as.factor(DTW_1026$pCO2)
+
+# call the data (means)
+DTW_1026_means <- DTW_1026 %>% 
+                    dplyr::mutate(DTW_corrected = (Dry_Sample_Weight_mg/Shell_length_mm) * 100) %>% 
+                    na.omit() %>% 
+                    summarySE(measurevar="DTW_corrected", groupvars=c("Tank_Replicate","pH")) %>% 
+                        dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>%
+                        dplyr::mutate(Age = 92)
+
+DTW_1026_means$pCO2 <- as.factor(DTW_1026_means$pCO2)
+
+# plot the means 
+ggplot(data=DTW_1026_means, aes(x=pCO2, y=DTW_corrected, color=Tank_Replicate)) +
+  geom_line( stat = "identity", size=1.0)+
+  geom_point(position=position_dodge(.5))+ 
+  # scale_color_manual(values=c("forestgreen","darkorange2"))+
+  geom_errorbar(aes(ymin=DTW_corrected-se, ymax=DTW_corrected+se), width=.2,
+                position=position_dodge(.5))+
+  theme_classic() +  
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+  scale_y_continuous(name ="Dry tissue weight (g)")+
+  theme(text = element_text(size=15))
+
+# one-way ANOVA
+AOV_DTW <- aov(DTW_corrected ~  pCO2,  
+              data=DTW_1026_means) # run mod
+# check model assumptions
+shapiro.test(residuals(AOV_DTW)) # normal - 0.1213
+leveneTest(AOV_DTW) # homogeneity of variance (equal variance) - 0.1828
+# all is good, lets see the results
+pander(print(AOV_DTW), style='rmarkdown') # table for SRH test
+# |    &nbsp;     | Df |  Sum Sq  | Mean Sq  | F value | Pr(>F)  |
+# |:-------------:|:--:|:--------:|:--------:|:-------:|:-------:|
+# |   **pCO2**    | 1  | 0.001446 | 0.001446 |  4.504  | 0.07805 |
+# | **Residuals** | 6  | 0.001926 | 0.000321 |   NA    |   NA    |
+DTW_1026_means %>% summarySE(measurevar="DTW_corrected", groupvars= c("pCO2"))  # view summary means 
+# 500 μatm	4	0.06948337	0.025053597	0.012526799	
+# 800 μatm	4	0.04259740	0.003785095	0.001892548	
+((0.06948337- 0.04259740) / 0.06948337) * 100 # 38.69411 % difference 
+
+
+# DENSITY PLOT 
+
+
+df_mean <- DTW_1026 %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::summarize(average = mean(DTW_corrected)) %>%
+  dplyr::ungroup()
+
+p.box <- ggplot(DTW_1026, aes(x = pCO2, y = (DTW_corrected))) + 
+  geom_boxplot() + 
+  geom_point(data=df_mean, 
+             mapping = aes(x = pCO2, y = (average)),
+             color="red") 
+
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = (df_mean$average)) %>% 
+  mutate(pCO2 = factor(x, labels = levels(DTW_1026$pCO2), ordered = TRUE)) %>%
+  select(-x)
+
+denisty_box_DTW <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, 
+                                          ymin = -0.25, ymax = -0.15,  
+                                          fill = pCO2),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), 
+                                       color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% 
+                                         gather(key, value, -pCO2), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = DTW_1026, 
+                                         aes(x = DTW_corrected, fill=pCO2, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 0.2) +
+                            facet_grid(pCO2 ~ .) +
+                            theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(), 
+                                  legend.position = "none", 
+                                  plot.title = element_text(size=10))+
+                            labs(x = "Dry shell weight (g)", y = "frequency")  +
+                            scale_fill_manual(values=c("grey85", "grey40"))
+denisty_box_DTW
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_DTW_density_plot.pdf"), width = 4, height = 4)
+denisty_box_DTW # print the model diagnostics 
+dev.off()
+
+```
+
+## Condition Index (only one time point on Oct 26 2021)
+
+* plot and statistics 
+
+```{r Condition index data, statistics, plotting, include=FALSE}
+
+
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# CONDITION INDEX :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+#  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+# call the data (all)
+CI_1026 <- len.dryweight.CI_1026[!is.na(len.dryweight.CI_1026$AFDW),] %>% 
+            dplyr::select(c('pH','Tank_Replicate', "Shell_length_mm", "AFDW")) %>% 
+            dplyr::mutate(random_eff = (as.factor(paste(pH,Tank_Replicate, sep ='_')))) %>% 
+            dplyr::mutate(pH_Age = (as.factor(paste(pH, sep = '_')))) %>% 
+            dplyr::mutate(pCO2 = case_when(pH == 8  ~ "500 μatm", pH == 7.5 ~ "800 μatm")) %>% 
+            dplyr::mutate(CI = (AFDW/Shell_length_mm)*100 ) %>% 
+            dplyr::filter(CI > 0) # some negatieve AFDW values - error
+
+CI_1026$pCO2 <- as.factor(CI_1026$pCO2)
+
+# call the data (means)
+CI_1026_means <- CI_1026 %>%summarySE(measurevar="CI", groupvars=c("Tank_Replicate","pCO2"))
+
+CI_1026_means$pCO2 <- as.factor(CI_1026_means$pCO2)
+
+# plot the means 
+ggplot(data=CI_1026_means, 
+       aes(x=pCO2, y=CI, color=Tank_Replicate)) +
+        geom_line( stat = "identity", size=1.0)+
+        geom_point(position=position_dodge(.5))+ 
+        # scale_color_manual(values=c("forestgreen","darkorange2"))+
+        geom_errorbar(aes(ymin=CI-se, ymax=CI+se), width=.2,
+                      position=position_dodge(.5))+
+        theme_classic() +  
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+        scale_y_continuous(name ="Condition index [(Dry tissue / dry shell) *100]")+
+        theme(text = element_text(size=15))
+
+# one-way ANOVA
+AOVCI <- aov(CI ~ 
+               pCO2, 
+             data=CI_1026_means) # run mod
+# check model assumptions
+shapiro.test(residuals(AOVCI)) # non - normal - 0.395
+leveneTest(AOVCI) # homogeneity of variance (equal variance) - 0.36 .
+summary(AOVCI)
+#             Df    Sum Sq   Mean Sq F value Pr(>F)
+# pCO2         1 0.0006467 0.0006467    3.64  0.105
+# Residuals    6 0.0010661 0.0001777 
+CI_1026_means %>% summarySE(measurevar="CI", groupvars= c("pCO2"))  # view summary means 
+((11.30190- 10.15005) / 11.30190) * 100 # 10.19165 % difference 
+
+
+
+# DENSITY PLOT 
+
+
+df_mean <- CI_1026 %>% 
+              dplyr::group_by(pCO2) %>% 
+              dplyr::summarize(average = mean(CI)) %>%
+              dplyr::ungroup()
+
+p.box <- ggplot(CI_1026, aes(x = pCO2, y = (CI))) + 
+              geom_boxplot() + 
+              geom_point(data= df_mean, 
+                         mapping = aes(x = pCO2, y = (average)),
+                         color="red") 
+
+p.box.data <- layer_data(p.box) %>%
+                  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+                  dplyr::rename(mean = flipped_aes) %>% 
+                  dplyr::mutate(mean  = (df_mean$average)) %>% 
+                  mutate(pCO2 = factor(x, labels = levels(CI_1026$pCO2), ordered = TRUE)) %>%
+                  select(-x)
+
+denisty_box_CI <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% gather(key, value, -pCO2), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = CI_1026, aes(x = CI, fill=pCO2, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            #xlim(5, 25) +
+                            facet_grid(pCO2 ~ .) +
+                            theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(), 
+                                  legend.position = "none", plot.title = element_text(size=10))+
+                            labs(x = "Condition Index", y = "frequency")  +
+                            scale_fill_manual(values=c("grey85", "grey40"))
+denisty_box_CI
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_CI_density_plot.pdf"), width = 4, height = 4)
+denisty_box_CI # print the model diagnostics 
+dev.off()
+
+
+
+
+
+```
 
 
 # Food limitation x pCO2 experiment (50 - 92 dpf)
@@ -310,12 +421,15 @@ this is our time 'zero' to correct the subseuent timepoints (wihtin pCO2) for a 
 
 Length_Means <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed"))
 Length_Means <- Length_Means %>% 
-  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
+                dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+                dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  
+                                                    Fed_Unfed == "unfed" ~ "Low food"))
 
-Length_Means_byTank  <- summarySE(length, measurevar="Length_um", groupvars=c("Age_DPF", "pH", "Fed_Unfed", "Replicate")) %>% 
-    dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food"))
+Length_Means_byTank  <- summarySE(length, measurevar="Length_um", 
+                                  groupvars=c("Age_DPF", "pH", "Fed_Unfed", "Replicate")) %>% 
+                          dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+                          dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  
+                                                              Fed_Unfed == "unfed" ~ "Low food"))
 
 Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51) # these are the mean shell lengths we want to use to subtract from av lengths within pCO2
 
@@ -330,19 +444,20 @@ Av_8.0FedC <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[7,6] # pH
 Av_8.0FedD <- (Length_Means_byTank %>% dplyr::filter(Age_DPF %in% 51))[8,6] # pH 8.0 Rep (tank) D
 
 Growth_rate <- Length_Means_byTank %>% 
-  dplyr::mutate(Start_Length_um = 
-                  case_when( (pH == 7.5 & Replicate == 'A') ~ Av_7.5FedA, # pH = 7.5, insert this starting length value 
-                             (pH == 7.5 & Replicate == 'B') ~ Av_7.5FedB, # Note: two conditional case_when statements apply BOTH with & and inside ()
-                             (pH == 7.5 & Replicate == 'C') ~ Av_7.5FedC,
-                             (pH == 7.5 & Replicate == 'D') ~ Av_7.5FedD,
-                             
-                             (pH == 8.0 & Replicate == 'A') ~ Av_8.0FedA,
-                             (pH == 8.0 & Replicate == 'B') ~ Av_8.0FedB,
-                             (pH == 8.0 & Replicate == 'C') ~ Av_8.0FedC,
-                             (pH == 8.0 & Replicate == 'D') ~ Av_8.0FedD)) %>% # pH = 7.5, insert this starting length value 
-  dplyr::mutate(Growth_rate_umperday = (Length_um - Start_Length_um) / (Age_DPF - 51)) %>% 
-  dplyr::filter(!(Age_DPF %in% 51)) %>%  # we no longer need this first time point of length - just == zero for growth!
-  dplyr::select(!c(N,sd,se,ci)) # cut down necessary columns - however remember the N was 4, a mean from each replicate tank mean
+                  dplyr::mutate(Start_Length_um = 
+                                  case_when( (pH == 7.5 & Replicate == 'A') ~ Av_7.5FedA, # pH = 7.5, insert this starting length value 
+                                             (pH == 7.5 & Replicate == 'B') ~ Av_7.5FedB, # Note: two conditional case_when statements apply BOTH with & and inside ()
+                                             (pH == 7.5 & Replicate == 'C') ~ Av_7.5FedC,
+                                             (pH == 7.5 & Replicate == 'D') ~ Av_7.5FedD,
+                                             
+                                             (pH == 8.0 & Replicate == 'A') ~ Av_8.0FedA,
+                                             (pH == 8.0 & Replicate == 'B') ~ Av_8.0FedB,
+                                             (pH == 8.0 & Replicate == 'C') ~ Av_8.0FedC,
+                                             (pH == 8.0 & Replicate == 'D') ~ Av_8.0FedD)) %>% # pH = 7.5, insert this starting length value 
+                  dplyr::mutate(Growth_rate_umperday = 
+                                  (Length_um - Start_Length_um) / (Age_DPF - 51)) %>% 
+                  dplyr::filter(!(Age_DPF %in% 51)) %>%  # we no longer need this first time point of length - just == zero for growth!
+                  dplyr::select(!c(N,sd,se,ci)) # cut down necessary columns - however remember the N was 4, a mean from each replicate tank mean
 
 
 # STATISTICS
@@ -379,45 +494,47 @@ summarySE(Growth_rate_92DPF, measurevar="Growth_rate_umperday", groupvars=c("Fed
 
 # PLOTTING
 
-Growth_rate_Means_byTreat <- summarySE(Growth_rate, measurevar="Growth_rate_umperday", groupvars=c("Age_DPF", "pH", "pCO2", "Fed_Unfed"))
+Growth_rate_Means_byTreat <- summarySE(Growth_rate, measurevar="Growth_rate_umperday", 
+                                       groupvars=c("Age_DPF", "pH", "pCO2", "Fed_Unfed"))
 Growth_rate_Means_byTreat
 
 
-GrowthRate_Means_plot <- ggplot(data=Growth_rate_Means_byTreat, aes(x=Age_DPF, y=(Growth_rate_umperday/1000), color=pCO2)) +
-  geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-  geom_point()+ 
-  scale_color_manual(values=c("black","black")) +
-  geom_errorbar(aes(ymin=(Growth_rate_umperday/1000)-(se/1000), 
-                    ymax=(Growth_rate_umperday/1000)+(se/1000)), width=.2,
-                position=position_dodge(.1))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
-  scale_x_continuous(name ="Age (days)") +
-  scale_y_continuous(name ="Shell growth rate (mm per day)")  + 
-  scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-  theme_classic() +
-  #theme(legend.position="none") +
-  # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-  facet_wrap(~pCO2)
+GrowthRate_Means_plot <- ggplot(data=Growth_rate_Means_byTreat, 
+                                aes(x=Age_DPF, y=(Growth_rate_umperday/1000), color=pCO2)) +
+                            geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+                            geom_point()+ 
+                            scale_color_manual(values=c("black","black")) +
+                            geom_errorbar(aes(ymin=(Growth_rate_umperday/1000)-(se/1000), 
+                                              ymax=(Growth_rate_umperday/1000)+(se/1000)), width=.2,
+                                          position=position_dodge(.1))+
+                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+                            scale_x_continuous(name ="Age (days)") +
+                            scale_y_continuous(name ="Shell growth rate (mm per day)")  + 
+                            scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
+                            theme_classic() +
+                            #theme(legend.position="none") +
+                            # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+                            facet_wrap(~pCO2)
 GrowthRate_Means_plot
 
 
 GrowthRate_Means_plot_D92 <- Growth_rate_Means_byTreat %>% 
-  dplyr::filter(Age_DPF %in% 92) %>% 
-  ggplot(aes(x=Age_DPF, y=(Growth_rate_umperday/1000), color=pCO2)) +
-  geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
-  geom_point()+ 
-  scale_color_manual(values=c("black","black")) +
-  geom_errorbar(aes(ymin=(Growth_rate_umperday/1000)-(se/1000), 
-                    ymax=(Growth_rate_umperday/1000)+(se/1000)), width=.2,
-                position=position_dodge(.1))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
-  scale_x_continuous(name ="Age (days)") +
-  scale_y_continuous(name ="Shell growth rate (mm per day)")  + 
-  scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
-  theme_classic() +
-  #theme(legend.position="none") +
-  # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
-  facet_wrap(~pCO2)
+                                dplyr::filter(Age_DPF %in% 92) %>% 
+                                ggplot(aes(x=Age_DPF, y=(Growth_rate_umperday/1000), color=pCO2)) +
+                                geom_line(aes(linetype = factor(Fed_Unfed)), size = 0.5) +  
+                                geom_point()+ 
+                                scale_color_manual(values=c("black","black")) +
+                                geom_errorbar(aes(ymin=(Growth_rate_umperday/1000)-(se/1000), 
+                                                  ymax=(Growth_rate_umperday/1000)+(se/1000)), width=.2,
+                                              position=position_dodge(.1))+
+                                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())+ 
+                                scale_x_continuous(name ="Age (days)") +
+                                scale_y_continuous(name ="Shell growth rate (mm per day)")  + 
+                                scale_linetype_manual(values = c("High food" = "solid", "Low food" = "dashed"))  +
+                                theme_classic() +
+                                #theme(legend.position="none") +
+                                # facet_wrap(~factor(Fed_Unfed, level = c('Low food', 'High food'))) 
+                                facet_wrap(~pCO2)
 GrowthRate_Means_plot_D92
 
 
@@ -503,9 +620,6 @@ dev.off()
 ```
 
 
-
-
-
 # STATISTICS (survival + shell size)
 
 
@@ -520,17 +634,17 @@ dev.off()
 ```{r, Day 50 length - no survival data started the same!}
 # call the data fro 50 DPF
 data_51 <- length %>%
-  filter(Age_DPF=="51") %>%
-  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = 
-                  case_when(Fed_Unfed == "fed" ~ "High food",  
-                            Fed_Unfed == "unfed" ~ "Low food")) %>% 
-  dplyr::mutate(random_fact = 
-                  as.factor(paste(pCO2,Replicate, sep = "_")))
+              filter(Age_DPF=="51") %>%
+              dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+              dplyr::mutate(Fed_Unfed = 
+                              case_when(Fed_Unfed == "fed" ~ "High food",  
+                                        Fed_Unfed == "unfed" ~ "Low food")) %>% 
+              dplyr::mutate(random_fact = 
+                              as.factor(paste(pCO2,Replicate, sep = "_")))
 
-data_51_AVG <- data_51 %>%  summarySE(measurevar="Length_um", groupvars= "pCO2")
-# data_51_AVG
-
+data_51_AVG <- data_51 %>% 
+                    summarySE(measurevar="Length_um", 
+                              groupvars= c("Replicate","Fed_Unfed","pCO2"))
 
 # plot the replicates (visual diagnostics of random factor)
 Length914_reps<- ggboxplot(data_51, x = "pCO2", y = "Length_um", color = "Replicate",
@@ -541,21 +655,20 @@ Length914_reps
 # One-way ANOVA (without the random effect) 
 AOV914.length <- aov(Length_um ~ 
                        pCO2, 
-                     data=data_51) # run mod
+                     data=data_51_AVG) # run mod
 # check model assumptions
-shapiro.test(residuals(AOV914.length)) # non-normal - 2.706e-14
-leveneTest(AOV930.bfactALL) # homogeneity of variance (equal variance) - 0.365
-# so lets do the nonparametric equivalent Kruskal Wallis
-library(rcompanion)
-KW_914_length <- kruskal.test(Length_um ~ 
-                       pCO2, 
-                     data = data_51) # run mod
-# all is good, lets see the results
-pander(print(KW_914_length), style='rmarkdown') # table for KW test
-# | Test statistic | df | P value |
-# |:--------------:|:--:|:-------:|
-# |     1.442      | 1  | 0.2299  | # no effect 
-# all is good, lets see the results
+shapiro.test(residuals(AOV914.length)) # normal - 0.3891
+leveneTest(AOV914.length) # homogeneity of variance (equal variance) - 0.2817
+summary(AOV914.length)
+#             Df Sum Sq Mean Sq F value Pr(>F)
+# pCO2         1   9318    9318   0.229  0.649
+# Residuals    6 243918   40653
+
+data_51_AVG %>% summarySE(measurevar="Length_um", 
+                              groupvars= c("Fed_Unfed","pCO2"))
+
+# High food	500 μatm	4	2390.269	262.0468	131.02342	
+# High food	800 μatm	4	2322.011	112.4159	56.20797	
 
 # plot
 Length914 <- ggplot(data_51, aes(x = factor(pCO2, level = c('500 μatm', '800 μatm')), (Length_um/1000) , fill = pCO2)) +
@@ -579,6 +692,56 @@ ggarrange(Length914,Length914_reps,nrow = 2) %>%
   ggexport(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210914_figs_table/20210914_length.pdf")
 ```
 
+```{r, Day 64 density length plot }
+
+
+data_51$pCO2 <- as.factor(data_51$pCO2)
+df_mean <- data_51 %>% 
+  dplyr::group_by(pCO2) %>% 
+  dplyr::summarize(average = mean(Length_um)) %>%
+  dplyr::ungroup()
+p.box <- ggplot(data_51, aes(x = pCO2, y = (Length_um/1000))) + geom_boxplot() + geom_point(data= df_mean, mapping = aes(x = pCO2, y = (average/1000)),
+             color="red") 
+p.box.data <- layer_data(p.box) %>%
+  select(x, ymin, lower, middle, upper, ymax, outliers, flipped_aes) %>%
+  dplyr::rename(mean = flipped_aes) %>% 
+  dplyr::mutate(mean  = (df_mean$average/1000)) %>% 
+  mutate(pCO2 = factor(x, labels = levels(data_51$pCO2), ordered = TRUE)) %>%
+  select(-x)
+
+denisty_box_length_50DPF <-ggplot(p.box.data) +
+                            # manually plot flipped boxplot
+                            geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
+                            geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pCO2),color = "black") +
+                            geom_point(data = . %>% unnest(outliers), 
+                                       aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            # vertical lines at Q1 / Q2 / Q3
+                            geom_vline(data = . %>% select(pCO2, lower, mean, upper) %>% 
+                                         gather(key, value, -pCO2), aes(xintercept = value)) +
+                            # density plot
+                            geom_density(data = data_51, aes(x = (Length_um/1000), fill=pCO2, ..scaled..), alpha=.4) +
+                            #  theme
+                            theme_classic() +
+                            xlim(0, 5) +
+                            facet_grid(pCO2 ~ .) +
+                            theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(), 
+                                  legend.position = "none", 
+                                  plot.title = element_text(size=10))+
+                            labs(x = "Shell length", y = "frequency")  +
+                            scale_fill_manual(values=c("grey85", "grey40"))
+denisty_box_length_50DPF
+# export the plot
+pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210914_figs_table/20210914_length_density_plot.pdf"), width = 5, height = 5)
+denisty_box_length_50DPF # print the model diagnostics 
+dev.off()
+```
+
+
+
+
+
+
 
 
 # 9/30/2021 F1 juvenile scallops (64 DPF; Day 14)
@@ -586,68 +749,64 @@ ggarrange(Length914,Length914_reps,nrow = 2) %>%
 ```{r, Day 64 data}
 
 
-# Shell length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Shell length ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # length data 
 data_64_length <- length %>%
-  filter(Age_DPF=="64") %>%
-  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
+                    filter(Age_DPF=="64") %>%
+                    dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+                    dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
+                    dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
 
-data_64_AVG.length <- data_64_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))  # view summary means 
+data_64_AVG.length <- data_64_length %>%  
+                      summarySE(measurevar="Length_um", 
+                                groupvars= c("Replicate","pCO2", "Fed_Unfed"))  # view summary means 
 
 # run model
 AOV930.length = aov(Length_um ~ 
                            pCO2 * Fed_Unfed, 
-                         data=data_64_length)
-leveneTest(AOV930.length) # 0.4668
-
-shapiro.test(resid(AOV930.length)) # < 2.2e-16
-# so lets do thenonparametric equivalent Kruskal Wallis
-library(rcompanion)
-SRH_930_length <- scheirerRayHare(Length_um ~ 
-                       pCO2 * Fed_Unfed,
-                     data = data_64_length) # run mod
+                         data=data_64_AVG.length)
+leveneTest(AOV930.length) # 0.2602
+shapiro.test(resid(AOV930.length)) # 0.1051
+summary(AOV930.length)
+#                Df  Sum Sq Mean Sq F value   Pr(>F)    
+# pCO2            1    6094    6094   0.094    0.765    
+# Fed_Unfed       1 7096445 7096445 108.939 2.25e-07 ***
+# pCO2:Fed_Unfed  1    6106    6106   0.094    0.765    
+# Residuals      12  781694   65141
+(summary(AOV930.length))
 # all is good, lets see the results
-pander(print(SRH_930_length), style='rmarkdown') # table for Schierer-Ray_Hare Test
-# |       &nbsp;       |  Df  |  Sum Sq  |    H     | p.value |
-# |:------------------:|:----:|:--------:|:--------:|:-------:|
-# |      **pCO2**      |  1   |   9902   | 0.09741  |  0.755  |
-# |   **Fed_Unfed**    |  1   | 46216498 |  454.6   |    0    |
-# | **pCO2:Fed_Unfed** |  1   |  672.1   | 0.006612 | 0.9352  |
-# |   **Residuals**    | 1100 | 65756253 |    NA    |   NA    |
-# all is good, lets see the results
-kable(unclass(print(SRH_930_length))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_SRH_Table.png", zoom = 1.5)
+kable(unclass(print(summary(AOV930.length)))) %>%  # print a png of this table
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20210930_figs_table/20210930_length_AOV_Table.pdf")
 
 
 # percent difference
 # data_64_survival %>% dplyr::group_by(pCO2) %>% dplyr::summarise(mean = mean(Survival))
 # data_64_survival %>% dplyr::group_by(trt) %>% dplyr::summarise(mean = mean(Survival))
-data_64_length %>%  dplyr::mutate(Length_mm = Length_um/1000) %>% summarySE(measurevar="Length_mm", groupvars= c("Fed_Unfed"))  # view summary means 
-((3612.114-2288.521) / 3612.114) * 100 # 36.64317 % greater shell length under high food availability
+data_64_AVG.length %>%  dplyr::mutate(Length_mm = Length_um/1000) %>% summarySE(measurevar="Length_mm", groupvars= c("Fed_Unfed"))  # view summary means 
+((3.640543-2.308585) / 3.640543) * 100 # 36.58679 % greater shell length under high food availability
 
 
+# Survival:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
-# Survival:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 data_64_survival <- survival_juvenile %>%
-  dplyr::filter(Age_DPF=="64") %>% 
-  dplyr::mutate(Fed_Unfed = as.factor(Food)) %>% 
-  dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", trt))) %>% 
-  dplyr::rename(Length_um = Length) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Food, sep = "_")))
+                    dplyr::filter(Age_DPF=="64") %>% 
+                    dplyr::mutate(Fed_Unfed = as.factor(Food)) %>% 
+                    dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", trt))) %>% 
+                    dplyr::rename(Length_um = Length) %>% 
+                    dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Food, sep = "_")))
 levels(data_64_survival$Fed_Unfed) <- c("High food", "Low food")
 levels(data_64_survival$pCO2) <- c("800 μatm", "500 μatm")
 
-data_64_AVG.survival <- data_64_survival %>%  summarySE(measurevar="Survival", groupvars= c("pCO2", "Fed_Unfed")) # summary of means
+data_64_AVG.survival <- data_64_survival %>%  
+                        summarySE(measurevar="Survival", 
+                                  groupvars= c("pCO2", "Fed_Unfed")) # summary of means
 
 # run the model
 AOV930.survival = aov(Survival ~ 
                          pCO2 * Fed_Unfed, 
                        data=data_64_survival) # no replicates within the tanks a,b,c,d - linear model used here
-shapiro.test(residuals(AOV930.survival)) # non normal 0.00368
+shapiro.test(residuals(AOV930.survival)) # non normal 0.2602
 leveneTest(AOV930.survival) # 0.4668
 # so lets do thenonparametric equivalent Schierer-Ray_Hare Test
 SRH930.survival <- scheirerRayHare(Survival ~ 
@@ -715,9 +874,7 @@ ggarrange(Length_64dpf,Survival_64DPF,nrow = 2) %>%
 
 ```
 
-
 ### density plot - Day 64
-
 
 ```{r, Day 64 density length plot }
 
@@ -740,16 +897,21 @@ denisty_box_length_64DPF <-ggplot(p.box.data) +
                             # manually plot flipped boxplot
                             geom_segment(aes(x = ymin, xend = ymax, y = -0.2, yend = -0.2)) +
                             geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pHxfood),color = "black") +
-                            geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
+                            geom_point(data = . %>% unnest(outliers), 
+                                       aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
                             # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% 
+                                         gather(key, value, -pHxfood), aes(xintercept = value)) +
                             # density plot
                             geom_density(data = data_64_length, aes(x = (Length_um/1000), fill=pHxfood, ..scaled..), alpha=.4) +
                             #  theme
                             theme_classic() +
                             xlim(0, 20) +
                             facet_grid(pHxfood ~ .) +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(), 
+                                  legend.position = "none", 
+                                  plot.title = element_text(size=10))+
                             labs(x = "Shell length", y = "frequency")  +
                             scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_length_64DPF
@@ -758,6 +920,14 @@ pdf(paste0(filename = "C:/Users/samjg/Documents/Github_repositories/Airradians_O
 denisty_box_length_64DPF # print the model diagnostics 
 dev.off()
 ```
+
+
+
+
+
+
+
+
 
 
 # 10/26/2021 F1 juvenile scallops  (92 DPF; Day 42)
@@ -778,41 +948,36 @@ dev.off()
 # Shell length :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # length data 
 data_92_length <- length %>%
-  filter(Age_DPF=="92") %>%
-  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
-  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
+                  filter(Age_DPF=="92") %>%
+                  dplyr::mutate(pCO2 = case_when(pH == 8 ~ "500 μatm",  pH == 7.5 ~ "800 μatm")) %>% 
+                  dplyr::mutate(Fed_Unfed = case_when(Fed_Unfed == "fed" ~ "High food",  Fed_Unfed == "unfed" ~ "Low food")) %>% 
+                  dplyr::mutate(random_fact = as.factor(paste(pCO2,Replicate,Fed_Unfed, sep = "_")))
 
-data_92_AVG.length <- data_92_length %>%  summarySE(measurevar="Length_um", groupvars= c("pCO2", "Fed_Unfed"))  # view summary means 
-
+data_92_AVG.length <- data_92_length %>% 
+                      summarySE(measurevar="Length_um",  # view summary means 
+                                groupvars= c("Replicate","pCO2", "Fed_Unfed"))  # view summary means 
 # run model
 AOV930.length = aov(Length_um ~ 
                            pCO2 * Fed_Unfed, 
-                         data=data_92_length)
-leveneTest(AOV930.length) # 0.4668
-shapiro.test(resid(AOV930.length)) #6.063e-15
-# so lets do thenonparametric equivalent Kruskal Wallis
-SRH_1026_length <- scheirerRayHare(Length_um ~ 
-                       pCO2 * Fed_Unfed,
-                     data = data_92_length) # run mod
+                           data=data_92_AVG.length)
+leveneTest(AOV930.length) # 0.5298
+shapiro.test(resid(AOV930.length)) #0.9197
+summary(AOV930.length)
+#                Df    Sum Sq   Mean Sq F value   Pr(>F)    
+# pCO2            1      8482      8482   0.024    0.880    
+# Fed_Unfed       1 128925640 128925640 358.668 2.63e-10 ***
+# pCO2:Fed_Unfed  1     68302     68302   0.190    0.671    
+# Residuals      12   4313477    359456
+
 # all is good, lets see the results
-pander(print(SRH_1026_length), style='rmarkdown') # table for Schierer-Ray_Hare Test
-# |       &nbsp;       | Df  | Sum Sq  |    H    | p.value |
-# |:------------------:|:---:|:-------:|:-------:|:-------:|
-# |      **pCO2**      |  1  |  786.8  | 0.02952 | 0.8636  |
-# |   **Fed_Unfed**    |  1  | 9696560 |  363.9  |    0    |
-# | **pCO2:Fed_Unfed** |  1  |  28054  |  1.053  | 0.3049  |
-# |   **Residuals**    | 561 | 5301068 |   NA    |   NA    |
-# all is good, lets see the results
-kable(unclass(print(SRH_1026_length))) %>%  # print a png of this table
-  kable_styling() %>%
-  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_SRH_Table.png", zoom = 1.5)
+kable(unclass(print(summary(AOV930.length)))) %>%  # print a png of this table
+  save_kable(file = "C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAnalysis/Output/Survival_size/20211026_figs_table/20211026_length_AOV_Table.pdf")
 
 
 # percent difference
 # data_92_survival %>% dplyr::group_by(pCO2) %>% dplyr::summarise(mean = mean(Survival))
 # data_92_survival %>% dplyr::group_by(trt) %>% dplyr::summarise(mean = mean(Survival))
-data_92_length %>%  dplyr::mutate(Length_mm = Length_um/1000) %>% summarySE(measurevar="Length_mm", groupvars= c("Fed_Unfed"))  # view summary means 
+data_92_AVG.length %>%  dplyr::mutate(Length_mm = Length_um/1000) %>% summarySE(measurevar="Length_mm", groupvars= c("Fed_Unfed"))  # view summary means 
 ((8.840188-3.167427) / 8.840188) * 100 # 64.17014 % greater shell length under high food availability
 
 
@@ -820,11 +985,11 @@ data_92_length %>%  dplyr::mutate(Length_mm = Length_um/1000) %>% summarySE(meas
 
 # Survival:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 data_92_survival <- survival_juvenile %>%
-  dplyr::filter(Age_DPF=="92") %>% 
-  dplyr::mutate(Fed_Unfed = as.factor(Food)) %>% 
-  dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", trt))) %>% 
-  dplyr::rename(Length_um = Length) %>% 
-  dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Food, sep = "_")))
+                    dplyr::filter(Age_DPF=="92") %>% 
+                    dplyr::mutate(Fed_Unfed = as.factor(Food)) %>% 
+                    dplyr::mutate(pCO2 = as.factor(gsub("^(?:[^_]+_){1}([^_]+).*", "\\1", trt))) %>% 
+                    dplyr::rename(Length_um = Length) %>% 
+                    dplyr::mutate(random_fact = as.factor(paste(pCO2,Rep,Food, sep = "_")))
 levels(data_92_survival$Fed_Unfed) <- c("High food", "Low food")
 levels(data_92_survival$pCO2) <- c("800 μatm", "500 μatm")
 
@@ -925,14 +1090,18 @@ denisty_box_length_92DPF <-ggplot(p.box.data) +
                             geom_rect(aes(xmin = lower, xmax = upper, ymin = -0.25, ymax = -0.15,  fill = pHxfood),color = "black") +
                             geom_point(data = . %>% unnest(outliers), aes(x = outliers, y = -0.2), color = "grey60", size = 1) +
                             # vertical lines at Q1 / Q2 / Q3
-                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% gather(key, value, -pHxfood), aes(xintercept = value)) +
+                            geom_vline(data = . %>% select(pHxfood, lower, mean, upper) %>% 
+                                         gather(key, value, -pHxfood), aes(xintercept = value)) +
                             # density plot
                             geom_density(data = data_92_length, aes(x = (Length_um/1000), fill=pHxfood, ..scaled..), alpha=.4) +
                             #  theme
                             theme_classic() +
                             xlim(0, 20) +
                             facet_grid(pHxfood ~ .) +
-                            theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none", plot.title = element_text(size=10))+
+                            theme(panel.grid.major = element_blank(), 
+                                  panel.grid.minor = element_blank(), 
+                                  legend.position = "none", 
+                                  plot.title = element_text(size=10))+
                             labs(x = "Shell length", y = "frequency")  +
                             scale_fill_manual(values=c("grey40", "grey40", "grey85", "grey85"))
 denisty_box_length_92DPF

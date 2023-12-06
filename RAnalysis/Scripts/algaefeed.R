@@ -22,31 +22,107 @@ setwd("C:/Users/samjg/Documents/Github_repositories/Airradians_OA-foodsupply/RAn
 
 # LOAD DATA  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-algaefeed  <- data.frame(read.csv(file="Data/Algae_FlowCytometry/AlgaeFeeding_master.csv", header=T)) %>% 
+algaefeed  <- data.frame(read.csv(file="Data/Algae_FlowCytometry/cumulative_raw/AlgaeFeeding_master.csv", header=T)) %>% 
   dplyr::mutate(Date = as.Date(Date, format="%m/%d/%Y")) %>% 
   dplyr::filter(!High_Chl_cell_mL > 9000) # omit the few outliers due to tank sampling error 
 
-# DATA TABLES   :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# DATA TABLES & STATS   :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 
-# Averages by date and food and OA treatment (high v. low chl a cells)  :::::::::::::::::::::::::::::::::::::::::::::::
-
+# averaged by rep to run stats - note theres an N of 17-19 for reps, these are sampling dates (time points!)
 # High Chlorophyll cells by pH & food treatment
-High_chla_MeanSE_date <-  algaefeed %>% 
-  summarySE(measurevar="High_Chl_cell_mL", groupvars=c("Date", "pH_treatment","Fed_unfed")) %>% 
+High_chla_MeanSE_rep <-  algaefeed %>% 
+  summarySE(measurevar="High_Chl_cell_mL", groupvars=c("Replicate", "pH_treatment","Fed_unfed")) %>% 
   dplyr::mutate(Cell_type = 'High_Chl_cell_mL') %>% 
   dplyr::rename(value = High_Chl_cell_mL)
 
 # Low Chlorophyll cells by pH & food treatment
-Low_chla_MeanSE_date <-  algaefeed %>% 
-  summarySE(measurevar="Low_Chl_cell_mL", groupvars=c("Date","pH_treatment","Fed_unfed")) %>% 
+Low_chla_MeanSE_rep <-  algaefeed %>% 
+  summarySE(measurevar="Low_Chl_cell_mL", groupvars=c("Replicate", "pH_treatment","Fed_unfed")) %>% 
   dplyr::mutate(Cell_type = 'Low_Chl_cell_mL') %>% 
   dplyr::rename(value = Low_Chl_cell_mL)
 
+# merge to a amster file and ommit occurance of error
+Means_Master_Rep <- rbind(High_chla_MeanSE_rep, Low_chla_MeanSE_rep)
 
-Means_Master_plotting <- rbind(High_chla_MeanSE_date, Low_chla_MeanSE_date) %>% 
-                          dplyr::filter(!(Cell_type == 'High_Chl_cell_mL' & Fed_unfed == 'unfed' & value > 2000))
+# isolate the high chl data (majority the Chaet-B and Tet supplemented algae)
+High_chla_Means_rep <- Means_Master_Rep %>% 
+                          dplyr::filter(Cell_type %in% 'High_Chl_cell_mL') %>% 
+                          dplyr::mutate(pH_treatment = as.factor(pH_treatment)) # %>%  # make num var as factor for AOV 
+                          #summarySE(measurevar="value", # a mean of means - initally by rep, now by treatment, N = 4 for reps
+                          #          groupvars=c("pH_treatment","Fed_unfed")) 
+# pH_treatment Fed_unfed N     value        sd        se        ci
+# 1          7.5      fed  4 1474.3768 271.34019 135.67009 431.76279
+# 2          7.5     unfed 4  396.3165  20.97520  10.48760  33.37622
+# 3            8      fed  4 1363.2153 259.14356 129.57178 412.35524
+# 4            8     unfed 4  451.1789  85.96238  42.98119 136.78533
 
+# isolate the low chl data (majority seston, the majority of  algae present for the low food treatment)
+Low_chla_Means_rep <- Means_Master_Rep %>% 
+                          dplyr::filter(Cell_type %in% 'Low_Chl_cell_mL') %>% 
+                          dplyr::mutate(pH_treatment = as.factor(pH_treatment)) # %>%  # make num var as factor for AOV 
+                          #summarySE(measurevar="value", # a mean of means - initally by rep, now by treatment, N = 4 for reps
+                          #          groupvars=c("pH_treatment","Fed_unfed")) 
+# pH_treatment Fed_unfed N    value        sd       se        ci
+# 1          7.5      fed  4 99685.98 10556.581 5278.290 16797.876
+# 2          7.5     unfed 4 73389.63  9852.721 4926.360 15677.878
+# 3            8      fed  4 74773.99  4602.060 2301.030  7322.904
+# 4            8     unfed 4 78431.82 14330.385 7165.192 22802.840
+
+# run stats - 
+# Question, did the supplemented treatment differ from the unfed
+# regarding the presence of high chl a and low chla particles? - NOTE our N per foodx OA treatment is 4! 
+
+# high chl particles
+high_chla_mod <- lm(value ~ pH_treatment*Fed_unfed, data= High_chla_Means_rep)
+shapiro.test(resid(high_chla_mod)) # 0.7276
+leveneTest(high_chla_mod) # 0.005261 ** - need to run non-parametric
+high_chla_SRH <- scheirerRayHare(value ~ pH_treatment*Fed_unfed, data= High_chla_Means_rep)
+pander(print(high_chla_SRH), style='rmarkdown') # table for SRH test
+# |           &nbsp;           | Df | Sum Sq |    H    |  p.value  |
+# |:--------------------------:|:--:|:------:|:-------:|:---------:|
+# |      **pH_treatment**      | 1  |  0.25  | 0.01103 |  0.9164   |
+# |       **Fed_unfed**        | 1  |  256   |  11.29  | 0.0007775 |
+# | **pH_treatment:Fed_unfed** | 1  |  6.25  | 0.2757  |  0.5995   |
+# |       **Residuals**        | 12 |  77.5  |   NA    |    NA     |
+High_chla_Means_rep  %>% summarySE(measurevar="value",groupvars=("Fed_unfed")) 
+# Fed_unfed N     value        sd       se        ci
+#      fed  8 1418.7961 252.71566 89.34848 211.27558
+#     unfed 8  423.7477  64.92659 22.95502  54.27999
+
+
+# low chl particles
+low_chla_mod <- lm(value ~ pH_treatment*Fed_unfed, data= Low_chla_Means_rep)
+shapiro.test(resid(low_chla_mod)) # 0.05165
+leveneTest(low_chla_mod) # 0.7038 
+pander(print(anova(low_chla_mod)), style='rmarkdown') 
+# |           &nbsp;           | Df |  Sum Sq   |  Mean Sq  | F value | Pr(>F)  |
+# |:--------------------------:|:--:|:---------:|:---------:|:-------:|:-------:|
+# |      **pH_treatment**      | 1  | 394808992 | 394808992 |  3.63   | 0.08099 |
+# |       **Fed_unfed**        | 1  | 512502491 | 512502491 |  4.712  | 0.05073 |
+# | **pH_treatment:Fed_unfed** | 1  | 897252622 | 897252622 |  8.25   | 0.01403 |
+# |       **Residuals**        | 12 | 1.305e+09 | 108764099 |   NA    |   NA    |
+Low_chla_Means_rep  %>% summarySE(measurevar="value",groupvars=("Fed_unfed")) 
+# Fed_unfed N    value       sd       se        ci
+# 1      fed  8 87229.98 15302.08 5410.102 12792.858
+# 2     unfed 8 75910.73 11699.54 4136.414  9781.064
+
+
+
+
+
+
+
+
+
+
+# Averages by date and food and OA treatment (high v. low chl a cells)  :::::::::::::::::::::::::::::::::::::::::::::::
+
+
+
+# Means_Master_plotting <- rbind(High_chla_MeanSE_date, Low_chla_MeanSE_date) %>% 
+#                           dplyr::filter(!(Cell_type == 'High_Chl_cell_mL' & Fed_unfed == 'unfed' & value > 2000))
+# 
 
 # ANOVA to test the differences in feeding treatments 
 
